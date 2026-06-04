@@ -1,8 +1,9 @@
 // src/components/layout/AppLayout.tsx
+import { useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore, useUIStore, useToastStore } from '@/lib/store'
 import { signOut } from '@/lib/supabase/auth'
-import { useUnreadCount } from '@/lib/hooks'
+import { useUnreadCount, useUpdateProfile } from '@/lib/hooks'
 
 const NAV = [
   { path: '/dashboard',    label: 'Dashboard',     icon: '◉', section: 'Accueil' },
@@ -21,16 +22,36 @@ const SECTIONS = ['Accueil', 'Terrain', 'Gestion']
 const NI_STYLE: React.CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 9px', borderRadius: 7, cursor: 'pointer', border: 'none', background: 'transparent', color: 'rgba(255,255,255,.52)', marginBottom: 1, transition: 'all .12s', whiteSpace: 'nowrap', overflow: 'hidden', fontFamily: 'inherit' }
 
 export default function AppLayout() {
-  const { user } = useAuthStore()
+  const { user, setUser } = useAuthStore()
   const { theme, sidebarOpen, toggleTheme, toggleSidebar } = useUIStore()
-  const { toasts, remove } = useToastStore()
+  const { toasts, remove, add } = useToastStore()
   const { data: unread = 0 } = useUnreadCount()
+  const updProfile = useUpdateProfile()
   const nav = useNavigate()
   const loc = useLocation()
   const isAdmin = user?.role === 'admin'
   const items = NAV.filter(i => !i.adminOnly || isAdmin)
 
+  const [profilModal, setProfilModal] = useState(false)
+  const [profilForm, setProfilForm] = useState({ prenom: '', nom: '' })
+
   async function handleSignOut() { await signOut(); nav('/login') }
+
+  function openProfil() {
+    setProfilForm({ prenom: user?.prenom || '', nom: user?.nom || '' })
+    setProfilModal(true)
+  }
+
+  async function handleSaveProfil(e: React.FormEvent) {
+    e.preventDefault()
+    if (!user) return
+    try {
+      await updProfile.mutateAsync({ id: user.id, prenom: profilForm.prenom, nom: profilForm.nom })
+      setUser({ ...user, prenom: profilForm.prenom, nom: profilForm.nom })
+      add('Profil mis à jour')
+      setProfilModal(false)
+    } catch (err: any) { add(err.message, 'error') }
+  }
 
   const currentPage = items.find(i => loc.pathname.startsWith(i.path))?.label || 'Kaytek'
 
@@ -77,18 +98,46 @@ export default function AppLayout() {
         {/* User */}
         <div style={{ padding: '10px 5px', borderTop: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 7, overflow: 'hidden' }}>
-            <div className="avatar" style={{ width: 24, height: 24, fontSize: 8, flexShrink: 0 }}>
-              {(user?.prenom?.[0] || '') + (user?.nom?.[0] || '')}
-            </div>
+            <button onClick={openProfil} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0 }} title="Modifier mon profil">
+              <div className="avatar" style={{ width: 24, height: 24, fontSize: 8 }}>
+                {(user?.prenom?.[0] || '') + (user?.nom?.[0] || '')}
+              </div>
+            </button>
             {sidebarOpen && <>
               <div style={{ flex: 1, overflow: 'hidden' }}>
                 <div style={{ color: '#fff', fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.prenom} {user?.nom}</div>
                 <div style={{ color: 'rgba(255,255,255,.45)', fontSize: 10 }}>{user?.role}</div>
               </div>
+              <button onClick={openProfil} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,.4)', cursor: 'pointer', fontSize: 12, flexShrink: 0, padding: 3 }} title="Modifier mon profil">✏</button>
               <button onClick={handleSignOut} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,.4)', cursor: 'pointer', fontSize: 15, flexShrink: 0, padding: 3 }} title="Déconnexion">⏻</button>
             </>}
           </div>
         </div>
+
+        {/* MODAL PROFIL */}
+        {profilModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="card" style={{ width: 380, padding: 28 }} onClick={e => e.stopPropagation()}>
+              <h3 style={{ margin: '0 0 18px', fontSize: 15 }}>Mon profil</h3>
+              <form onSubmit={handleSaveProfil}>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Prénom</label>
+                    <input value={profilForm.prenom} onChange={e => setProfilForm(f => ({ ...f, prenom: e.target.value }))} required />
+                  </div>
+                  <div className="form-group">
+                    <label>Nom</label>
+                    <input value={profilForm.nom} onChange={e => setProfilForm(f => ({ ...f, nom: e.target.value }))} required />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setProfilModal(false)}>Annuler</button>
+                  <button type="submit" className="btn btn-primary" disabled={updProfile.isPending}>Enregistrer</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </aside>
 
       {/* MAIN */}
