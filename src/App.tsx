@@ -18,6 +18,7 @@ import CommissionsPage from '@/pages/CommissionsPage'
 import UsersPage from '@/pages/UsersPage'
 import ParamsPage from '@/pages/ParamsPage'
 import JournalPage from '@/pages/JournalPage'
+import ResetPasswordPage from '@/pages/ResetPasswordPage'
 
 function Guard({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
   const { user, loading, error } = useAuthStore()
@@ -185,6 +186,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/" element={<Guard><AppLayout /></Guard>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
