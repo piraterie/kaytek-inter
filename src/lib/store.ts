@@ -4,13 +4,14 @@ import { persist } from 'zustand/middleware'
 import type { Profile, ParametresEntreprise } from '@/types'
 
 export const useAuthStore = create<{
-  user: Profile | null; loading: boolean
-  setUser: (u: Profile | null) => void; setLoading: (v: boolean) => void
+  user: Profile | null; loading: boolean; error: string | null
+  setUser: (u: Profile | null) => void; setLoading: (v: boolean) => void; setError: (e: string | null) => void
   isAdmin: () => boolean
 }>((set, get) => ({
-  user: null, loading: false,
+  user: null, loading: false, error: null,
   setUser: u => set({ user: u }),
   setLoading: v => set({ loading: v }),
+  setError: e => set({ error: e }),
   isAdmin: () => get().user?.role === 'admin'
 }))
 
@@ -21,7 +22,8 @@ export const useUIStore = create(persist<{
   theme: 'dark', sidebarOpen: true,
   toggleTheme: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
   toggleSidebar: () => set(s => ({ sidebarOpen: !s.sidebarOpen }))
-}), { name: 'kaytek-ui', partialize: (s: any) => ({ theme: s.theme }) }))
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+}), { name: 'kaytek-ui', partialize: (s: any) => ({ theme: s.theme }) } as any))
 
 export const useParamsStore = create<{
   params: ParametresEntreprise | null; setParams: (p: ParametresEntreprise) => void
