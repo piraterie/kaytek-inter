@@ -428,3 +428,36 @@ export function useJournal() {
     }
   })
 }
+
+export function useDeleteJournalEntry() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('journal').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['journal'] })
+  })
+}
+
+export function useDeleteAllJournal() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('journal').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['journal'] })
+  })
+}
+
+export function useUpdateJournalEntry() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, description }: { id: string; description: string }) => {
+      const { error } = await supabase.from('journal').update({ description }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['journal'] })
+  })
+}
