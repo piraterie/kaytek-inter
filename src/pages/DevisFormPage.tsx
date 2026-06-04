@@ -37,6 +37,7 @@ export default function DevisFormPage() {
   const [sigPad, setSigPad] = useState<SignaturePad | null>(null)
   const [showSig, setShowSig] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [sigSaving, setSigSaving] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
 
   const { data: existing } = useDevisById(id || '')
@@ -67,10 +68,17 @@ export default function DevisFormPage() {
   }, [existing])
 
   useEffect(() => {
-    if (showSig && canvasRef.current && !sigPad) {
-      setSigPad(new SignaturePad(canvasRef.current, { backgroundColor: 'rgba(255,255,255,0)' }))
+    if (showSig && canvasRef.current) {
+      const canvas = canvasRef.current
+      const ratio = Math.max(window.devicePixelRatio || 1, 1)
+      canvas.width = canvas.offsetWidth * ratio
+      canvas.height = canvas.offsetHeight * ratio
+      canvas.getContext('2d')?.scale(ratio, ratio)
+      const sp = new SignaturePad(canvas, { backgroundColor: 'rgba(255,255,255,0)', penColor: '#1e3a5f', minWidth: 1.5, maxWidth: 3 })
+      setSigPad(sp)
+      return () => sp.off()
     }
-  }, [showSig, sigPad])
+  }, [showSig])
 
   const tot = lignes.reduce((a, l) => ({ ht: a.ht + l.total_ht, ttc: a.ttc + l.total_ttc }), { ht: 0, ttc: 0 })
   const remise = Math.round(tot.ttc * (form.remise_pct / 100) * 100) / 100
@@ -130,15 +138,18 @@ export default function DevisFormPage() {
   }
 
   async function handleSign() {
-    if (!sigPad || sigPad.isEmpty()) { add('Veuillez signer', 'warning'); return }
-    const dataUrl = sigPad.toDataURL()
-    const res = await fetch(dataUrl)
-    const blob = await res.blob()
-    const { url, error } = await uploadSignature(blob, id || 'nouveau', 'devis')
-    if (error) { add(error, 'error'); return }
-    await update.mutateAsync({ id: id!, signature_url: url, signe_le: new Date().toISOString(), statut: 'accepte' })
-    add('Signature enregistree')
-    setShowSig(false)
+    if (!sigPad || sigPad.isEmpty()) { add('Veuillez signer avant de valider', 'warning'); return }
+    setSigSaving(true)
+    try {
+      const dataUrl = sigPad.toDataURL()
+      const res = await fetch(dataUrl)
+      const blob = await res.blob()
+      const { url, error } = await uploadSignature(blob, id || 'nouveau', 'devis')
+      if (error) { add(error, 'error'); return }
+      await update.mutateAsync({ id: id!, signature_url: url, signe_le: new Date().toISOString(), statut: 'accepte' })
+      add('Signature enregistrée ✓')
+      setShowSig(false)
+    } finally { setSigSaving(false) }
   }
 
   const eur = (n: number) => n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
@@ -297,16 +308,43 @@ export default function DevisFormPage() {
             </button>
           }
         </div>
+        {/* MODALE SIGNATURE PLEIN ÉCRAN */}
         {showSig && !existing?.signature_url && (
-          <div>
-            <div style={{ background: 'var(--s1)', border: '2px dashed var(--b1)', borderRadius: 8, padding: 4 }}>
-              <canvas ref={canvasRef} width={600} height={130}
-                style={{ display: 'block', width: '100%', touchAction: 'none', cursor: 'crosshair', borderRadius: 6 }} />
+          <div style={{ position: 'fixed', inset: 0, background: '#fff', zIndex: 200, display: 'flex', flexDirection: 'column' }}>
+            {/* Header */}
+            <div style={{ background: '#1e3a5f', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div>
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>✍ Signature client</div>
+                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 }}>Signez dans la zone ci-dessous pour accepter le devis</div>
+              </div>
+              <button onClick={() => setShowSig(false)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>✕ Annuler</button>
             </div>
-            <div className="flex gap-2 mt-2">
-              <button className="btn btn-secondary btn-sm" onClick={() => sigPad?.clear()}>Effacer</button>
-              {isEdit && <button className="btn btn-primary btn-sm" onClick={handleSign}>✓ Valider signature</button>}
-              {!isEdit && <span style={{ fontSize: 11, color: 'var(--amTx)', alignSelf: 'center' }}>⚠ Sauvegardez d abord le devis pour valider la signature</span>}
+
+            {/* Zone de signature */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 16, gap: 12 }}>
+              <div style={{ flex: 1, border: '2px dashed #1e3a5f', borderRadius: 12, overflow: 'hidden', position: 'relative', background: '#fafafa' }}>
+                <canvas ref={canvasRef}
+                  style={{ display: 'block', width: '100%', height: '100%', touchAction: 'none', cursor: 'crosshair' }} />
+                <div style={{ position: 'absolute', bottom: 12, left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
+                  <span style={{ fontSize: 12, color: '#c8c8ce', fontStyle: 'italic' }}>Signez ici avec votre doigt</span>
+                </div>
+              </div>
+
+              {/* Boutons */}
+              <div style={{ display: 'flex', gap: 12, flexShrink: 0 }}>
+                <button className="btn btn-secondary" style={{ flex: 1, minHeight: 52, fontSize: 15 }} onClick={() => sigPad?.clear()}>
+                  🗑 Effacer
+                </button>
+                {isEdit ? (
+                  <button className="btn btn-primary" style={{ flex: 2, minHeight: 52, fontSize: 15 }} onClick={handleSign} disabled={sigSaving}>
+                    {sigSaving ? 'Enregistrement…' : '✓ Valider la signature'}
+                  </button>
+                ) : (
+                  <div style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--amBg)', border: '1px solid var(--amBd)', borderRadius: 8, padding: '10px 16px', fontSize: 13, color: 'var(--amTx)', textAlign: 'center' }}>
+                    ⚠ Sauvegardez le devis d'abord
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
