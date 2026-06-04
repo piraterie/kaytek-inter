@@ -7,7 +7,7 @@ import { useAuthStore, useToastStore } from '@/lib/store'
 const SC: Record<string,string> = { en_attente:'pill-amber',accepte:'pill-blue',en_cours:'pill-orange',termine:'pill-green',facture:'pill-purple',annule:'pill-gray',refuse:'pill-red' }
 
 function downloadCSV(rows: string[][], filename: string) {
-  const csv = '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\n')
+  const csv = '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url)
 }

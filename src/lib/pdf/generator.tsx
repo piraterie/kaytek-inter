@@ -1,134 +1,214 @@
-// src/lib/pdf/generator.ts
+// src/lib/pdf/generator.tsx
 import { pdf, Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import type { Devis, Facture, ParametresEntreprise } from '@/types'
 
-const fmt = (d?: string) => { try { return d ? format(new Date(d), 'dd/MM/yyyy', { locale: fr }) : '-' } catch { return '-' } }
+const fmt = (d?: string) => { try { return d ? format(new Date(d), 'dd/MM/yyyy', { locale: fr }) : '—' } catch { return '—' } }
 const eur = (n?: number) => (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
 
-const S = StyleSheet.create({
-  page:    { padding: 44, fontFamily: 'Helvetica', fontSize: 9, color: '#111' },
-  row:     { flexDirection: 'row', justifyContent: 'space-between' },
-  bold:    { fontFamily: 'Helvetica-Bold' },
-  muted:   { fontSize: 8, color: '#666', lineHeight: 1.6 },
-  title:   { fontSize: 22, fontFamily: 'Helvetica-Bold' },
-  th:      { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#555', textTransform: 'uppercase', letterSpacing: 0.5 },
-  tdRow:   { flexDirection: 'row', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', fontSize: 9 },
-  tRow:    { flexDirection: 'row', justifyContent: 'flex-end', gap: 20, marginBottom: 3 },
-  tLabel:  { fontSize: 9, color: '#666', width: 90, textAlign: 'right' },
-  tVal:    { fontSize: 9, width: 70, textAlign: 'right' },
-  sigBox:  { borderWidth: 1, borderColor: '#ddd', borderRadius: 6, padding: 10, marginTop: 14, height: 70 },
-  footer:  { position: 'absolute', bottom: 28, left: 44, right: 44 },
-  ftxt:    { fontSize: 7, color: '#999', textAlign: 'center', lineHeight: 1.5, borderTopWidth: 1, borderTopColor: '#e0e0e0', paddingTop: 7 }
-})
-
-const THEMES: Record<number, { bg: string; fg: string; accent: string }> = {
-  0: { bg: '#f0f0f2', fg: '#111', accent: '#111' },
-  1: { bg: '#2563eb', fg: '#fff', accent: '#2563eb' },
-  2: { bg: '#111',   fg: '#fff', accent: '#111' },
-  3: { bg: '#ea580c',fg: '#fff', accent: '#ea580c' },
-  4: { bg: '#16a34a',fg: '#fff', accent: '#16a34a' }
+// ── THEMES ──────────────────────────────────────────────────────
+const THEMES: Record<number, { primary: string; accent: string; accentDark: string }> = {
+  0: { primary: '#1e3a5f', accent: '#e85d04', accentDark: '#c44b00' },   // Navy + Orange (modèle principal)
+  1: { primary: '#1d4ed8', accent: '#f59e0b', accentDark: '#d97706' },   // Bleu + Ambre
+  2: { primary: '#111827', accent: '#6366f1', accentDark: '#4f46e5' },   // Noir + Violet
+  3: { primary: '#065f46', accent: '#10b981', accentDark: '#059669' },   // Vert
+  4: { primary: '#6d28d9', accent: '#f97316', accentDark: '#ea580c' },   // Violet + Orange
 }
 
-function Lines({ lignes }: { lignes: Devis['lignes'] }) {
+const base = StyleSheet.create({
+  page:    { fontFamily: 'Helvetica', fontSize: 9, color: '#1a1a1a', backgroundColor: '#fff' },
+  bold:    { fontFamily: 'Helvetica-Bold' },
+  row:     { flexDirection: 'row' },
+  muted:   { fontSize: 8, color: '#6b7280', lineHeight: 1.7 },
+  upper:   { textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 7 },
+  footer:  { position: 'absolute', bottom: 24, left: 44, right: 44 },
+  ftxt:    { fontSize: 7, color: '#9ca3af', textAlign: 'center', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 6, lineHeight: 1.5 },
+})
+
+// ── HEADER ──────────────────────────────────────────────────────
+function Header({ type, numero, date, valide, params, accent, primary }: {
+  type: string; numero: string; date: string; valide?: string
+  params: ParametresEntreprise; accent: string; primary: string
+}) {
   return (
-    <View style={{ marginVertical: 12 }}>
-      <View style={[S.row, { paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#ddd' }]}>
-        <Text style={[S.th, { flex: 1 }]}>Designation</Text>
-        <Text style={[S.th, { width: 34, textAlign: 'center' }]}>Qte</Text>
-        <Text style={[S.th, { width: 60, textAlign: 'right' }]}>P.U. HT</Text>
-        <Text style={[S.th, { width: 34, textAlign: 'center' }]}>TVA</Text>
-        <Text style={[S.th, { width: 64, textAlign: 'right' }]}>TTC</Text>
+    <View style={{ margin: -44, marginBottom: 0 }}>
+      {/* Bande principale */}
+      <View style={[base.row, { backgroundColor: primary, minHeight: 100 }]}>
+        {/* Gauche : infos société */}
+        <View style={{ flex: 1, padding: 32, paddingRight: 20 }}>
+          {params.logo_url
+            ? <Image src={params.logo_url} style={{ width: 44, height: 44, borderRadius: 8, marginBottom: 10 }} />
+            : <View style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: accent, marginBottom: 10, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={[base.bold, { color: '#fff', fontSize: 20 }]}>{(params.raison_sociale || 'K')[0]}</Text>
+              </View>
+          }
+          <Text style={[base.bold, { color: '#fff', fontSize: 13, marginBottom: 3 }]}>{params.raison_sociale || 'Entreprise'}</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 8, lineHeight: 1.6 }}>
+            {params.adresse ? params.adresse + '\n' : ''}{params.code_postal} {params.ville}
+            {params.siret ? '\nSIRET : ' + params.siret : ''}
+          </Text>
+        </View>
+        {/* Droite : titre document + numéro */}
+        <View style={{ width: 185, backgroundColor: 'rgba(0,0,0,0.18)', padding: 32, paddingLeft: 20, justifyContent: 'space-between' }}>
+          <Text style={[base.bold, { color: '#fff', fontSize: 30, letterSpacing: 1 }]}>{type}</Text>
+          <View>
+            <View style={[base.row, { justifyContent: 'space-between', marginBottom: 3 }]}>
+              <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 8 }}>Numéro</Text>
+              <Text style={[base.bold, { color: '#fff', fontSize: 8 }]}>{numero}</Text>
+            </View>
+            <View style={[base.row, { justifyContent: 'space-between', marginBottom: 3 }]}>
+              <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 8 }}>Date</Text>
+              <Text style={[base.bold, { color: '#fff', fontSize: 8 }]}>{date}</Text>
+            </View>
+            {valide && (
+              <View style={[base.row, { justifyContent: 'space-between' }]}>
+                <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 8 }}>Valide jusqu'au</Text>
+                <Text style={[base.bold, { color: accent, fontSize: 8 }]}>{valide}</Text>
+              </View>
+            )}
+          </View>
+        </View>
       </View>
+      {/* Bande accent */}
+      <View style={{ backgroundColor: accent, height: 5 }} />
+    </View>
+  )
+}
+
+// ── CLIENT SECTION ──────────────────────────────────────────────
+function ClientSection({ clientNom, clientPhone, clientEmail, clientAdresse, right }: {
+  clientNom: string; clientPhone?: string; clientEmail?: string; clientAdresse?: string
+  right?: React.ReactNode
+}) {
+  return (
+    <View style={[base.row, { marginTop: 24, marginBottom: 18, justifyContent: 'space-between' }]}>
+      <View style={{ backgroundColor: '#f8fafc', borderRadius: 6, padding: 14, flex: 1, marginRight: 12, borderLeftWidth: 3, borderLeftColor: '#e85d04' }}>
+        <Text style={[base.bold, base.upper, { color: '#6b7280', marginBottom: 6 }]}>Facturé à</Text>
+        <Text style={[base.bold, { fontSize: 11, marginBottom: 3 }]}>{clientNom}</Text>
+        {clientPhone && <Text style={base.muted}>{clientPhone}</Text>}
+        {clientEmail && <Text style={base.muted}>{clientEmail}</Text>}
+        {clientAdresse && <Text style={base.muted}>{clientAdresse}</Text>}
+      </View>
+      {right && <View style={{ width: 170 }}>{right}</View>}
+    </View>
+  )
+}
+
+// ── LIGNES TABLE ────────────────────────────────────────────────
+function LignesTable({ lignes, accent, primary }: { lignes: Devis['lignes']; accent: string; primary: string }) {
+  return (
+    <View style={{ marginBottom: 16 }}>
+      {/* Header */}
+      <View style={[base.row, { backgroundColor: primary, borderRadius: 5, paddingVertical: 8, paddingHorizontal: 10 }]}>
+        <Text style={[base.bold, { color: '#fff', width: 26, fontSize: 8 }]}>N°</Text>
+        <Text style={[base.bold, { color: '#fff', flex: 1, fontSize: 8 }]}>Désignation</Text>
+        <Text style={[base.bold, { color: '#fff', width: 64, textAlign: 'right', fontSize: 8 }]}>P.U. HT</Text>
+        <Text style={[base.bold, { color: '#fff', width: 32, textAlign: 'center', fontSize: 8 }]}>Qté</Text>
+        <Text style={[base.bold, { color: '#fff', width: 44, textAlign: 'center', fontSize: 8 }]}>TVA</Text>
+        <Text style={[base.bold, { color: accent, width: 64, textAlign: 'right', fontSize: 8 }]}>Total TTC</Text>
+      </View>
+      {/* Rows */}
       {lignes.map((l, i) => (
-        <View key={i} style={[S.tdRow, i % 2 === 1 ? { backgroundColor: '#fafafa' } : {}]}>
+        <View key={i} style={[base.row, {
+          paddingVertical: 7, paddingHorizontal: 10,
+          backgroundColor: i % 2 === 0 ? '#fff' : '#f8fafc',
+          borderBottomWidth: 1, borderBottomColor: '#e5e7eb'
+        }]}>
+          <Text style={{ width: 26, color: '#9ca3af', fontSize: 8 }}>{i + 1}</Text>
           <Text style={{ flex: 1 }}>{l.description}</Text>
-          <Text style={{ width: 34, textAlign: 'center' }}>{l.quantite}</Text>
-          <Text style={{ width: 60, textAlign: 'right' }}>{eur(l.prix_ht)}</Text>
-          <Text style={{ width: 34, textAlign: 'center' }}>{l.tva_pct}%</Text>
-          <Text style={[S.bold, { width: 64, textAlign: 'right' }]}>{eur(l.total_ttc)}</Text>
+          <Text style={{ width: 64, textAlign: 'right' }}>{eur(l.prix_ht)}</Text>
+          <Text style={{ width: 32, textAlign: 'center', color: '#6b7280' }}>{l.quantite}</Text>
+          <Text style={{ width: 44, textAlign: 'center', color: '#6b7280' }}>{l.tva_pct}%</Text>
+          <Text style={[base.bold, { width: 64, textAlign: 'right' }]}>{eur(l.total_ttc)}</Text>
         </View>
       ))}
     </View>
   )
 }
 
-function Totals({ ht, tva, remisePct, remise, ttc, accent }: { ht: number; tva: number; remisePct?: number; remise?: number; ttc: number; accent: string }) {
+// ── TOTALS ──────────────────────────────────────────────────────
+function Totals({ ht, tva, remisePct, remise, ttc, accent }: {
+  ht: number; tva: number; remisePct?: number; remise?: number; ttc: number; accent: string
+}) {
   return (
-    <View style={{ alignItems: 'flex-end', marginTop: 8 }}>
-      <View style={S.tRow}><Text style={S.tLabel}>Sous-total HT</Text><Text style={S.tVal}>{eur(ht)}</Text></View>
-      <View style={S.tRow}><Text style={S.tLabel}>TVA</Text><Text style={S.tVal}>{eur(tva)}</Text></View>
-      {!!remisePct && (
-        <View style={S.tRow}>
-          <Text style={[S.tLabel, { color: '#dc2626' }]}>Remise ({remisePct}%)</Text>
-          <Text style={[S.tVal, { color: '#dc2626' }]}>-{eur(remise)}</Text>
+    <View style={{ alignItems: 'flex-end', marginBottom: 16 }}>
+      <View style={{ width: 220, backgroundColor: '#f8fafc', borderRadius: 6, padding: 14 }}>
+        <View style={[base.row, { justifyContent: 'space-between', marginBottom: 5 }]}>
+          <Text style={base.muted}>Sous-total HT</Text>
+          <Text>{eur(ht)}</Text>
         </View>
-      )}
-      <View style={[S.tRow, { paddingTop: 5, borderTopWidth: 1, borderTopColor: '#ddd', marginTop: 4 }]}>
-        <Text style={[S.tLabel, S.bold, { fontSize: 11 }]}>Total TTC</Text>
-        <Text style={[S.tVal, S.bold, { fontSize: 14, color: accent }]}>{eur(ttc)}</Text>
+        <View style={[base.row, { justifyContent: 'space-between', marginBottom: 5 }]}>
+          <Text style={base.muted}>TVA</Text>
+          <Text>{eur(tva)}</Text>
+        </View>
+        {!!remisePct && (
+          <View style={[base.row, { justifyContent: 'space-between', marginBottom: 5 }]}>
+            <Text style={{ fontSize: 8, color: '#dc2626' }}>Remise ({remisePct}%)</Text>
+            <Text style={{ color: '#dc2626' }}>-{eur(remise)}</Text>
+          </View>
+        )}
+        <View style={[base.row, { justifyContent: 'space-between', paddingTop: 8, borderTopWidth: 1.5, borderTopColor: '#e5e7eb', marginTop: 4 }]}>
+          <Text style={[base.bold, { fontSize: 11 }]}>Total TTC</Text>
+          <Text style={[base.bold, { fontSize: 14, color: accent }]}>{eur(ttc)}</Text>
+        </View>
       </View>
     </View>
   )
 }
 
+// ── DEVIS PDF ────────────────────────────────────────────────────
 export async function generateDevisPDF(devis: Devis, params: ParametresEntreprise, modeleId = 0): Promise<Blob> {
-  const { bg, fg, accent } = THEMES[modeleId] || THEMES[0]
-  const muteColor = fg === '#fff' ? 'rgba(255,255,255,0.72)' : '#666'
+  const { primary, accent } = THEMES[modeleId] || THEMES[0]
+  const clientNom = [devis.client?.nom, devis.client?.prenom].filter(Boolean).join(' ') || '—'
+
   const doc = (
     <Document>
-      <Page size="A4" style={S.page}>
-        <View style={[S.row, { backgroundColor: bg, margin: -44, padding: 44, marginBottom: 20 }]}>
-          <View>
-            {params.logo_url ? <Image src={params.logo_url} style={{ width: 46, height: 46, borderRadius: 8 }} /> : null}
-            <Text style={[S.bold, { fontSize: 13, color: fg, marginTop: 8 }]}>{params.raison_sociale}</Text>
-            <Text style={[S.muted, { color: muteColor }]}>
-              {params.adresse}{'\n'}{params.code_postal} {params.ville}{'\n'}SIRET: {params.siret}
-            </Text>
-          </View>
-          <View style={{ textAlign: 'right' }}>
-            <Text style={[S.title, { color: fg }]}>DEVIS</Text>
-            <Text style={[S.muted, { color: muteColor, textAlign: 'right' }]}>
-              {devis.numero}{'\n'}{fmt(devis.created_at)}
-              {devis.valide_jusqu_au ? '\nValable jusqu au ' + fmt(devis.valide_jusqu_au) : ''}
-            </Text>
-          </View>
-        </View>
-        <View style={[S.row, { marginBottom: 16 }]}>
-          <View>
-            <Text style={[S.muted, { textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 }]}>Client</Text>
-            <Text style={S.bold}>{devis.client?.nom} {devis.client?.prenom}</Text>
-            <Text style={S.muted}>{devis.client?.telephone}{'\n'}{devis.client?.email}{'\n'}{devis.client?.adresse_intervention}</Text>
-          </View>
-          {devis.intervenant ? (
-            <View style={{ textAlign: 'right' }}>
-              <Text style={[S.muted, { textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 }]}>Intervenant</Text>
-              <Text style={[S.bold, { textAlign: 'right' }]}>{devis.intervenant.prenom} {devis.intervenant.nom}</Text>
+      <Page size="A4" style={[base.page, { padding: 44 }]}>
+        <Header type="DEVIS" numero={devis.numero} date={fmt(devis.created_at)} valide={devis.valide_jusqu_au ? fmt(devis.valide_jusqu_au) : undefined} params={params} accent={accent} primary={primary} />
+
+        <ClientSection
+          clientNom={clientNom}
+          clientPhone={devis.client?.telephone}
+          clientEmail={devis.client?.email}
+          clientAdresse={devis.client?.adresse_intervention}
+          right={devis.intervenant ? (
+            <View style={{ backgroundColor: '#f8fafc', borderRadius: 6, padding: 14, borderLeftWidth: 3, borderLeftColor: primary }}>
+              <Text style={[base.bold, base.upper, { color: '#6b7280', marginBottom: 6 }]}>Intervenant</Text>
+              <Text style={[base.bold, { fontSize: 10 }]}>{devis.intervenant.prenom} {devis.intervenant.nom}</Text>
             </View>
           ) : null}
-        </View>
-        <Lines lignes={devis.lignes} />
+        />
+
+        {devis.lignes?.length > 0
+          ? <LignesTable lignes={devis.lignes} accent={accent} primary={primary} />
+          : <View style={{ padding: 20, backgroundColor: '#f8fafc', borderRadius: 6, marginBottom: 16 }}><Text style={base.muted}>Aucune ligne</Text></View>
+        }
+
         <Totals ht={devis.total_ht} tva={devis.tva_montant} remisePct={devis.remise_pct} remise={devis.remise_montant} ttc={devis.total_ttc} accent={accent} />
-        {devis.notes ? (
-          <View style={{ backgroundColor: '#f7f7f7', borderRadius: 6, padding: 10, marginTop: 12 }}>
-            <Text style={[S.muted, { marginBottom: 3 }]}>Notes</Text>
-            <Text style={{ fontSize: 9 }}>{devis.notes}</Text>
+
+        {/* Notes */}
+        {devis.notes && (
+          <View style={{ backgroundColor: '#fefce8', borderRadius: 6, padding: 12, marginBottom: 14, borderLeftWidth: 3, borderLeftColor: '#f59e0b' }}>
+            <Text style={[base.bold, base.upper, { color: '#92400e', marginBottom: 4 }]}>Notes</Text>
+            <Text style={{ fontSize: 9, color: '#78350f', lineHeight: 1.6 }}>{devis.notes}</Text>
           </View>
-        ) : null}
-        <View style={S.sigBox}>
-          <Text style={S.muted}>Signature client - bon pour accord</Text>
-          {devis.signature_url ? (
-            <>
-              <Image src={devis.signature_url} style={{ height: 38, marginTop: 4 }} />
-              <Text style={[S.muted, { marginTop: 3 }]}>Signe le {fmt(devis.signe_le)}</Text>
-            </>
-          ) : (
-            <Text style={[S.muted, { marginTop: 10, color: '#bbb' }]}>A signer</Text>
-          )}
+        )}
+
+        {/* Signature */}
+        <View style={{ borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 6, padding: 12, height: 80, marginBottom: 14 }}>
+          <Text style={[base.bold, base.upper, { color: '#6b7280', marginBottom: 6 }]}>Signature client — bon pour accord</Text>
+          {devis.signature_url
+            ? <>
+                <Image src={devis.signature_url} style={{ height: 38, marginTop: 4 }} />
+                <Text style={[base.muted, { marginTop: 3 }]}>Signé le {fmt(devis.signe_le)}</Text>
+              </>
+            : <Text style={{ color: '#d1d5db', fontSize: 8, marginTop: 14 }}>À signer</Text>
+          }
         </View>
-        <View style={S.footer}>
-          <Text style={S.ftxt}>{[params.cgv, params.rc_pro ? 'RC Pro: ' + params.rc_pro : ''].filter(Boolean).join(' - ')}</Text>
+
+        <View style={base.footer}>
+          <Text style={base.ftxt}>{[params.cgv, params.rc_pro ? 'RC Pro : ' + params.rc_pro : ''].filter(Boolean).join('  ·  ')}</Text>
         </View>
       </Page>
     </Document>
@@ -136,47 +216,62 @@ export async function generateDevisPDF(devis: Devis, params: ParametresEntrepris
   return pdf(doc).toBlob()
 }
 
+// ── FACTURE PDF ──────────────────────────────────────────────────
 export async function generateFacturePDF(facture: Facture, devis: Devis | null, params: ParametresEntreprise): Promise<Blob> {
+  const { primary, accent } = THEMES[0]
   const lignes = devis?.lignes || []
+  const clientNom = [facture.client?.nom, facture.client?.prenom].filter(Boolean).join(' ') || '—'
+  const estPayee = facture.statut_paiement === 'payee'
+
   const doc = (
     <Document>
-      <Page size="A4" style={S.page}>
-        <View style={[S.row, { marginBottom: 20 }]}>
-          <View>
-            {params.logo_url ? <Image src={params.logo_url} style={{ width: 46, height: 46, borderRadius: 8 }} /> : null}
-            <Text style={[S.bold, { fontSize: 13, marginTop: 8 }]}>{params.raison_sociale}</Text>
-            <Text style={S.muted}>{params.adresse} - {params.code_postal} {params.ville}{'\n'}SIRET: {params.siret}</Text>
-          </View>
-          <View style={{ textAlign: 'right' }}>
-            <Text style={S.title}>FACTURE</Text>
-            <Text style={[S.muted, { textAlign: 'right' }]}>
-              {facture.numero}{'\n'}Date: {fmt(facture.date_emission)}
-              {facture.date_echeance ? '\nEcheance: ' + fmt(facture.date_echeance) : ''}
+      <Page size="A4" style={[base.page, { padding: 44 }]}>
+        <Header type="FACTURE" numero={facture.numero} date={fmt(facture.date_emission)} valide={facture.date_echeance ? 'Échéance : ' + fmt(facture.date_echeance) : undefined} params={params} accent={estPayee ? '#16a34a' : accent} primary={primary} />
+
+        <ClientSection
+          clientNom={clientNom}
+          clientPhone={facture.client?.telephone}
+          clientEmail={facture.client?.email}
+          right={
+            <View style={{ backgroundColor: estPayee ? '#dcfce7' : '#fef2f2', borderRadius: 6, padding: 14, borderLeftWidth: 3, borderLeftColor: estPayee ? '#16a34a' : '#dc2626' }}>
+              <Text style={[base.bold, base.upper, { color: estPayee ? '#15803d' : '#991b1b', marginBottom: 6 }]}>Statut paiement</Text>
+              <Text style={[base.bold, { fontSize: 12, color: estPayee ? '#16a34a' : '#dc2626' }]}>
+                {estPayee ? '✓ PAYÉE' : facture.statut_paiement.toUpperCase()}
+              </Text>
+              {facture.date_paiement && <Text style={{ fontSize: 8, color: '#15803d', marginTop: 3 }}>le {fmt(facture.date_paiement)}</Text>}
+              {facture.mode_paiement && <Text style={{ fontSize: 8, color: '#6b7280', marginTop: 2 }}>{facture.mode_paiement}</Text>}
+            </View>
+          }
+        />
+
+        {lignes.length > 0
+          ? <LignesTable lignes={lignes} accent={estPayee ? '#16a34a' : accent} primary={primary} />
+          : null
+        }
+
+        <Totals ht={devis?.total_ht ?? facture.montant_ht} tva={devis?.tva_montant ?? facture.tva_montant} ttc={facture.montant_ttc} accent={estPayee ? '#16a34a' : accent} />
+
+        {/* Coordonnées bancaires */}
+        {params.iban && (
+          <View style={{ backgroundColor: '#f8fafc', borderRadius: 6, padding: 12, marginBottom: 14, borderLeftWidth: 3, borderLeftColor: primary }}>
+            <Text style={[base.bold, base.upper, { color: '#6b7280', marginBottom: 6 }]}>Coordonnées bancaires</Text>
+            <Text style={{ fontSize: 9, lineHeight: 1.6 }}>
+              IBAN : {params.iban}{params.bic ? '   ·   BIC : ' + params.bic : ''}
             </Text>
           </View>
+        )}
+
+        {/* Notes */}
+        {facture.notes && (
+          <View style={{ backgroundColor: '#fefce8', borderRadius: 6, padding: 12, marginBottom: 14, borderLeftWidth: 3, borderLeftColor: '#f59e0b' }}>
+            <Text style={[base.bold, base.upper, { color: '#92400e', marginBottom: 4 }]}>Notes</Text>
+            <Text style={{ fontSize: 9, color: '#78350f', lineHeight: 1.6 }}>{facture.notes}</Text>
+          </View>
+        )}
+
+        <View style={base.footer}>
+          <Text style={base.ftxt}>{params.cgv || 'Merci pour votre confiance.'}</Text>
         </View>
-        <View style={[S.row, { marginBottom: 16 }]}>
-          <View>
-            <Text style={[S.muted, { textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 }]}>Facture a</Text>
-            <Text style={S.bold}>{facture.client?.nom} {facture.client?.prenom}</Text>
-            <Text style={S.muted}>{facture.client?.telephone}{'\n'}{facture.client?.email}</Text>
-          </View>
-          <View style={{ textAlign: 'right' }}>
-            <Text style={[S.muted, { textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 }]}>Statut</Text>
-            <Text style={[S.bold, { color: facture.statut_paiement === 'payee' ? '#16a34a' : '#dc2626', textAlign: 'right' }]}>
-              {facture.statut_paiement === 'payee' ? 'PAYEE' : facture.statut_paiement.toUpperCase()}
-            </Text>
-          </View>
-        </View>
-        {lignes.length > 0 ? <Lines lignes={lignes} /> : null}
-        <Totals ht={devis?.total_ht || facture.montant_ht} tva={devis?.tva_montant || facture.tva_montant} ttc={facture.montant_ttc} accent="#111" />
-        {params.iban ? (
-          <View style={{ backgroundColor: '#f7f7f7', borderRadius: 6, padding: 10, marginTop: 12 }}>
-            <Text style={[S.muted, { marginBottom: 3 }]}>Coordonnees bancaires</Text>
-            <Text style={{ fontSize: 9 }}>IBAN: {params.iban}{params.bic ? '  BIC: ' + params.bic : ''}</Text>
-          </View>
-        ) : null}
-        <View style={S.footer}><Text style={S.ftxt}>{params.cgv || ''}</Text></View>
       </Page>
     </Document>
   )

@@ -7,11 +7,22 @@ const ACTION_CLS: Record<string,string> = {
 }
 
 function downloadCSV(rows: string[][], filename: string) {
-  const csv = '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\n')
+  const csv = '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
   URL.revokeObjectURL(url)
+}
+
+function fmtDate(iso: string) {
+  try { return new Date(iso).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) } catch { return iso }
+}
+
+function summarizeJson(obj: Record<string, unknown> | null | undefined): string {
+  if (!obj) return ''
+  const keys = ['numero','statut','statut_paiement','montant_ttc','total_ttc','nom','prenom','email','adresse','type','action']
+  const parts = keys.filter(k => k in obj && obj[k] != null).map(k => `${k}: ${obj[k]}`)
+  return parts.length ? parts.join(' | ') : JSON.stringify(obj).slice(0, 100)
 }
 
 export default function JournalPage() {
@@ -34,12 +45,12 @@ export default function JournalPage() {
     const rows = [
       ['Date', 'Utilisateur', 'Action', 'Table', 'Ancienne valeur', 'Nouvelle valeur'],
       ...filtered.map(j => [
-        new Date(j.created_at).toLocaleString('fr-FR'),
+        fmtDate(j.created_at),
         j.user_nom || '',
         j.action,
         j.table_name,
-        j.old_value ? JSON.stringify(j.old_value) : '',
-        j.new_value ? JSON.stringify(j.new_value) : ''
+        summarizeJson(j.old_value as any),
+        summarizeJson(j.new_value as any)
       ])
     ]
     downloadCSV(rows, `journal-${new Date().toISOString().split('T')[0]}.csv`)
