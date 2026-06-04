@@ -8,7 +8,7 @@ export const useAuthStore = create<{
   setUser: (u: Profile | null) => void; setLoading: (v: boolean) => void; setError: (e: string | null) => void
   isAdmin: () => boolean
 }>((set, get) => ({
-  user: null, loading: false, error: null,
+  user: null, loading: true, error: null,
   setUser: u => set({ user: u }),
   setLoading: v => set({ loading: v }),
   setError: e => set({ error: e }),
