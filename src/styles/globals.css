@@ -113,10 +113,21 @@ label{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;le
 @media(max-width:768px){
   .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
   .hide-mobile{display:none!important}
+  .show-mobile{display:flex!important}
   .form-row{grid-template-columns:1fr}
-  .btn,.btn-secondary,.btn-primary,.btn-danger{min-height:44px}
+  .btn,.btn-secondary,.btn-primary,.btn-danger{min-height:44px;padding:10px 14px}
+  .btn-sm{min-height:36px;padding:7px 12px}
   .btn-icon{width:44px;height:44px}
-  input,select,textarea{font-size:16px;min-height:44px}
+  .btn-icon.sm{width:38px;height:38px}
+  input,select,textarea{font-size:16px!important;min-height:44px}
   .modal-overlay{align-items:flex-end;padding:0}
   .modal{max-height:92vh;border-radius:var(--r2) var(--r2) 0 0;border-bottom:none}
+  .data-table th,.data-table td{padding:8px 10px;font-size:11px}
+  .page-title{font-size:15px}
+  .stat-value{font-size:18px}
+  .filter-bar{gap:6px}
+  .filter-bar select,.filter-bar .search-bar{min-height:40px}
+  .card{border-radius:10px}
+  .toast-container{bottom:12px;right:12px;left:12px}
+  .toast{max-width:100%}
 }

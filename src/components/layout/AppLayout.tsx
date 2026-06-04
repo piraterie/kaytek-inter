@@ -34,6 +34,7 @@ export default function AppLayout() {
 
   const [profilModal, setProfilModal] = useState(false)
   const [profilForm, setProfilForm] = useState({ prenom: '', nom: '' })
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
 
   async function handleSignOut() { await signOut(); nav('/login') }
 
@@ -53,12 +54,27 @@ export default function AppLayout() {
     } catch (err: any) { add(err.message, 'error') }
   }
 
+  function navTo(path: string) {
+    nav(path)
+    if (isMobile && sidebarOpen) toggleSidebar()
+  }
+
   const currentPage = items.find(i => loc.pathname.startsWith(i.path))?.label || 'Kaytek'
 
   return (
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
+      {/* OVERLAY MOBILE */}
+      {isMobile && sidebarOpen && (
+        <div onClick={toggleSidebar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 99 }} />
+      )}
       {/* SIDEBAR */}
-      <aside style={{ width: sidebarOpen ? 218 : 50, minWidth: sidebarOpen ? 218 : 50, background: 'var(--nav)', display: 'flex', flexDirection: 'column', transition: 'width .22s ease', overflow: 'hidden' }}>
+      <aside style={{
+        width: sidebarOpen ? 218 : (isMobile ? 0 : 50),
+        minWidth: sidebarOpen ? 218 : (isMobile ? 0 : 50),
+        background: 'var(--nav)', display: 'flex', flexDirection: 'column',
+        transition: 'width .22s ease', overflow: 'hidden',
+        ...(isMobile && sidebarOpen ? { position: 'fixed', top: 0, left: 0, height: '100dvh', zIndex: 100 } : {})
+      }}>
         {/* Logo */}
         <div style={{ padding: '16px 13px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
           <div style={{ width: 26, height: 26, background: '#2563eb', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>🔐</div>
@@ -79,7 +95,7 @@ export default function AppLayout() {
                   const active = loc.pathname.startsWith(item.path)
                   const badgeCount = item.badge ? unread : 0
                   return (
-                    <button key={item.path} onClick={() => nav(item.path)}
+                    <button key={item.path} onClick={() => navTo(item.path)}
                       style={{ ...NI_STYLE, background: active ? 'rgba(255,255,255,.13)' : 'transparent', color: active ? '#fff' : 'rgba(255,255,255,.52)' }}
                       onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,.07)'; (e.currentTarget as HTMLButtonElement).style.color = '#fff' }}
                       onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.52)' }}>
@@ -156,7 +172,7 @@ export default function AppLayout() {
           </div>
         </header>
         {/* Content */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: 18, scrollbarWidth: 'thin', scrollbarColor: 'var(--s3) transparent' }}>
+        <main style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 12 : 18, scrollbarWidth: 'thin', scrollbarColor: 'var(--s3) transparent' }}>
           <Outlet />
         </main>
       </div>
