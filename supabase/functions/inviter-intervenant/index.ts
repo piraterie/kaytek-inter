@@ -55,7 +55,8 @@ serve(async (req) => {
         nom,
         prenom,
         role: 'intervenant',
-        commission_pct: commission_pct ?? 30
+        commission_pct: commission_pct ?? 30,
+        actif: true
       })
 
     if (profileError) {

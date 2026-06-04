@@ -2,26 +2,54 @@
 import { useState } from 'react'
 import { useProfiles, useUpdateProfile } from '@/lib/hooks'
 import { useToastStore } from '@/lib/store'
-import { inviterIntervenant } from '@/lib/supabase/auth'
+import { inviterIntervenant, supprimerUtilisateur } from '@/lib/supabase/auth'
+import type { Profile } from '@/types'
 
 export default function UsersPage() {
   const { add } = useToastStore()
-  const { data: profiles = [], isLoading } = useProfiles()
+  const { data: profiles = [], isLoading, refetch } = useProfiles()
   const upd = useUpdateProfile()
   const [modal, setModal] = useState(false)
+  const [editModal, setEditModal] = useState(false)
+  const [editTarget, setEditTarget] = useState<Profile | null>(null)
   const [invForm, setInvForm] = useState({ email:'', nom:'', prenom:'', commission_pct:30 })
+  const [editForm, setEditForm] = useState({ nom:'', prenom:'', email:'', commission_pct:30 })
   const [invLoading, setInvLoading] = useState(false)
+  const [editLoading, setEditLoading] = useState(false)
+  const [delLoading, setDelLoading] = useState<string|null>(null)
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault(); setInvLoading(true)
     const { error } = await inviterIntervenant(invForm.email, invForm.nom, invForm.prenom, invForm.commission_pct)
     setInvLoading(false)
     if (error) add(error,'error')
-    else { add(`Invitation envoyée à ${invForm.email}`); setModal(false); setInvForm({ email:'',nom:'',prenom:'',commission_pct:30 }) }
+    else { add(`Invitation envoyée à ${invForm.email}`); setModal(false); setInvForm({ email:'',nom:'',prenom:'',commission_pct:30 }); refetch() }
+  }
+
+  function openEdit(p: Profile) {
+    setEditTarget(p); setEditForm({ nom:p.nom, prenom:p.prenom, email:p.email, commission_pct:p.commission_pct }); setEditModal(true)
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault(); if (!editTarget) return; setEditLoading(true)
+    try {
+      await upd.mutateAsync({ id: editTarget.id, nom: editForm.nom, prenom: editForm.prenom, commission_pct: editForm.commission_pct })
+      add('Profil mis à jour'); setEditModal(false); setEditTarget(null)
+    } catch(err:any) { add(err.message,'error') }
+    setEditLoading(false)
+  }
+
+  async function handleDelete(p: Profile) {
+    if (!confirm(`Supprimer définitivement ${p.prenom} ${p.nom} ? Cette action est irréversible.`)) return
+    setDelLoading(p.id)
+    const { error } = await supprimerUtilisateur(p.id)
+    setDelLoading(null)
+    if (error) add(error,'error')
+    else { add(`${p.prenom} ${p.nom} supprimé`); refetch() }
   }
 
   async function toggleActive(id: string, actif: boolean) {
-    try { await upd.mutateAsync({ id, actif: !actif }); add(actif?'Compte désactivé (historique conservé)':'Compte réactivé') }
+    try { await upd.mutateAsync({ id, actif: !actif }); add(actif?'Compte désactivé':'Compte réactivé') }
     catch(e:any) { add(e.message,'error') }
   }
 
@@ -39,11 +67,11 @@ export default function UsersPage() {
       <div className="card">
         {isLoading&&<div style={{ padding:24,textAlign:'center',color:'var(--t3)' }}>Chargement…</div>}
         {profiles.map(p=>(
-          <div key={p.id} style={{ display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderBottom:'1px solid var(--b0)',transition:'background .12s' }} onMouseEnter={e=>(e.currentTarget as HTMLDivElement).style.background='var(--s1)'} onMouseLeave={e=>(e.currentTarget as HTMLDivElement).style.background=''}>
+          <div key={p.id} style={{ display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderBottom:'1px solid var(--b0)' }}>
             <div className={`avatar ${p.role==='admin'?'purple':''}`} style={{ width:34,height:34,fontSize:12 }}>{(p.prenom?.[0]||'')+(p.nom?.[0]||'')}</div>
             <div style={{ flex:1,minWidth:0 }}>
               <div style={{ fontSize:12,fontWeight:600,color:'var(--t0)' }}>{p.prenom} {p.nom}</div>
-              <div style={{ fontSize:11,color:'var(--t2)' }}>{p.email} · {p.role} {p.role==='intervenant'?`· comm. ${p.commission_pct}%`:''}</div>
+              <div style={{ fontSize:11,color:'var(--t2)' }}>{p.email} · {p.role}{p.role==='intervenant'?` · comm. ${p.commission_pct}%`:''}</div>
             </div>
             <div style={{ display:'flex',alignItems:'center',gap:8,flexShrink:0,flexWrap:'wrap' }}>
               <span className={`pill ${p.role==='admin'?'pill-purple':'pill-blue'}`}>{p.role}</span>
@@ -58,13 +86,27 @@ export default function UsersPage() {
                   <span style={{ fontSize:11,color:'var(--t2)' }}>%</span>
                 </>
               )}
+              <button className="btn btn-secondary btn-sm" onClick={()=>openEdit(p)} title="Modifier">✏</button>
+              {p.role==='intervenant'&&(
+                <button
+                  className="btn-icon sm"
+                  style={{ color:'var(--rdTx)' }}
+                  onClick={()=>handleDelete(p)}
+                  disabled={delLoading===p.id}
+                  title="Supprimer définitivement"
+                >
+                  {delLoading===p.id?'…':'🗑'}
+                </button>
+              )}
             </div>
           </div>
         ))}
       </div>
       <div style={{ marginTop:10,padding:'10px 14px',background:'var(--blBg)',borderRadius:'var(--r2)',border:'1px solid var(--blBd)',fontSize:11,color:'var(--blTx)',display:'flex',gap:8,alignItems:'center' }}>
-        🛡 RLS actif — chaque intervenant ne voit que ses interventions. Suppression = désactivation, historique conservé.
+        🛡 RLS actif — chaque intervenant ne voit que ses interventions. Suppression = irréversible (profil + compte auth supprimés).
       </div>
+
+      {/* Modal inviter */}
       {modal&&(
         <div className="modal-overlay" onClick={()=>setModal(false)}>
           <div className="modal" onClick={e=>e.stopPropagation()}>
@@ -77,11 +119,34 @@ export default function UsersPage() {
                   <div className="form-group"><label>Nom *</label><input value={invForm.nom} onChange={e=>setInvForm(f=>({...f,nom:e.target.value}))} required /></div>
                 </div>
                 <div className="form-group"><label>Email *</label><input type="email" value={invForm.email} onChange={e=>setInvForm(f=>({...f,email:e.target.value}))} required /></div>
-                <div className="form-group"><label>Commission admin (%)</label><input type="number" min={0} max={100} value={invForm.commission_pct} onChange={e=>setInvForm(f=>({...f,commission_pct:+e.target.value}))} /></div>
+                <div className="form-group"><label>Commission (%)</label><input type="number" min={0} max={100} value={invForm.commission_pct} onChange={e=>setInvForm(f=>({...f,commission_pct:+e.target.value}))} /></div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={()=>setModal(false)}>Annuler</button>
                 <button type="submit" className="btn btn-primary" disabled={invLoading}>{invLoading?'Envoi…':'Envoyer invitation'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal modifier */}
+      {editModal&&editTarget&&(
+        <div className="modal-overlay" onClick={()=>setEditModal(false)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <div className="modal-header"><span className="modal-title">Modifier {editTarget.prenom} {editTarget.nom}</span><button className="btn-icon sm" onClick={()=>setEditModal(false)}>✕</button></div>
+            <form onSubmit={handleEdit}>
+              <div className="modal-body">
+                <div className="form-row">
+                  <div className="form-group"><label>Prénom</label><input value={editForm.prenom} onChange={e=>setEditForm(f=>({...f,prenom:e.target.value}))} required /></div>
+                  <div className="form-group"><label>Nom</label><input value={editForm.nom} onChange={e=>setEditForm(f=>({...f,nom:e.target.value}))} required /></div>
+                </div>
+                <div className="form-group"><label>Email</label><input type="email" value={editForm.email} disabled style={{ opacity:0.5 }} title="L'email ne peut pas être modifié ici" /></div>
+                {editTarget.role==='intervenant'&&<div className="form-group"><label>Commission (%)</label><input type="number" min={0} max={100} value={editForm.commission_pct} onChange={e=>setEditForm(f=>({...f,commission_pct:+e.target.value}))} /></div>}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={()=>setEditModal(false)}>Annuler</button>
+                <button type="submit" className="btn btn-primary" disabled={editLoading}>{editLoading?'Sauvegarde…':'Sauvegarder'}</button>
               </div>
             </form>
           </div>

@@ -6,6 +6,14 @@ const ACTION_CLS: Record<string,string> = {
   creation:'pill-blue',modification:'pill-amber',suppression:'pill-red',paiement:'pill-green'
 }
 
+function downloadCSV(rows: string[][], filename: string) {
+  const csv = '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function JournalPage() {
   const { data: journal = [], isLoading } = useJournal()
   const [search, setSearch] = useState('')
@@ -22,11 +30,31 @@ export default function JournalPage() {
     return true
   })
 
+  function handleExport() {
+    const rows = [
+      ['Date', 'Utilisateur', 'Action', 'Table', 'Ancienne valeur', 'Nouvelle valeur'],
+      ...filtered.map(j => [
+        new Date(j.created_at).toLocaleString('fr-FR'),
+        j.user_nom || '',
+        j.action,
+        j.table_name,
+        j.old_value ? JSON.stringify(j.old_value) : '',
+        j.new_value ? JSON.stringify(j.new_value) : ''
+      ])
+    ]
+    downloadCSV(rows, `journal-${new Date().toISOString().split('T')[0]}.csv`)
+  }
+
   return (
     <div>
-      <div style={{ marginBottom:16 }}>
-        <h1 className="page-title">Journal d'activité</h1>
-        <p className="page-subtitle">{journal.length} entrées · Qui a fait quoi, quand, ancienne et nouvelle valeur</p>
+      <div style={{ marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'flex-end', flexWrap:'wrap', gap:10 }}>
+        <div>
+          <h1 className="page-title">Journal d'activité</h1>
+          <p className="page-subtitle">{journal.length} entrées · Qui a fait quoi, quand</p>
+        </div>
+        <button className="btn btn-secondary" onClick={handleExport} disabled={filtered.length === 0}>
+          📥 Exporter Excel ({filtered.length})
+        </button>
       </div>
       <div className="filter-bar">
         <div className="search-bar" style={{ flex:1,maxWidth:260 }}>

@@ -12,7 +12,7 @@ export default function FacturesPage() {
   const { data: dbParams } = useParametres()
   const params = storeParams || dbParams
   const { add } = useToastStore()
-  const { data: factures = [], isLoading } = useFactures()
+  const { data: factures = [], isLoading, isError, error } = useFactures()
   const upd = useUpdateFacture()
 
   async function markPaid(id: string, mode: string) {
@@ -46,6 +46,11 @@ export default function FacturesPage() {
         <div className="stat-card"><div className="stat-icon red">⚠</div><div className="stat-value">{eur(impaye)}</div><div className="stat-label">Impaye</div></div>
         <div className="stat-card"><div className="stat-icon blue">📄</div><div className="stat-value">{factures.length}</div><div className="stat-label">Total factures</div></div>
       </div>
+      {isError && (
+        <div style={{ padding:'10px 14px',background:'var(--rdBg)',border:'1px solid var(--rdBd)',borderRadius:'var(--r2)',marginBottom:12,fontSize:12,color:'var(--rdTx)' }}>
+          ⚠ Erreur : {(error as Error)?.message} — Vérifiez les politiques RLS dans Supabase.
+        </div>
+      )}
       <div className="card overflow-x-auto">
         <table className="data-table">
           <thead>

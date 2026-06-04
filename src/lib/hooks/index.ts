@@ -373,8 +373,10 @@ export function useSendMessage() {
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
   return useMutation({
-    mutationFn: async ({ destinataire_id, contenu, intervention_id, type = 'texte' }: { destinataire_id: string; contenu: string; intervention_id?: string; type?: Message['type'] }) => {
-      const { error } = await supabase.from('messages').insert({ expediteur_id: user!.id, destinataire_id, contenu, intervention_id, type })
+    mutationFn: async ({ destinataire_id, contenu, intervention_id, type = 'texte', media_url }: { destinataire_id: string; contenu: string; intervention_id?: string; type?: Message['type']; media_url?: string }) => {
+      const payload: any = { expediteur_id: user!.id, destinataire_id, contenu, intervention_id, type }
+      if (media_url) payload.media_url = media_url
+      const { error } = await supabase.from('messages').insert(payload)
       if (error) throw error
     },
     onSuccess: (_: any, v: any) => qc.invalidateQueries({ queryKey: ['messages', v.destinataire_id] })

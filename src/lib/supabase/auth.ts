@@ -63,6 +63,19 @@ export async function signOut() {
   }
 }
 
+export async function supprimerUtilisateur(userId: string) {
+  try {
+    const { data, error } = await supabase.functions.invoke('supprimer-utilisateur', {
+      body: { userId }
+    })
+    if (error) return { error: error.message }
+    if (data?.error) return { error: data.error }
+    return { error: null }
+  } catch (err: any) {
+    return { error: err.message || 'Erreur lors de la suppression' }
+  }
+}
+
 export async function inviterIntervenant(
   email: string,
   nom: string,

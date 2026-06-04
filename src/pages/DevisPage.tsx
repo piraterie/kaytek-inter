@@ -15,7 +15,7 @@ export default function DevisPage() {
   const params = storeParams || dbParams
   const { add } = useToastStore()
   const isAdmin = user?.role === 'admin'
-  const { data: devis = [], isLoading } = useDevis()
+  const { data: devis = [], isLoading, isError, error } = useDevis()
   const toFacture = useDevisToFacture()
   const del = useDeleteDevis()
   const upd = useUpdateDevis()
@@ -56,6 +56,11 @@ export default function DevisPage() {
         </div>
         <button className="btn btn-primary" onClick={() => nav('/devis/nouveau')}>+ Nouveau devis</button>
       </div>
+      {isError && (
+        <div style={{ padding:'10px 14px',background:'var(--rdBg)',border:'1px solid var(--rdBd)',borderRadius:'var(--r2)',marginBottom:12,fontSize:12,color:'var(--rdTx)' }}>
+          ⚠ Erreur : {(error as Error)?.message} — Vérifiez les politiques RLS dans Supabase.
+        </div>
+      )}
       <div className="card overflow-x-auto">
         <table className="data-table">
           <thead>

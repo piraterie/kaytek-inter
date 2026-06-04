@@ -51,6 +51,18 @@ export async function uploadSignature(blob: Blob, docId: string, docType: 'devis
   return { url: data?.signedUrl || '', error: null }
 }
 
+export async function uploadChatMedia(file: File | Blob, type: 'photo' | 'audio', userId: string) {
+  const ext = type === 'photo' ? 'jpg' : 'webm'
+  const mimeType = type === 'photo' ? 'image/jpeg' : 'audio/webm'
+  const path = `chat/${userId}/${type}-${Date.now()}.${ext}`
+  let toUpload: File | Blob = file
+  if (type === 'photo' && file instanceof File) toUpload = await compressImage(file)
+  const { error } = await supabase.storage.from('intervention-photos').upload(path, toUpload, { contentType: mimeType, upsert: false })
+  if (error) return { url: '', error: error.message }
+  const { data } = await supabase.storage.from('intervention-photos').createSignedUrl(path, 3600 * 24 * 365)
+  return { url: data?.signedUrl || '', error: null }
+}
+
 export async function uploadPdf(pdfBlob: Blob, fileName: string) {
   const path = `${Date.now()}-${fileName}`
   const { error } = await supabase.storage.from('pdf-documents').upload(path, pdfBlob, { contentType: 'application/pdf' })

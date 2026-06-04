@@ -85,7 +85,8 @@ export interface Commission {
 export interface Message {
   id: string; expediteur_id: string; destinataire_id: string
   intervention_id?: string; contenu: string
-  type: 'texte'|'intervention'|'photo'|'system'
+  type: 'texte'|'intervention'|'photo'|'audio'|'system'
+  media_url?: string
   metadata?: Record<string, unknown>; lu: boolean; lu_le?: string
   created_at: string; expediteur?: Profile
 }
