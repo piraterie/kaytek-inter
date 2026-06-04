@@ -6,63 +6,66 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const respond = (data: object, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
-  const ok = (data = {}) => new Response(JSON.stringify({ error: null, ...data }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-  const err = (msg: string) => new Response(JSON.stringify({ error: msg }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-
   try {
-    const supabaseAdmin = createClient(
+    const admin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
     const { email, nom, prenom, commission_pct } = await req.json()
-    if (!email || !nom || !prenom) return err('Champs email, nom et prenom obligatoires')
+    if (!email || !nom || !prenom) return respond({ error: 'Champs email, nom et prenom obligatoires' })
 
-    const origin = req.headers.get('origin') || Deno.env.get('SITE_URL') || 'https://kaytek-inter.vercel.app'
+    const origin = req.headers.get('origin') || 'https://kaytek-inter.vercel.app'
     const redirectTo = `${origin}/reset-password`
+    const profileData = { nom, prenom, role: 'intervenant', commission_pct: commission_pct ?? 30, actif: true }
 
-    // 1. Chercher si l'utilisateur existe déjà dans auth.users
-    const { data: listData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
-    const existingAuthUser = listData?.users?.find(u => u.email === email)
+    // Chercher le profil existant
+    const { data: profile } = await admin.from('profiles').select('id').eq('email', email).maybeSingle()
 
-    if (existingAuthUser) {
-      // Utilisateur déjà dans auth — met à jour ou crée le profil
-      const { data: existingProfile } = await supabaseAdmin.from('profiles').select('id').eq('id', existingAuthUser.id).maybeSingle()
-
-      if (existingProfile) {
-        await supabaseAdmin.from('profiles').update({ nom, prenom, commission_pct: commission_pct ?? 30 }).eq('id', existingAuthUser.id)
-      } else {
-        await supabaseAdmin.from('profiles').insert({ id: existingAuthUser.id, email, nom, prenom, role: 'intervenant', commission_pct: commission_pct ?? 30, actif: true })
-      }
-
-      // Envoie un email de réinitialisation de mot de passe
-      await supabaseAdmin.auth.resetPasswordForEmail(email, { redirectTo })
-      return ok()
+    if (profile?.id) {
+      // Profil existe → mise à jour + reset password
+      await admin.from('profiles').update({ nom, prenom, commission_pct: commission_pct ?? 30 }).eq('id', profile.id)
+      await admin.auth.resetPasswordForEmail(email, { redirectTo })
+      return respond({ error: null })
     }
 
-    // 2. Nouvel utilisateur — invitation Supabase
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+    // Pas de profil → tenter invitation
+    const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
       redirectTo,
       data: { nom, prenom, role: 'intervenant' }
     })
 
-    if (inviteError) return err(inviteError.message)
-    if (!inviteData?.user) return err("Impossible de créer l'utilisateur")
+    if (inviteErr) {
+      // Si user existe déjà dans auth mais pas de profil → chercher par email dans auth
+      const { data: userList } = await admin.auth.admin.listUsers()
+      const found = userList?.users?.find((u: any) => u.email === email)
 
-    // 3. Créer le profil
-    const { error: profileError } = await supabaseAdmin.from('profiles').insert({
-      id: inviteData.user.id, email, nom, prenom,
-      role: 'intervenant', commission_pct: commission_pct ?? 30, actif: true
-    })
+      if (found) {
+        // Créer le profil manquant + envoyer reset
+        await admin.from('profiles').upsert({ id: found.id, email, ...profileData })
+        await admin.auth.resetPasswordForEmail(email, { redirectTo })
+        return respond({ error: null })
+      }
 
-    if (profileError) return err("Erreur profil: " + profileError.message)
+      return respond({ error: inviteErr.message })
+    }
 
-    return ok()
+    if (!invited?.user) return respond({ error: "Impossible de créer l'utilisateur" })
+
+    // Créer le profil
+    const { error: profileErr } = await admin.from('profiles').insert({ id: invited.user.id, email, ...profileData })
+    if (profileErr) return respond({ error: 'Erreur profil: ' + profileErr.message })
+
+    return respond({ error: null })
+
   } catch (e) {
-    return err(e instanceof Error ? e.message : "Erreur interne")
+    return respond({ error: e instanceof Error ? e.message : 'Erreur interne' })
   }
 })
