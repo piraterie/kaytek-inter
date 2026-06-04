@@ -155,7 +155,7 @@ export function useInterventions(filters?: { statut?: string; intervenant_id?: s
     queryKey: ['interventions', filters, user?.id],
     queryFn: async () => {
       let q = supabase.from('interventions')
-        .select('*, client:clients(id,nom,prenom,telephone,ville_intervention), intervenant:profiles(id,nom,prenom,email,commission_pct), photos(id,url,type)')
+        .select('*, client:clients(id,nom,prenom,telephone,ville_intervention), intervenant:profiles!intervenant_id(id,nom,prenom,email,commission_pct), photos(id,url,type)')
         .order('created_at', { ascending: false })
       if (!isAdm()) q = q.eq('intervenant_id', user!.id)
       if (filters?.statut && filters.statut !== 'tous') q = q.eq('statut', filters.statut)
@@ -172,7 +172,7 @@ export function useIntervention(id: string) {
     queryKey: ['intervention', id],
     queryFn: async () => {
       const { data, error } = await supabase.from('interventions')
-        .select('*, client:clients(*), intervenant:profiles(id,nom,prenom,email,telephone,commission_pct), photos(*)')
+        .select('*, client:clients(*), intervenant:profiles!intervenant_id(id,nom,prenom,email,telephone,commission_pct), photos(*)')
         .eq('id', id).single()
       if (error) throw error; return data as any
     },
@@ -218,7 +218,7 @@ export function useDevis(filters?: { statut?: string }) {
   return useQuery<Devis[]>({
     queryKey: ['devis', filters, user?.id],
     queryFn: async () => {
-      let q = supabase.from('devis').select('*, client:clients(id,nom,prenom,email,telephone), intervenant:profiles(id,nom,prenom)').order('created_at', { ascending: false })
+      let q = supabase.from('devis').select('*, client:clients(id,nom,prenom,email,telephone), intervenant:profiles!intervenant_id(id,nom,prenom)').order('created_at', { ascending: false })
       if (!isAdm()) q = q.eq('intervenant_id', user!.id)
       if (filters?.statut && filters.statut !== 'tous') q = q.eq('statut', filters.statut)
       const { data, error } = await q
@@ -231,7 +231,7 @@ export function useDevisById(id: string) {
   return useQuery<Devis>({
     queryKey: ['devis-single', id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('devis').select('*, client:clients(*), intervenant:profiles(*)').eq('id', id).single()
+      const { data, error } = await supabase.from('devis').select('*, client:clients(*), intervenant:profiles!intervenant_id(*)').eq('id', id).single()
       if (error) throw error; return data as any
     },
     enabled: !!id && id !== 'nouveau'
@@ -320,7 +320,7 @@ export function useCommissions(intervenantId?: string) {
   return useQuery<Commission[]>({
     queryKey: ['commissions', targetId],
     queryFn: async () => {
-      let q = supabase.from('commissions').select('*, intervenant:profiles(id,nom,prenom,commission_pct), intervention:interventions(id,numero,adresse)').order('created_at', { ascending: false })
+      let q = supabase.from('commissions').select('*, intervenant:profiles!intervenant_id(id,nom,prenom,commission_pct), intervention:interventions(id,numero,adresse)').order('created_at', { ascending: false })
       if (targetId) q = q.eq('intervenant_id', targetId)
       const { data, error } = await q
       if (error) throw error; return (data || []) as any
@@ -348,7 +348,7 @@ export function useMessages(withUserId: string) {
     queryFn: async () => {
       if (!user) return []
       const { data, error } = await supabase.from('messages')
-        .select('*, expediteur:profiles(id,nom,prenom)')
+        .select('*, expediteur:profiles!expediteur_id(id,nom,prenom)')
         .or(`and(expediteur_id.eq.${user.id},destinataire_id.eq.${withUserId}),and(expediteur_id.eq.${withUserId},destinataire_id.eq.${user.id})`)
         .order('created_at', { ascending: true })
       if (error) throw error
