@@ -63,6 +63,19 @@ export async function signOut() {
   }
 }
 
+export async function envoyerEmail(opts: {
+  to: string; subject: string; html: string; pdfBase64?: string; pdfFilename?: string
+}) {
+  try {
+    const { data, error } = await supabase.functions.invoke('envoyer-email', { body: opts })
+    if (error) return { error: error.message }
+    if (data?.error) return { error: data.error }
+    return { error: null }
+  } catch (err: any) {
+    return { error: err.message || "Erreur lors de l'envoi" }
+  }
+}
+
 export async function supprimerUtilisateur(userId: string) {
   try {
     const { data, error } = await supabase.functions.invoke('supprimer-utilisateur', {

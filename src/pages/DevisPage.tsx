@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useDevis, useDeleteDevis, useDevisToFacture, useUpdateDevis, useParametres } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import { generateDevisPDF, downloadBlob } from '@/lib/pdf/generator'
+import { envoyerEmail } from '@/lib/supabase/auth'
 import type { Devis } from '@/types'
 
 const SC: Record<string, string> = { brouillon: 'pill-gray', envoye: 'pill-amber', accepte: 'pill-green', refuse: 'pill-red', expire: 'pill-orange' }
@@ -28,6 +29,30 @@ export default function DevisPage() {
       downloadBlob(blob, `${d.numero}.pdf`)
       add('PDF telecharge')
     } catch (e: any) { add('Erreur PDF: ' + e.message, 'error') }
+  }
+
+  async function handleEmail(d: Devis) {
+    const email = d.client?.email
+    if (!email) { add('Ce client n\'a pas d\'adresse email', 'warning'); return }
+    if (!params) { add('Configurez les infos entreprise dans Parametres', 'warning'); return }
+    add('Preparation email...', 'info')
+    try {
+      const blob = await generateDevisPDF(d, params, d.modele_id || 0)
+      const buf = await blob.arrayBuffer()
+      const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
+      const html = `<div style="font-family:sans-serif;max-width:600px;margin:auto">
+        <h2 style="color:#1e3a5f">Devis ${d.numero}</h2>
+        <p>Bonjour ${d.client?.prenom || ''} ${d.client?.nom || ''},</p>
+        <p>Veuillez trouver ci-joint votre devis <strong>${d.numero}</strong> pour un montant de <strong>${(d.total_ttc||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</strong>.</p>
+        ${d.valide_jusqu_au ? `<p>Ce devis est valable jusqu'au <strong>${new Date(d.valide_jusqu_au).toLocaleDateString('fr-FR')}</strong>.</p>` : ''}
+        <p>N'hésitez pas à nous contacter pour toute question.</p>
+        <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb"/>
+        <p style="font-size:12px;color:#6b7280">${params.raison_sociale} — ${params.telephone || ''} — ${params.email || ''}</p>
+      </div>`
+      const { error } = await envoyerEmail({ to: email, subject: `Devis ${d.numero} — ${params.raison_sociale}`, html, pdfBase64, pdfFilename: `${d.numero}.pdf` })
+      if (error) add('Erreur: ' + error, 'error')
+      else { add(`Devis envoyé à ${email}`); upd.mutateAsync({ id: d.id, statut: 'envoye', envoye_le: new Date().toISOString() }) }
+    } catch (e: any) { add('Erreur: ' + e.message, 'error') }
   }
 
   async function handleToFacture(id: string) {
@@ -85,8 +110,11 @@ export default function DevisPage() {
                   <div className="flex gap-1" style={{ flexWrap: 'wrap' }}>
                     <button className="btn btn-secondary btn-sm" onClick={() => nav(`/devis/${d.id}/editer`)}>✏ Editer</button>
                     <button className="btn btn-secondary btn-sm" onClick={() => handlePDF(d)}>📄 PDF</button>
+                    {d.client?.email && (
+                      <button className="btn btn-secondary btn-sm" onClick={() => handleEmail(d)} title={`Envoyer à ${d.client?.email}`}>✉ Email</button>
+                    )}
                     {d.statut === 'brouillon' && (
-                      <button className="btn btn-secondary btn-sm" onClick={() => handleSend(d.id)}>✉ Envoyer</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => handleSend(d.id)}>Marquer envoyé</button>
                     )}
                     {['accepte', 'envoye'].includes(d.statut) && (
                       <button className="btn btn-primary btn-sm" onClick={() => handleToFacture(d.id)} disabled={toFacture.isPending}>→ Facture</button>

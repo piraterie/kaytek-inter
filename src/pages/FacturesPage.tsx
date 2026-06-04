@@ -2,6 +2,7 @@
 import { useFactures, useUpdateFacture, useParametres } from '@/lib/hooks'
 import { useToastStore, useParamsStore } from '@/lib/store'
 import { generateFacturePDF, downloadBlob } from '@/lib/pdf/generator'
+import { envoyerEmail } from '@/lib/supabase/auth'
 import type { Facture } from '@/types'
 
 const SC: Record<string, string> = { payee: 'pill-green', impayee: 'pill-red', acompte: 'pill-purple', partiel: 'pill-amber', annulee: 'pill-gray' }
@@ -30,6 +31,32 @@ export default function FacturesPage() {
       downloadBlob(blob, `${f.numero}.pdf`)
       add('PDF telecharge')
     } catch (e: any) { add('Erreur PDF: ' + e.message, 'error') }
+  }
+
+  async function handleEmail(f: Facture) {
+    const email = f.client?.email
+    if (!email) { add('Ce client n\'a pas d\'adresse email', 'warning'); return }
+    if (!params) { add('Configurez les infos entreprise dans Parametres', 'warning'); return }
+    add('Preparation email...', 'info')
+    try {
+      const blob = await generateFacturePDF(f, f.devis || null, params)
+      const buf = await blob.arrayBuffer()
+      const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
+      const estPayee = f.statut_paiement === 'payee'
+      const html = `<div style="font-family:sans-serif;max-width:600px;margin:auto">
+        <h2 style="color:#1e3a5f">Facture ${f.numero}</h2>
+        <p>Bonjour ${f.client?.prenom || ''} ${f.client?.nom || ''},</p>
+        <p>Veuillez trouver ci-joint votre facture <strong>${f.numero}</strong> d'un montant de <strong>${(f.montant_ttc||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</strong>.</p>
+        ${!estPayee && f.date_echeance ? `<p>Date d'échéance : <strong>${new Date(f.date_echeance).toLocaleDateString('fr-FR')}</strong>.</p>` : ''}
+        ${params.iban ? `<p>Virement bancaire :<br><strong>IBAN : ${params.iban}</strong>${params.bic ? ` — BIC : ${params.bic}` : ''}</p>` : ''}
+        <p>Merci pour votre confiance.</p>
+        <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb"/>
+        <p style="font-size:12px;color:#6b7280">${params.raison_sociale} — ${params.telephone || ''} — ${params.email || ''}</p>
+      </div>`
+      const { error } = await envoyerEmail({ to: email, subject: `Facture ${f.numero} — ${params.raison_sociale}`, html, pdfBase64, pdfFilename: `${f.numero}.pdf` })
+      if (error) add('Erreur: ' + error, 'error')
+      else add(`Facture envoyée à ${email}`)
+    } catch (e: any) { add('Erreur: ' + e.message, 'error') }
   }
 
   const impaye = factures.filter(f => f.statut_paiement === 'impayee').reduce((s, f) => s + f.montant_ttc, 0)
@@ -75,6 +102,7 @@ export default function FacturesPage() {
                   <td>
                     <div className="flex gap-1 flex-wrap">
                       <button className="btn btn-secondary btn-sm" onClick={() => dlPDF(f)}>📄 PDF</button>
+                      {f.client?.email && <button className="btn btn-secondary btn-sm" onClick={() => handleEmail(f)} title={`Envoyer à ${f.client?.email}`}>✉ Email</button>}
                       {f.statut_paiement !== 'payee' && (
                         <select style={{ fontSize: 11, padding: '4px 8px', width: 'auto', minHeight: 'auto' }}
                           defaultValue="" onChange={e => { if (e.target.value) markPaid(f.id, e.target.value) }}>
