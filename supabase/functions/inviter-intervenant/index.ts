@@ -7,9 +7,10 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  const ok = (data = {}) => new Response(JSON.stringify({ error: null, ...data }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  const err = (msg: string) => new Response(JSON.stringify({ error: msg }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   try {
     const supabaseAdmin = createClient(
@@ -19,75 +20,49 @@ serve(async (req) => {
     )
 
     const { email, nom, prenom, commission_pct } = await req.json()
+    if (!email || !nom || !prenom) return err('Champs email, nom et prenom obligatoires')
 
-    if (!email || !nom || !prenom) {
-      return new Response(
-        JSON.stringify({ error: 'Champs email, nom et prenom obligatoires' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const origin = req.headers.get('origin') || Deno.env.get('SITE_URL') || 'https://kaytek-inter.vercel.app'
+    const redirectTo = `${origin}/reset-password`
+
+    // 1. Chercher si l'utilisateur existe déjà dans auth.users
+    const { data: listData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
+    const existingAuthUser = listData?.users?.find(u => u.email === email)
+
+    if (existingAuthUser) {
+      // Utilisateur déjà dans auth — met à jour ou crée le profil
+      const { data: existingProfile } = await supabaseAdmin.from('profiles').select('id').eq('id', existingAuthUser.id).maybeSingle()
+
+      if (existingProfile) {
+        await supabaseAdmin.from('profiles').update({ nom, prenom, commission_pct: commission_pct ?? 30 }).eq('id', existingAuthUser.id)
+      } else {
+        await supabaseAdmin.from('profiles').insert({ id: existingAuthUser.id, email, nom, prenom, role: 'intervenant', commission_pct: commission_pct ?? 30, actif: true })
+      }
+
+      // Envoie un email de réinitialisation de mot de passe
+      await supabaseAdmin.auth.resetPasswordForEmail(email, { redirectTo })
+      return ok()
     }
 
-    const origin = req.headers.get('origin') || Deno.env.get('SITE_URL') || ''
+    // 2. Nouvel utilisateur — invitation Supabase
+    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      redirectTo,
+      data: { nom, prenom, role: 'intervenant' }
+    })
 
-    // Vérifie si l'utilisateur existe déjà
-    const { data: existing } = await supabaseAdmin
-      .from('profiles')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle()
+    if (inviteError) return err(inviteError.message)
+    if (!inviteData?.user) return err("Impossible de créer l'utilisateur")
 
-    let userId: string
+    // 3. Créer le profil
+    const { error: profileError } = await supabaseAdmin.from('profiles').insert({
+      id: inviteData.user.id, email, nom, prenom,
+      role: 'intervenant', commission_pct: commission_pct ?? 30, actif: true
+    })
 
-    if (existing?.id) {
-      // Utilisateur existant : met à jour le profil et renvoie invitation
-      userId = existing.id
-      await supabaseAdmin.from('profiles').update({ nom, prenom, commission_pct: commission_pct ?? 30 }).eq('id', userId)
-      await supabaseAdmin.auth.resetPasswordForEmail(email, {
-        redirectTo: `${origin}/reset-password`
-      })
-    } else {
-      // Nouvel utilisateur : invitation via Supabase (envoie l'email automatiquement)
-      const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-        redirectTo: `${origin}/reset-password`,
-        data: { nom, prenom, role: 'intervenant' }
-      })
+    if (profileError) return err("Erreur profil: " + profileError.message)
 
-      if (inviteError) {
-        return new Response(
-          JSON.stringify({ error: inviteError.message }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
-      if (!inviteData.user) {
-        return new Response(
-          JSON.stringify({ error: "Impossible de créer l'utilisateur" }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
-      userId = inviteData.user.id
-
-      const { error: profileError } = await supabaseAdmin
-        .from('profiles')
-        .insert({ id: userId, email, nom, prenom, role: 'intervenant', commission_pct: commission_pct ?? 30, actif: true })
-
-      if (profileError) {
-        return new Response(
-          JSON.stringify({ error: "Erreur lors de l'enregistrement du profil" }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-    }
-
-    return new Response(
-      JSON.stringify({ error: null }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Erreur lors de l'invitation" }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return ok()
+  } catch (e) {
+    return err(e instanceof Error ? e.message : "Erreur interne")
   }
 })
