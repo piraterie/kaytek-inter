@@ -43,14 +43,58 @@ export default function DevisPage() {
       let binary = ''
       for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
       const pdfBase64 = btoa(binary)
-      const html = `<div style="font-family:sans-serif;max-width:600px;margin:auto">
-        <h2 style="color:#1e3a5f">Devis ${d.numero}</h2>
-        <p>Bonjour ${d.client?.prenom || ''} ${d.client?.nom || ''},</p>
-        <p>Veuillez trouver ci-joint votre devis <strong>${d.numero}</strong> pour un montant de <strong>${(d.total_ttc||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</strong>.</p>
-        ${d.valide_jusqu_au ? `<p>Ce devis est valable jusqu'au <strong>${new Date(d.valide_jusqu_au).toLocaleDateString('fr-FR')}</strong>.</p>` : ''}
-        <p>N'hésitez pas à nous contacter pour toute question.</p>
-        <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb"/>
-        <p style="font-size:12px;color:#6b7280">${params.raison_sociale} — ${params.telephone || ''} — ${params.email || ''}</p>
+      const logoHtml = params.logo_url
+        ? `<img src="${params.logo_url}" alt="Logo" style="height:56px;margin-bottom:10px;"/>`
+        : `<div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;">K</div>`
+      const html = `
+      <div style="font-family:Arial,Helvetica,sans-serif;max-width:620px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+        <!-- HEADER -->
+        <div style="background:#1e3a5f;padding:32px 40px;text-align:center;">
+          ${logoHtml}
+          <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:1px;margin-top:6px;">${params.raison_sociale || 'KAYTEK SERRURE'}</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:12px;margin-top:4px;">Serrurerie · Vitrerie</div>
+        </div>
+        <div style="background:#e85d04;height:4px;"></div>
+
+        <!-- BADGE DEVIS -->
+        <div style="background:#f8fafc;padding:24px 40px 0;text-align:center;">
+          <div style="display:inline-block;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;padding:6px 20px;border-radius:20px;letter-spacing:1px;">DEVIS ${d.numero}</div>
+        </div>
+
+        <!-- BODY -->
+        <div style="padding:32px 40px;">
+          <p style="margin:0 0 16px;font-size:15px;color:#374151;">Bonjour <strong>${d.client?.prenom || ''} ${d.client?.nom || ''}</strong>,</p>
+          <p style="margin:0 0 16px;font-size:15px;color:#374151;">
+            Nous avons le plaisir de vous adresser votre devis pour nos prestations de <strong>${d.activite || 'serrurerie'}</strong>.
+            Veuillez trouver ci-joint le document correspondant.
+          </p>
+
+          <!-- MONTANT -->
+          <div style="background:#f8fafc;border-left:4px solid #e85d04;border-radius:6px;padding:20px 24px;margin:24px 0;">
+            <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Montant total TTC</div>
+            <div style="font-size:28px;font-weight:700;color:#1e3a5f;">${(d.total_ttc||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</div>
+            ${d.valide_jusqu_au ? `<div style="font-size:12px;color:#e85d04;margin-top:8px;">⏳ Devis valable jusqu'au <strong>${new Date(d.valide_jusqu_au).toLocaleDateString('fr-FR')}</strong></div>` : ''}
+          </div>
+
+          <p style="margin:0 0 16px;font-size:15px;color:#374151;">
+            Pour accepter ce devis, il vous suffit de nous le retourner signé avec la mention <em>« Bon pour accord »</em>,
+            ou de nous contacter directement.
+          </p>
+          <p style="margin:0;font-size:15px;color:#374151;">
+            Nous restons à votre disposition pour toute question ou information complémentaire.
+          </p>
+          <p style="margin:16px 0 0;font-size:15px;color:#374151;">Cordialement,</p>
+          <p style="margin:4px 0 0;font-size:15px;font-weight:700;color:#1e3a5f;">${params.raison_sociale || 'Kaytek Serrure'}</p>
+        </div>
+
+        <!-- FOOTER -->
+        <div style="background:#1e3a5f;padding:20px 40px;text-align:center;">
+          <div style="color:rgba(255,255,255,0.85);font-size:12px;line-height:1.8;">
+            ${params.adresse ? `📍 ${params.adresse}${params.code_postal ? ', ' + params.code_postal : ''}${params.ville ? ' ' + params.ville : ''}<br/>` : ''}
+            ${params.telephone ? `📞 ${params.telephone}` : ''}${params.telephone && params.email ? '  ·  ' : ''}${params.email ? `✉ ${params.email}` : ''}
+            ${params.siret ? `<br/><span style="color:rgba(255,255,255,0.5);font-size:11px;">SIRET : ${params.siret}</span>` : ''}
+          </div>
+        </div>
       </div>`
       const { error } = await envoyerEmail({ to: email, subject: `Devis ${d.numero} — ${params.raison_sociale}`, html, pdfBase64, pdfFilename: `${d.numero}.pdf` })
       if (error) add('Erreur: ' + error, 'error')

@@ -46,15 +46,63 @@ export default function FacturesPage() {
       for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
       const pdfBase64 = btoa(binary)
       const estPayee = f.statut_paiement === 'payee'
-      const html = `<div style="font-family:sans-serif;max-width:600px;margin:auto">
-        <h2 style="color:#1e3a5f">Facture ${f.numero}</h2>
-        <p>Bonjour ${f.client?.prenom || ''} ${f.client?.nom || ''},</p>
-        <p>Veuillez trouver ci-joint votre facture <strong>${f.numero}</strong> d'un montant de <strong>${(f.montant_ttc||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</strong>.</p>
-        ${!estPayee && f.date_echeance ? `<p>Date d'échéance : <strong>${new Date(f.date_echeance).toLocaleDateString('fr-FR')}</strong>.</p>` : ''}
-        ${params.iban ? `<p>Virement bancaire :<br><strong>IBAN : ${params.iban}</strong>${params.bic ? ` — BIC : ${params.bic}` : ''}</p>` : ''}
-        <p>Merci pour votre confiance.</p>
-        <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb"/>
-        <p style="font-size:12px;color:#6b7280">${params.raison_sociale} — ${params.telephone || ''} — ${params.email || ''}</p>
+      const logoHtml = params.logo_url
+        ? `<img src="${params.logo_url}" alt="Logo" style="height:56px;margin-bottom:10px;"/>`
+        : `<div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;">K</div>`
+      const accentColor = estPayee ? '#16a34a' : '#e85d04'
+      const html = `
+      <div style="font-family:Arial,Helvetica,sans-serif;max-width:620px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+        <!-- HEADER -->
+        <div style="background:#1e3a5f;padding:32px 40px;text-align:center;">
+          ${logoHtml}
+          <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:1px;margin-top:6px;">${params.raison_sociale || 'KAYTEK SERRURE'}</div>
+          <div style="color:rgba(255,255,255,0.65);font-size:12px;margin-top:4px;">Serrurerie · Vitrerie</div>
+        </div>
+        <div style="background:${accentColor};height:4px;"></div>
+
+        <!-- BADGE FACTURE -->
+        <div style="background:#f8fafc;padding:24px 40px 0;text-align:center;">
+          <div style="display:inline-block;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;padding:6px 20px;border-radius:20px;letter-spacing:1px;">FACTURE ${f.numero}</div>
+          ${estPayee ? `<div style="display:inline-block;margin-left:10px;background:#dcfce7;color:#16a34a;font-size:12px;font-weight:700;padding:6px 16px;border-radius:20px;">✓ PAYÉE</div>` : ''}
+        </div>
+
+        <!-- BODY -->
+        <div style="padding:32px 40px;">
+          <p style="margin:0 0 16px;font-size:15px;color:#374151;">Bonjour <strong>${f.client?.prenom || ''} ${f.client?.nom || ''}</strong>,</p>
+          <p style="margin:0 0 16px;font-size:15px;color:#374151;">
+            Veuillez trouver ci-joint votre facture pour nos prestations de serrurerie.
+            ${estPayee ? 'Nous vous confirmons que cette facture a bien été réglée. Merci pour votre paiement.' : 'Merci de procéder au règlement avant la date d\'échéance indiquée.'}
+          </p>
+
+          <!-- MONTANT -->
+          <div style="background:#f8fafc;border-left:4px solid ${accentColor};border-radius:6px;padding:20px 24px;margin:24px 0;">
+            <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Montant total TTC</div>
+            <div style="font-size:28px;font-weight:700;color:#1e3a5f;">${(f.montant_ttc||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</div>
+            ${!estPayee && f.date_echeance ? `<div style="font-size:12px;color:#e85d04;margin-top:8px;">⏳ À régler avant le <strong>${new Date(f.date_echeance).toLocaleDateString('fr-FR')}</strong></div>` : ''}
+            ${estPayee && f.date_paiement ? `<div style="font-size:12px;color:#16a34a;margin-top:8px;">✓ Réglée le ${new Date(f.date_paiement).toLocaleDateString('fr-FR')}</div>` : ''}
+          </div>
+
+          ${!estPayee && params.iban ? `
+          <!-- COORDONNEES BANCAIRES -->
+          <div style="background:#eff6ff;border-left:4px solid #1e3a5f;border-radius:6px;padding:16px 20px;margin:0 0 24px;">
+            <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Coordonnées bancaires</div>
+            <div style="font-size:14px;color:#1e3a5f;font-weight:600;">IBAN : ${params.iban}</div>
+            ${params.bic ? `<div style="font-size:13px;color:#374151;margin-top:4px;">BIC : ${params.bic}</div>` : ''}
+          </div>` : ''}
+
+          <p style="margin:0 0 4px;font-size:15px;color:#374151;">Nous vous remercions de votre confiance et restons disponibles pour toute question.</p>
+          <p style="margin:16px 0 0;font-size:15px;color:#374151;">Cordialement,</p>
+          <p style="margin:4px 0 0;font-size:15px;font-weight:700;color:#1e3a5f;">${params.raison_sociale || 'Kaytek Serrure'}</p>
+        </div>
+
+        <!-- FOOTER -->
+        <div style="background:#1e3a5f;padding:20px 40px;text-align:center;">
+          <div style="color:rgba(255,255,255,0.85);font-size:12px;line-height:1.8;">
+            ${params.adresse ? `📍 ${params.adresse}${params.code_postal ? ', ' + params.code_postal : ''}${params.ville ? ' ' + params.ville : ''}<br/>` : ''}
+            ${params.telephone ? `📞 ${params.telephone}` : ''}${params.telephone && params.email ? '  ·  ' : ''}${params.email ? `✉ ${params.email}` : ''}
+            ${params.siret ? `<br/><span style="color:rgba(255,255,255,0.5);font-size:11px;">SIRET : ${params.siret}</span>` : ''}
+          </div>
+        </div>
       </div>`
       const { error } = await envoyerEmail({ to: email, subject: `Facture ${f.numero} — ${params.raison_sociale}`, html, pdfBase64, pdfFilename: `${f.numero}.pdf` })
       if (error) add('Erreur: ' + error, 'error')
