@@ -41,7 +41,10 @@ export default function FacturesPage() {
     try {
       const blob = await generateFacturePDF(f, f.devis || null, params)
       const buf = await blob.arrayBuffer()
-      const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
+      const bytes = new Uint8Array(buf)
+      let binary = ''
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+      const pdfBase64 = btoa(binary)
       const estPayee = f.statut_paiement === 'payee'
       const html = `<div style="font-family:sans-serif;max-width:600px;margin:auto">
         <h2 style="color:#1e3a5f">Facture ${f.numero}</h2>
