@@ -27,6 +27,8 @@ serve(async (req) => {
       )
     }
 
+    const origin = req.headers.get('origin') || Deno.env.get('SITE_URL') || ''
+
     // Vérifie si l'utilisateur existe déjà
     const { data: existing } = await supabaseAdmin
       .from('profiles')
@@ -37,32 +39,34 @@ serve(async (req) => {
     let userId: string
 
     if (existing?.id) {
-      // Utilisateur existant : met à jour le profil
+      // Utilisateur existant : met à jour le profil et renvoie invitation
       userId = existing.id
       await supabaseAdmin.from('profiles').update({ nom, prenom, commission_pct: commission_pct ?? 30 }).eq('id', userId)
+      await supabaseAdmin.auth.resetPasswordForEmail(email, {
+        redirectTo: `${origin}/reset-password`
+      })
     } else {
-      // Nouvel utilisateur : création
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        email_confirm: true,
-        user_metadata: { nom, prenom, role: 'intervenant' }
+      // Nouvel utilisateur : invitation via Supabase (envoie l'email automatiquement)
+      const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+        redirectTo: `${origin}/reset-password`,
+        data: { nom, prenom, role: 'intervenant' }
       })
 
-      if (authError) {
+      if (inviteError) {
         return new Response(
-          JSON.stringify({ error: authError.message }),
+          JSON.stringify({ error: inviteError.message }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
-      if (!authData.user) {
+      if (!inviteData.user) {
         return new Response(
           JSON.stringify({ error: "Impossible de créer l'utilisateur" }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
-      userId = authData.user.id
+      userId = inviteData.user.id
 
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
@@ -75,11 +79,6 @@ serve(async (req) => {
         )
       }
     }
-
-    const origin = req.headers.get('origin') || Deno.env.get('SITE_URL') || ''
-    await supabaseAdmin.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/reset-password`
-    })
 
     return new Response(
       JSON.stringify({ error: null }),
