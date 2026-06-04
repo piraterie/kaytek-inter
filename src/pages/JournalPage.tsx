@@ -85,8 +85,8 @@ export default function JournalPage() {
   }
 
   async function handleDeleteAll() {
-    if (!confirm(`Supprimer toutes les ${filtered.length} entrées affichées ?\nCette action est irréversible.`)) return
-    try { await delAll.mutateAsync(); add('Journal effacé') }
+    if (!confirm(`Supprimer les ${filtered.length} entrées affichées ?\nCette action est irréversible.`)) return
+    try { await delAll.mutateAsync(filtered.map(j => j.id)); add(`${filtered.length} entrées supprimées`) }
     catch (e: any) { add(e.message, 'error') }
   }
 

@@ -1,6 +1,7 @@
 // src/pages/DevisPage.tsx
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDevis, useDeleteDevis, useDevisToFacture, useUpdateDevis, useParametres } from '@/lib/hooks'
+import { useDevis, useDeleteDevis, useDeleteAllDevis, useDevisToFacture, useUpdateDevis, useParametres } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import { generateDevisPDF, downloadBlob } from '@/lib/pdf/generator'
 import { envoyerEmail } from '@/lib/supabase/auth'
@@ -19,7 +20,9 @@ export default function DevisPage() {
   const { data: devis = [], isLoading, isError, error } = useDevis()
   const toFacture = useDevisToFacture()
   const del = useDeleteDevis()
+  const delAll = useDeleteAllDevis()
   const upd = useUpdateDevis()
+  const [filterStatut, setFilterStatut] = useState('tous')
 
   async function handlePDF(d: Devis) {
     if (!params) { add('Allez dans Parametres et remplissez les infos entreprise', 'warning'); return }
@@ -115,9 +118,19 @@ export default function DevisPage() {
 
   async function handleDel(id: string) {
     if (!confirm('Supprimer ce devis ?')) return
-    try { await del.mutateAsync(id); add('Devis supprime') }
+    try { await del.mutateAsync(id); add('Devis supprimé') }
     catch (e: any) { add(e.message, 'error') }
   }
+
+  async function handleDelAll() {
+    const ids = filtered.map(d => d.id)
+    if (!confirm(`Supprimer les ${ids.length} devis affichés ?\nCette action est irréversible.`)) return
+    try { await delAll.mutateAsync(ids); add(`${ids.length} devis supprimés`) }
+    catch (e: any) { add(e.message, 'error') }
+  }
+
+  const STATUTS = ['tous', 'brouillon', 'envoye', 'accepte', 'refuse', 'expire']
+  const filtered = filterStatut === 'tous' ? devis : devis.filter(d => d.statut === filterStatut)
 
   return (
     <div>
@@ -126,7 +139,20 @@ export default function DevisPage() {
           <h1 className="page-title">Devis</h1>
           <p className="page-subtitle">{devis.length} devis</p>
         </div>
-        <button className="btn btn-primary" onClick={() => nav('/devis/nouveau')}>+ Nouveau devis</button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn btn-primary" onClick={() => nav('/devis/nouveau')}>+ Nouveau devis</button>
+          {isAdmin && filtered.length > 0 && (
+            <button className="btn btn-secondary" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
+              onClick={handleDelAll} disabled={delAll.isPending}>
+              🗑 Supprimer tout ({filtered.length})
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="filter-bar" style={{ marginBottom: 12 }}>
+        <select className="btn btn-secondary btn-sm" style={{ padding: '5px 10px' }} value={filterStatut} onChange={e => setFilterStatut(e.target.value)}>
+          {STATUTS.map(s => <option key={s} value={s}>{s === 'tous' ? 'Tous les statuts' : s}</option>)}
+        </select>
       </div>
       {isError && (
         <div style={{ padding:'10px 14px',background:'var(--rdBg)',border:'1px solid var(--rdBd)',borderRadius:'var(--r2)',marginBottom:12,fontSize:12,color:'var(--rdTx)' }}>
@@ -140,12 +166,12 @@ export default function DevisPage() {
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Chargement...</td></tr>}
-            {!isLoading && devis.length === 0 && (
+            {!isLoading && filtered.length === 0 && (
               <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--t3)' }}>
                 Aucun devis — <button className="btn btn-primary btn-sm" onClick={() => nav('/devis/nouveau')}>Creer le premier</button>
               </td></tr>
             )}
-            {devis.map(d => (
+            {filtered.map(d => (
               <tr key={d.id}>
                 <td className="td-bold">{d.numero}</td>
                 <td className="td-bold">{d.client?.nom} {d.client?.prenom}</td>
@@ -166,7 +192,7 @@ export default function DevisPage() {
                     {['accepte', 'envoye'].includes(d.statut) && (
                       <button className="btn btn-primary btn-sm" onClick={() => handleToFacture(d.id)} disabled={toFacture.isPending}>→ Facture</button>
                     )}
-                    {d.statut === 'brouillon' && isAdmin && (
+                    {isAdmin && (
                       <button className="btn-icon sm" style={{ color: 'var(--rdTx)' }} onClick={() => handleDel(d.id)}>🗑</button>
                     )}
                   </div>

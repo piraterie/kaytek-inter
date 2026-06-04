@@ -267,6 +267,16 @@ export function useDeleteDevis() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['devis'] })
   })
 }
+export function useDeleteAllDevis() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from('devis').delete().in('id', ids)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['devis'] })
+  })
+}
 export function useDevisToFacture() {
   const qc = useQueryClient()
   return useMutation({
@@ -307,6 +317,26 @@ export function useUpdateFacture() {
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Facture> & { id: string }) => {
       const { error } = await supabase.from('factures').update(data).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['factures'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
+  })
+}
+export function useDeleteFacture() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('factures').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['factures'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
+  })
+}
+export function useDeleteAllFactures() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from('factures').delete().in('id', ids)
       if (error) throw error
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['factures'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
@@ -443,8 +473,8 @@ export function useDeleteJournalEntry() {
 export function useDeleteAllJournal() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('journal').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from('journal').delete().in('id', ids)
       if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['journal'] })

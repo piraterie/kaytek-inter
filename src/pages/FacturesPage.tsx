@@ -1,6 +1,7 @@
 // src/pages/FacturesPage.tsx
-import { useFactures, useUpdateFacture, useParametres } from '@/lib/hooks'
-import { useToastStore, useParamsStore } from '@/lib/store'
+import { useState } from 'react'
+import { useFactures, useUpdateFacture, useDeleteFacture, useDeleteAllFactures, useParametres } from '@/lib/hooks'
+import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import { generateFacturePDF, downloadBlob } from '@/lib/pdf/generator'
 import { envoyerEmail } from '@/lib/supabase/auth'
 import type { Facture } from '@/types'
@@ -13,8 +14,13 @@ export default function FacturesPage() {
   const { data: dbParams } = useParametres()
   const params = storeParams || dbParams
   const { add } = useToastStore()
+  const { user } = useAuthStore()
+  const isAdmin = user?.role === 'admin'
   const { data: factures = [], isLoading, isError, error } = useFactures()
   const upd = useUpdateFacture()
+  const del = useDeleteFacture()
+  const delAll = useDeleteAllFactures()
+  const [filterStatut, setFilterStatut] = useState('tous')
 
   async function markPaid(id: string, mode: string) {
     try {
@@ -110,19 +116,47 @@ export default function FacturesPage() {
     } catch (e: any) { add('Erreur: ' + e.message, 'error') }
   }
 
+  async function handleDel(id: string) {
+    if (!confirm('Supprimer cette facture ?')) return
+    try { await del.mutateAsync(id); add('Facture supprimée') }
+    catch (e: any) { add(e.message, 'error') }
+  }
+
+  async function handleDelAll() {
+    const ids = filtered.map(f => f.id)
+    if (!confirm(`Supprimer les ${ids.length} factures affichées ?\nCette action est irréversible.`)) return
+    try { await delAll.mutateAsync(ids); add(`${ids.length} factures supprimées`) }
+    catch (e: any) { add(e.message, 'error') }
+  }
+
+  const STATUTS = ['tous', 'impayee', 'payee', 'acompte', 'partiel', 'annulee']
+  const filtered = filterStatut === 'tous' ? factures : factures.filter(f => f.statut_paiement === filterStatut)
   const impaye = factures.filter(f => f.statut_paiement === 'impayee').reduce((s, f) => s + f.montant_ttc, 0)
   const paye = factures.filter(f => f.statut_paiement === 'payee').reduce((s, f) => s + f.montant_ttc, 0)
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
-        <h1 className="page-title">Factures</h1>
-        <p className="page-subtitle">{factures.length} facture{factures.length > 1 ? 's' : ''}</p>
+      <div className="flex justify-between items-center mb-4" style={{ flexWrap: 'wrap', gap: 10 }}>
+        <div>
+          <h1 className="page-title">Factures</h1>
+          <p className="page-subtitle">{factures.length} facture{factures.length > 1 ? 's' : ''}</p>
+        </div>
+        {isAdmin && filtered.length > 0 && (
+          <button className="btn btn-secondary" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
+            onClick={handleDelAll} disabled={delAll.isPending}>
+            🗑 Supprimer tout ({filtered.length})
+          </button>
+        )}
       </div>
       <div className="grid-3 mb-4">
         <div className="stat-card"><div className="stat-icon green">💶</div><div className="stat-value">{eur(paye)}</div><div className="stat-label">Encaisse</div></div>
         <div className="stat-card"><div className="stat-icon red">⚠</div><div className="stat-value">{eur(impaye)}</div><div className="stat-label">Impaye</div></div>
         <div className="stat-card"><div className="stat-icon blue">📄</div><div className="stat-value">{factures.length}</div><div className="stat-label">Total factures</div></div>
+      </div>
+      <div className="filter-bar" style={{ marginBottom: 12 }}>
+        <select className="btn btn-secondary btn-sm" style={{ padding: '5px 10px' }} value={filterStatut} onChange={e => setFilterStatut(e.target.value)}>
+          {STATUTS.map(s => <option key={s} value={s}>{s === 'tous' ? 'Tous les statuts' : s}</option>)}
+        </select>
       </div>
       {isError && (
         <div style={{ padding:'10px 14px',background:'var(--rdBg)',border:'1px solid var(--rdBd)',borderRadius:'var(--r2)',marginBottom:12,fontSize:12,color:'var(--rdTx)' }}>
@@ -136,8 +170,8 @@ export default function FacturesPage() {
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Chargement...</td></tr>}
-            {!isLoading && factures.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Aucune facture</td></tr>}
-            {factures.map(f => {
+            {!isLoading && filtered.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Aucune facture</td></tr>}
+            {filtered.map(f => {
               const enRetard = f.date_echeance && new Date(f.date_echeance) < new Date() && f.statut_paiement !== 'payee'
               return (
                 <tr key={f.id}>
@@ -163,6 +197,9 @@ export default function FacturesPage() {
                           <option value="virement">Virement</option>
                           <option value="cheque">Cheque</option>
                         </select>
+                      )}
+                      {isAdmin && (
+                        <button className="btn-icon sm" style={{ color: 'var(--rdTx)' }} onClick={() => handleDel(f.id)} title="Supprimer">🗑</button>
                       )}
                     </div>
                   </td>
