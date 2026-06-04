@@ -66,8 +66,9 @@ serve(async (req) => {
       )
     }
 
+    const origin = req.headers.get('origin') || Deno.env.get('SITE_URL') || ''
     await supabaseAdmin.auth.resetPasswordForEmail(email, {
-      redirectTo: `${Deno.env.get('SITE_URL') ?? ''}/reset-password`
+      redirectTo: `${origin}/reset-password`
     })
 
     return new Response(
