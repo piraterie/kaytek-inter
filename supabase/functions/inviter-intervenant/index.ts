@@ -27,43 +27,53 @@ serve(async (req) => {
       )
     }
 
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      email_confirm: true,
-      user_metadata: { nom, prenom, role: 'intervenant' }
-    })
-
-    if (authError) {
-      return new Response(
-        JSON.stringify({ error: authError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (!authData.user) {
-      return new Response(
-        JSON.stringify({ error: "Impossible de créer l'utilisateur" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const { error: profileError } = await supabaseAdmin
+    // Vérifie si l'utilisateur existe déjà
+    const { data: existing } = await supabaseAdmin
       .from('profiles')
-      .insert({
-        id: authData.user.id,
+      .select('id')
+      .eq('email', email)
+      .maybeSingle()
+
+    let userId: string
+
+    if (existing?.id) {
+      // Utilisateur existant : met à jour le profil
+      userId = existing.id
+      await supabaseAdmin.from('profiles').update({ nom, prenom, commission_pct: commission_pct ?? 30 }).eq('id', userId)
+    } else {
+      // Nouvel utilisateur : création
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        nom,
-        prenom,
-        role: 'intervenant',
-        commission_pct: commission_pct ?? 30,
-        actif: true
+        email_confirm: true,
+        user_metadata: { nom, prenom, role: 'intervenant' }
       })
 
-    if (profileError) {
-      return new Response(
-        JSON.stringify({ error: "Erreur lors de l'enregistrement du profil" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      if (authError) {
+        return new Response(
+          JSON.stringify({ error: authError.message }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      if (!authData.user) {
+        return new Response(
+          JSON.stringify({ error: "Impossible de créer l'utilisateur" }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      userId = authData.user.id
+
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .insert({ id: userId, email, nom, prenom, role: 'intervenant', commission_pct: commission_pct ?? 30, actif: true })
+
+      if (profileError) {
+        return new Response(
+          JSON.stringify({ error: "Erreur lors de l'enregistrement du profil" }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
     const origin = req.headers.get('origin') || Deno.env.get('SITE_URL') || ''
