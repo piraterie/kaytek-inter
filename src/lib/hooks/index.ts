@@ -404,7 +404,8 @@ export function useSendMessage() {
   const user = useAuthStore(s => s.user)
   return useMutation({
     mutationFn: async ({ destinataire_id, contenu, intervention_id, type = 'texte', media_url }: { destinataire_id: string; contenu: string; intervention_id?: string; type?: Message['type']; media_url?: string }) => {
-      const payload: any = { expediteur_id: user!.id, destinataire_id, contenu, intervention_id, type }
+      const payload: any = { expediteur_id: user!.id, destinataire_id, contenu, type }
+      if (intervention_id) payload.intervention_id = intervention_id
       if (media_url) payload.media_url = media_url
       const { error } = await supabase.from('messages').insert(payload)
       if (error) throw error
