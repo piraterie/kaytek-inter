@@ -13,15 +13,19 @@ export default function ResetPasswordPage() {
   const nav = useNavigate()
 
   useEffect(() => {
-    // Supabase met le token dans le hash : #access_token=...&type=recovery
+    // Supabase met le token dans le hash : #access_token=...&type=recovery|invite
     const hash = window.location.hash
-    if (hash.includes('access_token') && hash.includes('type=recovery')) {
-      setReady(true)
-    } else if (hash.includes('access_token')) {
-      // Parfois type n'est pas dans le hash mais on a quand même le token
+    if (hash.includes('access_token')) {
+      // type=recovery (reset) ou type=invite (invitation)
       setReady(true)
     } else {
-      setErr('Lien invalide ou expiré. Demandez une nouvelle invitation.')
+      // Parfois le token est dans les paramètres de recherche (nouveau format Supabase)
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('code') || params.get('access_token')) {
+        setReady(true)
+      } else {
+        setErr('Lien invalide ou expiré. Utilisez "Mot de passe oublié ?" sur la page de connexion.')
+      }
     }
   }, [])
 
