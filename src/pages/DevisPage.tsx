@@ -1,13 +1,14 @@
 // src/pages/DevisPage.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDevis, useDeleteDevis, useDeleteAllDevis, useDevisToFacture, useUpdateDevis, useParametres } from '@/lib/hooks'
+import { useDevis, useDeleteDevis, useDeleteAllDevis, useDevisToFacture, useUpdateDevis, useParametres, notifyUser } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import { generateDevisPDF, downloadBlob } from '@/lib/pdf/generator'
-import { envoyerEmail } from '@/lib/supabase/auth'
+import EmailDevisModal from '@/components/EmailDevisModal'
 import type { Devis } from '@/types'
 
-const SC: Record<string, string> = { brouillon: 'pill-gray', envoye: 'pill-amber', accepte: 'pill-green', refuse: 'pill-red', expire: 'pill-orange' }
+const SC: Record<string, string> = { en_attente_validation: 'pill-amber', brouillon: 'pill-gray', envoye: 'pill-blue', accepte: 'pill-green', refuse: 'pill-red', expire: 'pill-orange' }
+const SL: Record<string, string> = { en_attente_validation: '⏳ Validation', brouillon: 'Brouillon', envoye: 'Envoyé', accepte: 'Accepté', refuse: 'Refusé', expire: 'Expiré' }
 
 export default function DevisPage() {
   const nav = useNavigate()
@@ -17,12 +18,14 @@ export default function DevisPage() {
   const params = storeParams || dbParams
   const { add } = useToastStore()
   const isAdmin = user?.role === 'admin'
+  const canCreateDocs = isAdmin || user?.can_create_documents === true
   const { data: devis = [], isLoading, isError, error } = useDevis()
   const toFacture = useDevisToFacture()
   const del = useDeleteDevis()
   const delAll = useDeleteAllDevis()
   const upd = useUpdateDevis()
   const [filterStatut, setFilterStatut] = useState('tous')
+  const [emailDevis, setEmailDevis] = useState<Devis | null>(null)
 
   async function handlePDF(d: Devis) {
     if (!params) { add('Allez dans Parametres et remplissez les infos entreprise', 'warning'); return }
@@ -34,75 +37,10 @@ export default function DevisPage() {
     } catch (e: any) { add('Erreur PDF: ' + e.message, 'error') }
   }
 
-  async function handleEmail(d: Devis) {
-    const email = d.client?.email
-    if (!email) { add('Ce client n\'a pas d\'adresse email', 'warning'); return }
+  function handleEmail(d: Devis) {
+    if (!d.client?.email) { add('Ce client n\'a pas d\'adresse email', 'warning'); return }
     if (!params) { add('Configurez les infos entreprise dans Parametres', 'warning'); return }
-    add('Preparation email...', 'info')
-    try {
-      const blob = await generateDevisPDF(d, params, d.modele_id || 0)
-      const buf = await blob.arrayBuffer()
-      const bytes = new Uint8Array(buf)
-      let binary = ''
-      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
-      const pdfBase64 = btoa(binary)
-      const logoHtml = params.logo_url
-        ? `<img src="${params.logo_url}" alt="Logo" style="height:56px;margin-bottom:10px;"/>`
-        : `<div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;">K</div>`
-      const html = `
-      <div style="font-family:Arial,Helvetica,sans-serif;max-width:620px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-        <!-- HEADER -->
-        <div style="background:#1e3a5f;padding:32px 40px;text-align:center;">
-          ${logoHtml}
-          <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:1px;margin-top:6px;">${params.raison_sociale || 'KAYTEK SERRURE'}</div>
-          <div style="color:rgba(255,255,255,0.65);font-size:12px;margin-top:4px;">Serrurerie · Vitrerie</div>
-        </div>
-        <div style="background:#e85d04;height:4px;"></div>
-
-        <!-- BADGE DEVIS -->
-        <div style="background:#f8fafc;padding:24px 40px 0;text-align:center;">
-          <div style="display:inline-block;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;padding:6px 20px;border-radius:20px;letter-spacing:1px;">DEVIS ${d.numero}</div>
-        </div>
-
-        <!-- BODY -->
-        <div style="padding:32px 40px;">
-          <p style="margin:0 0 16px;font-size:15px;color:#374151;">Bonjour <strong>${d.client?.prenom || ''} ${d.client?.nom || ''}</strong>,</p>
-          <p style="margin:0 0 16px;font-size:15px;color:#374151;">
-            Nous avons le plaisir de vous adresser votre devis pour nos prestations de <strong>${d.activite || 'serrurerie'}</strong>.
-            Veuillez trouver ci-joint le document correspondant.
-          </p>
-
-          <!-- MONTANT -->
-          <div style="background:#f8fafc;border-left:4px solid #e85d04;border-radius:6px;padding:20px 24px;margin:24px 0;">
-            <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Montant total TTC</div>
-            <div style="font-size:28px;font-weight:700;color:#1e3a5f;">${(d.total_ttc||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</div>
-            ${d.valide_jusqu_au ? `<div style="font-size:12px;color:#e85d04;margin-top:8px;">⏳ Devis valable jusqu'au <strong>${new Date(d.valide_jusqu_au).toLocaleDateString('fr-FR')}</strong></div>` : ''}
-          </div>
-
-          <p style="margin:0 0 16px;font-size:15px;color:#374151;">
-            Pour accepter ce devis, il vous suffit de nous le retourner signé avec la mention <em>« Bon pour accord »</em>,
-            ou de nous contacter directement.
-          </p>
-          <p style="margin:0;font-size:15px;color:#374151;">
-            Nous restons à votre disposition pour toute question ou information complémentaire.
-          </p>
-          <p style="margin:16px 0 0;font-size:15px;color:#374151;">Cordialement,</p>
-          <p style="margin:4px 0 0;font-size:15px;font-weight:700;color:#1e3a5f;">${params.raison_sociale || 'Kaytek Serrure'}</p>
-        </div>
-
-        <!-- FOOTER -->
-        <div style="background:#1e3a5f;padding:20px 40px;text-align:center;">
-          <div style="color:rgba(255,255,255,0.85);font-size:12px;line-height:1.8;">
-            ${params.adresse ? `📍 ${params.adresse}${params.code_postal ? ', ' + params.code_postal : ''}${params.ville ? ' ' + params.ville : ''}<br/>` : ''}
-            ${params.telephone ? `📞 ${params.telephone}` : ''}${params.telephone && params.email ? '  ·  ' : ''}${params.email ? `✉ ${params.email}` : ''}
-            ${params.siret ? `<br/><span style="color:rgba(255,255,255,0.5);font-size:11px;">SIRET : ${params.siret}</span>` : ''}
-          </div>
-        </div>
-      </div>`
-      const { error } = await envoyerEmail({ to: email, subject: `Devis ${d.numero} — ${params.raison_sociale}`, html, pdfBase64, pdfFilename: `${d.numero}.pdf` })
-      if (error) add('Erreur: ' + error, 'error')
-      else { add(`Devis envoyé à ${email}`); upd.mutateAsync({ id: d.id, statut: 'envoye', envoye_le: new Date().toISOString() }) }
-    } catch (e: any) { add('Erreur: ' + e.message, 'error') }
+    setEmailDevis(d)
   }
 
   async function handleToFacture(id: string) {
@@ -129,18 +67,57 @@ export default function DevisPage() {
     catch (e: any) { add(e.message, 'error') }
   }
 
-  const STATUTS = ['tous', 'brouillon', 'envoye', 'accepte', 'refuse', 'expire']
+  const STATUTS = ['tous', 'en_attente_validation', 'brouillon', 'envoye', 'accepte', 'refuse', 'expire']
   const filtered = filterStatut === 'tous' ? devis : devis.filter(d => d.statut === filterStatut)
+  const pendingCount = devis.filter(d => d.statut === 'en_attente_validation').length
+
+  async function handleValidate(d: Devis) {
+    try {
+      await upd.mutateAsync({ id: d.id, statut: 'brouillon' })
+      add('Devis validé — maintenant visible dans la liste')
+      const intervenantId = (d as any).intervenant_id || d.intervenant?.id || d.created_by
+      if (intervenantId) {
+        notifyUser(
+          intervenantId,
+          '✅ Devis validé',
+          `Votre devis ${d.numero} a été validé. Vous pouvez le présenter au client pour signature.`,
+          `/devis/${d.id}/apercu`
+        ).catch(() => {})
+      }
+    } catch (e: any) { add(e.message, 'error') }
+  }
+  async function handleReject(d: Devis) {
+    try {
+      await upd.mutateAsync({ id: d.id, statut: 'refuse' })
+      add('Devis refusé')
+      const intervenantId = (d as any).intervenant_id || d.intervenant?.id || d.created_by
+      if (intervenantId) {
+        notifyUser(
+          intervenantId,
+          '❌ Devis refusé',
+          `Votre devis ${d.numero} a été refusé par l'administrateur.`,
+          `/devis/${d.id}/apercu`
+        ).catch(() => {})
+      }
+    } catch (e: any) { add(e.message, 'error') }
+  }
 
   return (
-    <div>
+    <>
       <div className="flex justify-between items-center mb-4" style={{ flexWrap: 'wrap', gap: 10 }}>
         <div>
           <h1 className="page-title">Devis</h1>
           <p className="page-subtitle">{devis.length} devis</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn btn-primary" onClick={() => nav('/devis/nouveau')}>+ Nouveau devis</button>
+          {canCreateDocs && <button className="btn btn-primary" onClick={() => nav('/devis/nouveau')}>+ Nouveau devis</button>}
+          {!isAdmin && <button className="btn btn-secondary" onClick={() => nav('/interventions')}>← Mes interventions</button>}
+          {isAdmin && pendingCount > 0 && (
+            <button className="btn btn-secondary" style={{ color:'var(--amTx)',borderColor:'var(--amBd)',background:'var(--amBg)' }}
+              onClick={() => setFilterStatut('en_attente_validation')}>
+              ⏳ {pendingCount} devis à valider
+            </button>
+          )}
           {isAdmin && filtered.length > 0 && (
             <button className="btn btn-secondary" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
               onClick={handleDelAll} disabled={delAll.isPending}>
@@ -159,42 +136,89 @@ export default function DevisPage() {
           ⚠ Erreur : {(error as Error)?.message} — Vérifiez les politiques RLS dans Supabase.
         </div>
       )}
-      <div className="card overflow-x-auto">
+      {/* MOBILE : cards — visible uniquement sur mobile via CSS */}
+      <div className="show-mobile">
+        {isLoading && <div style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>Chargement...</div>}
+        {!isLoading && filtered.length === 0 && (
+          <div style={{ textAlign:'center',padding:32,color:'var(--t3)' }}>
+            {canCreateDocs
+              ? <>Aucun devis — <button className="btn btn-primary btn-sm" onClick={() => nav('/devis/nouveau')}>Créer le premier</button></>
+              : 'Aucun devis'}
+          </div>
+        )}
+        {filtered.map(d => (
+          <div key={d.id} className="mobile-card">
+            <div className="mobile-card-row">
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:700,fontSize:15,color:'var(--t0)' }}>{d.numero}</div>
+                <div style={{ fontSize:13,color:'var(--t1)',marginTop:3 }}>{d.client?.nom} {d.client?.prenom}</div>
+                {isAdmin && d.intervenant && (
+                  <div style={{ fontSize:12,color:'var(--t2)',marginTop:2 }}>👤 {d.intervenant.prenom} {d.intervenant.nom}</div>
+                )}
+                <div style={{ fontSize:12,color:'var(--t3)',marginTop:2 }}>{new Date(d.created_at).toLocaleDateString('fr-FR')}</div>
+              </div>
+              <div style={{ textAlign:'right', flexShrink:0 }}>
+                <div style={{ fontWeight:700,fontSize:15,color:'var(--t0)',marginBottom:6 }}>{d.total_ttc ? d.total_ttc.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}) : '—'}</div>
+                <span className={`pill ${SC[d.statut]||'pill-gray'}`}>{SL[d.statut]||d.statut}</span>
+              </div>
+            </div>
+            <div className="mobile-card-actions">
+              {isAdmin && d.statut==='en_attente_validation' && (
+                <>
+                  <button className="btn btn-primary btn-sm" onClick={() => handleValidate(d)} disabled={upd.isPending}>✓ Valider</button>
+                  <button className="btn btn-secondary btn-sm" style={{ color:'var(--rdTx)' }} onClick={() => handleReject(d)} disabled={upd.isPending}>✕ Refuser</button>
+                </>
+              )}
+              {isAdmin && <button className="btn btn-secondary btn-sm" onClick={() => nav(`/devis/${d.id}/editer`)}>✏ Éditer</button>}
+              {isAdmin && <button className="btn btn-secondary btn-sm" onClick={() => handlePDF(d)}>📄 PDF</button>}
+              {!isAdmin && <button className="btn btn-secondary btn-sm" onClick={() => nav(`/devis/${d.id}/apercu`)}>👁 Aperçu</button>}
+              {isAdmin && d.client?.email && <button className="btn btn-secondary btn-sm" onClick={() => handleEmail(d)}>✉</button>}
+              {isAdmin && d.statut==='brouillon' && <button className="btn btn-secondary btn-sm" onClick={() => handleSend(d.id)}>Envoyé</button>}
+              {isAdmin && ['accepte','envoye'].includes(d.statut) && <button className="btn btn-primary btn-sm" onClick={() => handleToFacture(d.id)} disabled={toFacture.isPending}>→ Facture</button>}
+              {isAdmin && <button className="btn-icon sm" style={{ color:'var(--rdTx)' }} onClick={() => handleDel(d.id)}>🗑</button>}
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* DESKTOP : table — cachée sur mobile via CSS */}
+      <div className="hide-mobile card overflow-x-auto">
         <table className="data-table">
           <thead>
-            <tr><th>N°</th><th>Client</th><th>Activite</th><th>Total TTC</th><th>Statut</th><th>Date</th><th>Actions</th></tr>
+            <tr><th>N°</th><th>Client</th><th>Activité</th><th>Total TTC</th><th>Statut</th><th>Intervenant</th><th>Date</th><th>Actions</th></tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Chargement...</td></tr>}
-            {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--t3)' }}>
-                Aucun devis — <button className="btn btn-primary btn-sm" onClick={() => nav('/devis/nouveau')}>Creer le premier</button>
+            {isLoading && <tr><td colSpan={8} style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>Chargement...</td></tr>}
+            {!isLoading && filtered.length===0 && (
+              <tr><td colSpan={8} style={{ textAlign:'center',padding:32,color:'var(--t3)' }}>
+                {canCreateDocs
+                  ? <>Aucun devis — <button className="btn btn-primary btn-sm" onClick={() => nav('/devis/nouveau')}>Créer le premier</button></>
+                  : 'Aucun devis'}
               </td></tr>
             )}
             {filtered.map(d => (
-              <tr key={d.id}>
+              <tr key={d.id} style={d.statut==='en_attente_validation'?{background:'var(--amBg)'}:{}}>
                 <td className="td-bold">{d.numero}</td>
                 <td className="td-bold">{d.client?.nom} {d.client?.prenom}</td>
-                <td>{d.activite ? <span className={`pill ${d.activite === 'serrurerie' ? 'pill-gray' : 'pill-blue'}`}>{d.activite}</span> : '—'}</td>
-                <td className="td-bold">{d.total_ttc ? d.total_ttc.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) : '—'}</td>
-                <td><span className={`pill ${SC[d.statut] || 'pill-gray'}`}>{d.statut}</span></td>
-                <td style={{ fontSize: 11 }}>{new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+                <td>{d.activite ? <span className={`pill ${d.activite==='serrurerie'?'pill-gray':'pill-blue'}`}>{d.activite}</span> : '—'}</td>
+                <td className="td-bold">{d.total_ttc ? d.total_ttc.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}) : '—'}</td>
+                <td><span className={`pill ${SC[d.statut]||'pill-gray'}`}>{SL[d.statut]||d.statut}</span></td>
+                <td style={{ fontSize:12 }}>{d.intervenant?.nom ? `${d.intervenant.prenom} ${d.intervenant.nom}` : '—'}</td>
+                <td style={{ fontSize:12 }}>{new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
                 <td>
-                  <div className="flex gap-1" style={{ flexWrap: 'wrap' }}>
-                    <button className="btn btn-secondary btn-sm" onClick={() => nav(`/devis/${d.id}/editer`)}>✏ Editer</button>
-                    <button className="btn btn-secondary btn-sm" onClick={() => handlePDF(d)}>📄 PDF</button>
-                    {d.client?.email && (
-                      <button className="btn btn-secondary btn-sm" onClick={() => handleEmail(d)} title={`Envoyer à ${d.client?.email}`}>✉ Email</button>
+                  <div className="flex gap-1" style={{ flexWrap:'wrap' }}>
+                    {isAdmin && d.statut==='en_attente_validation' && (
+                      <>
+                        <button className="btn btn-primary btn-sm" onClick={() => handleValidate(d)} disabled={upd.isPending}>✓ Valider</button>
+                        <button className="btn btn-secondary btn-sm" style={{ color:'var(--rdTx)' }} onClick={() => handleReject(d)} disabled={upd.isPending}>✕ Refuser</button>
+                      </>
                     )}
-                    {d.statut === 'brouillon' && (
-                      <button className="btn btn-secondary btn-sm" onClick={() => handleSend(d.id)}>Marquer envoyé</button>
-                    )}
-                    {['accepte', 'envoye'].includes(d.statut) && (
-                      <button className="btn btn-primary btn-sm" onClick={() => handleToFacture(d.id)} disabled={toFacture.isPending}>→ Facture</button>
-                    )}
-                    {isAdmin && (
-                      <button className="btn-icon sm" style={{ color: 'var(--rdTx)' }} onClick={() => handleDel(d.id)}>🗑</button>
-                    )}
+                    {isAdmin && <button className="btn btn-secondary btn-sm" onClick={() => nav(`/devis/${d.id}/editer`)}>✏ Éditer</button>}
+                    {isAdmin && <button className="btn btn-secondary btn-sm" onClick={() => handlePDF(d)}>📄 PDF</button>}
+                    {!isAdmin && <button className="btn btn-secondary btn-sm" onClick={() => nav(`/devis/${d.id}/apercu`)}>👁 Aperçu</button>}
+                    {isAdmin && d.client?.email && <button className="btn btn-secondary btn-sm" onClick={() => handleEmail(d)}>✉ Email</button>}
+                    {isAdmin && d.statut==='brouillon' && <button className="btn btn-secondary btn-sm" onClick={() => handleSend(d.id)}>Marquer envoyé</button>}
+                    {isAdmin && ['accepte','envoye'].includes(d.statut) && <button className="btn btn-primary btn-sm" onClick={() => handleToFacture(d.id)} disabled={toFacture.isPending}>→ Facture</button>}
+                    {isAdmin && <button className="btn-icon sm" style={{ color:'var(--rdTx)' }} onClick={() => handleDel(d.id)}>🗑</button>}
                   </div>
                 </td>
               </tr>
@@ -202,6 +226,30 @@ export default function DevisPage() {
           </tbody>
         </table>
       </div>
-    </div>
+
+      {emailDevis && params && (
+        <EmailDevisModal
+          devis={emailDevis}
+          params={params}
+          onClose={() => setEmailDevis(null)}
+          onSent={() => {
+            add(`Devis envoyé à ${emailDevis.client?.email}`)
+            upd.mutateAsync({ id: emailDevis.id, statut: 'envoye', envoye_le: new Date().toISOString() })
+              .then(() => {
+                const intervenantId = (emailDevis as any).intervenant_id || emailDevis.intervenant?.id || emailDevis.created_by
+                if (intervenantId) {
+                  notifyUser(
+                    intervenantId,
+                    '✉ Devis envoyé au client',
+                    `Le devis ${emailDevis.numero} a été envoyé au client, en attente de signature.`,
+                    `/devis/${emailDevis.id}/apercu`
+                  ).catch(() => {})
+                }
+              })
+            setEmailDevis(null)
+          }}
+        />
+      )}
+    </>
   )
 }

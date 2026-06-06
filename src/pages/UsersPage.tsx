@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useProfiles, useUpdateProfile } from '@/lib/hooks'
 import { useToastStore } from '@/lib/store'
 import { inviterIntervenant, supprimerUtilisateur } from '@/lib/supabase/auth'
+import { getUserDevices, revokeDevice, isCurrentDevice, type DeviceRecord } from '@/lib/devices'
 import type { Profile } from '@/types'
 
 export default function UsersPage() {
@@ -12,28 +13,35 @@ export default function UsersPage() {
   const [modal, setModal] = useState(false)
   const [editModal, setEditModal] = useState(false)
   const [editTarget, setEditTarget] = useState<Profile | null>(null)
-  const [invForm, setInvForm] = useState({ email:'', nom:'', prenom:'', commission_pct:30 })
-  const [editForm, setEditForm] = useState({ nom:'', prenom:'', email:'', commission_pct:30 })
+  const [invForm, setInvForm] = useState({ email:'', nom:'', prenom:'', commission_pct:30, type_intervenant:'entrepreneur' as 'entrepreneur'|'salarie' })
+  const [editForm, setEditForm] = useState({ nom:'', prenom:'', email:'', commission_pct:30, type_intervenant:'' as ''|'entrepreneur'|'salarie', can_create_documents: false })
   const [invLoading, setInvLoading] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
   const [delLoading, setDelLoading] = useState<string|null>(null)
+  const [devicesModal, setDevicesModal] = useState(false)
+  const [devicesTarget, setDevicesTarget] = useState<Profile|null>(null)
+  const [devicesData, setDevicesData] = useState<DeviceRecord[]>([])
+  const [devicesLoading, setDevicesLoading] = useState(false)
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault(); setInvLoading(true)
-    const { error } = await inviterIntervenant(invForm.email, invForm.nom, invForm.prenom, invForm.commission_pct)
+    const { error } = await inviterIntervenant(invForm.email, invForm.nom, invForm.prenom, invForm.commission_pct, invForm.type_intervenant)
     setInvLoading(false)
     if (error) add(error,'error')
-    else { add(`Invitation envoyée à ${invForm.email}`); setModal(false); setInvForm({ email:'',nom:'',prenom:'',commission_pct:30 }); refetch() }
+    else { add(`Invitation envoyée à ${invForm.email}`); setModal(false); setInvForm({ email:'',nom:'',prenom:'',commission_pct:30, type_intervenant:'entrepreneur' }); refetch() }
   }
 
   function openEdit(p: Profile) {
-    setEditTarget(p); setEditForm({ nom:p.nom, prenom:p.prenom, email:p.email, commission_pct:p.commission_pct }); setEditModal(true)
+    setEditTarget(p); setEditForm({ nom:p.nom, prenom:p.prenom, email:p.email, commission_pct:p.commission_pct, type_intervenant:(p.type_intervenant||'') as ''|'entrepreneur'|'salarie', can_create_documents: p.can_create_documents ?? false }); setEditModal(true)
   }
 
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault(); if (!editTarget) return; setEditLoading(true)
     try {
-      await upd.mutateAsync({ id: editTarget.id, nom: editForm.nom, prenom: editForm.prenom, commission_pct: editForm.commission_pct })
+      const payload: any = { id: editTarget.id, nom: editForm.nom, prenom: editForm.prenom, commission_pct: editForm.commission_pct }
+      if (editTarget.role === 'intervenant' && editForm.type_intervenant) payload.type_intervenant = editForm.type_intervenant
+      if (editTarget.role === 'intervenant') payload.can_create_documents = editForm.can_create_documents
+      await upd.mutateAsync(payload)
       add('Profil mis à jour'); setEditModal(false); setEditTarget(null)
     } catch(err:any) { add(err.message,'error') }
     setEditLoading(false)
@@ -58,51 +66,85 @@ export default function UsersPage() {
     catch(e:any) { add(e.message,'error') }
   }
 
+  async function openDevices(p: Profile) {
+    setDevicesTarget(p)
+    setDevicesModal(true)
+    setDevicesLoading(true)
+    const d = await getUserDevices(p.id)
+    setDevicesData(d)
+    setDevicesLoading(false)
+  }
+
+  async function handleRevokeDevice(deviceDbId: string) {
+    await revokeDevice(deviceDbId)
+    setDevicesData(prev => prev.map(d => d.id === deviceDbId ? { ...d, actif: false } : d))
+    add('Appareil révoqué')
+  }
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4" style={{ flexWrap:'wrap',gap:10 }}>
-        <div><h1 className="page-title">Utilisateurs</h1><p className="page-subtitle">Admin : accès total · Intervenants : données isolées (RLS)</p></div>
+        <div>
+          <h1 className="page-title">Utilisateurs</h1>
+          <p className="page-subtitle">Admin : accès total · Intervenants : données isolées (RLS)</p>
+        </div>
         <button className="btn btn-primary" onClick={()=>setModal(true)}>+ Inviter intervenant</button>
       </div>
       <div className="card">
         {isLoading&&<div style={{ padding:24,textAlign:'center',color:'var(--t3)' }}>Chargement…</div>}
         {profiles.map(p=>(
-          <div key={p.id} style={{ display:'flex',alignItems:'center',gap:12,padding:'12px 16px',borderBottom:'1px solid var(--b0)' }}>
-            <div className={`avatar ${p.role==='admin'?'purple':''}`} style={{ width:34,height:34,fontSize:12 }}>{(p.prenom?.[0]||'')+(p.nom?.[0]||'')}</div>
-            <div style={{ flex:1,minWidth:0 }}>
-              <div style={{ fontSize:12,fontWeight:600,color:'var(--t0)' }}>{p.prenom} {p.nom}</div>
-              <div style={{ fontSize:11,color:'var(--t2)' }}>{p.email} · {p.role}{p.role==='intervenant'?` · comm. ${p.commission_pct}%`:''}</div>
+          <div key={p.id} style={{ display:'flex',alignItems:'flex-start',gap:12,padding:'14px 16px',borderBottom:'1px solid var(--b0)',flexWrap:'wrap' }}>
+            {/* Avatar */}
+            <div className={`avatar ${p.role==='admin'?'purple':''}`} style={{ width:36,height:36,fontSize:13,flexShrink:0,marginTop:2 }}>
+              {(p.prenom?.[0]||'')+(p.nom?.[0]||'')}
             </div>
-            <div style={{ display:'flex',alignItems:'center',gap:8,flexShrink:0,flexWrap:'wrap' }}>
+            {/* Infos */}
+            <div style={{ flex:1,minWidth:0 }}>
+              <div style={{ fontSize:14,fontWeight:600,color:'var(--t0)' }}>{p.prenom} {p.nom}</div>
+              <div style={{ fontSize:12,color:'var(--t2)',marginTop:2 }}>{p.email}</div>
+              {p.role==='intervenant' && (
+                <div style={{ fontSize:12,color:'var(--t3)',marginTop:1 }}>
+                  {p.type_intervenant ? <span style={{ marginRight:6 }}>{p.type_intervenant==='entrepreneur'?'🏗 Entrepreneur':'👔 Salarié'}</span> : null}
+                  comm. {p.commission_pct}%
+                </div>
+              )}
+            </div>
+            {/* Actions — wrappent sur une nouvelle ligne sur mobile */}
+            <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',width:'100%',maxWidth:380 }}>
               <span className={`pill ${p.role==='admin'?'pill-purple':'pill-blue'}`}>{p.role}</span>
               {p.role==='intervenant'&&(
                 <>
                   <span className={`pill ${p.actif?'pill-green':'pill-red'}`}>{p.actif?'Actif':'Inactif'}</span>
-                  <div className={`toggle ${p.actif?'':'off'}`} onClick={()=>toggleActive(p.id, p.actif)} title={p.actif?'Désactiver':'Activer'} />
-                  <input type="number" defaultValue={p.commission_pct} min={0} max={100} step={1}
-                    style={{ width:55,fontSize:11,padding:'3px 6px',minHeight:'auto' }}
-                    onBlur={e=>{ if(+e.target.value!==p.commission_pct) updateCommission(p.id,+e.target.value) }}
-                    title="Commission %" />
-                  <span style={{ fontSize:11,color:'var(--t2)' }}>%</span>
+                  <div className={`toggle ${p.actif?'':'off'}`} onClick={()=>toggleActive(p.id, p.actif)} title={p.actif?'Désactiver':'Activer'} style={{ cursor:'pointer' }} />
+                  <div style={{ display:'flex',alignItems:'center',gap:4 }}>
+                    <input type="number" defaultValue={p.commission_pct} min={0} max={100} step={1}
+                      style={{ width:52,fontSize:13,padding:'4px 6px',minHeight:'auto',borderRadius:6 }}
+                      onBlur={e=>{ if(+e.target.value!==p.commission_pct) updateCommission(p.id,+e.target.value) }}
+                      title="Commission %" />
+                    <span style={{ fontSize:12,color:'var(--t2)' }}>%</span>
+                  </div>
                 </>
               )}
-              <button className="btn btn-secondary btn-sm" onClick={()=>openEdit(p)} title="Modifier">✏</button>
-              {p.role==='intervenant'&&(
-                <button
-                  className="btn-icon sm"
-                  style={{ color:'var(--rdTx)' }}
-                  onClick={()=>handleDelete(p)}
-                  disabled={delLoading===p.id}
-                  title="Supprimer définitivement"
-                >
-                  {delLoading===p.id?'…':'🗑'}
-                </button>
-              )}
+              <div style={{ marginLeft:'auto',display:'flex',gap:8 }}>
+                <button className="btn btn-secondary btn-sm" onClick={()=>openDevices(p)} title="Gérer les appareils">📱</button>
+                <button className="btn btn-secondary btn-sm" onClick={()=>openEdit(p)} title="Modifier">✏ Modifier</button>
+                {p.role==='intervenant'&&(
+                  <button
+                    className="btn-icon sm"
+                    style={{ color:'var(--rdTx)' }}
+                    onClick={()=>handleDelete(p)}
+                    disabled={delLoading===p.id}
+                    title="Supprimer définitivement"
+                  >
+                    {delLoading===p.id?'…':'🗑'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
       </div>
-      <div style={{ marginTop:10,padding:'10px 14px',background:'var(--blBg)',borderRadius:'var(--r2)',border:'1px solid var(--blBd)',fontSize:11,color:'var(--blTx)',display:'flex',gap:8,alignItems:'center' }}>
+      <div style={{ marginTop:10,padding:'12px 14px',background:'var(--blBg)',borderRadius:'var(--r2)',border:'1px solid var(--blBd)',fontSize:13,color:'var(--blTx)',display:'flex',gap:8,alignItems:'flex-start' }}>
         🛡 RLS actif — chaque intervenant ne voit que ses interventions. Suppression = irréversible (profil + compte auth supprimés).
       </div>
 
@@ -110,16 +152,24 @@ export default function UsersPage() {
       {modal&&(
         <div className="modal-overlay" onClick={()=>setModal(false)}>
           <div className="modal" onClick={e=>e.stopPropagation()}>
-            <div className="modal-header"><span className="modal-title">Inviter un intervenant</span><button className="btn-icon sm" onClick={()=>setModal(false)}>✕</button></div>
+            <div className="modal-header">
+              <span className="modal-title">Inviter un intervenant</span>
+              <button className="btn-icon sm" onClick={()=>setModal(false)}>✕</button>
+            </div>
             <form onSubmit={handleInvite}>
               <div className="modal-body">
-                <p style={{ fontSize:12,color:'var(--t2)',marginBottom:14 }}>Un email d'invitation sera envoyé. L'intervenant pourra définir son mot de passe.</p>
-                <div className="form-row">
-                  <div className="form-group"><label>Prénom *</label><input value={invForm.prenom} onChange={e=>setInvForm(f=>({...f,prenom:e.target.value}))} required /></div>
-                  <div className="form-group"><label>Nom *</label><input value={invForm.nom} onChange={e=>setInvForm(f=>({...f,nom:e.target.value}))} required /></div>
-                </div>
+                <p style={{ fontSize:13,color:'var(--t2)',marginBottom:14 }}>Un email d'invitation sera envoyé. L'intervenant pourra définir son mot de passe.</p>
+                <div className="form-group"><label>Prénom *</label><input value={invForm.prenom} onChange={e=>setInvForm(f=>({...f,prenom:e.target.value}))} required /></div>
+                <div className="form-group"><label>Nom *</label><input value={invForm.nom} onChange={e=>setInvForm(f=>({...f,nom:e.target.value}))} required /></div>
                 <div className="form-group"><label>Email *</label><input type="email" value={invForm.email} onChange={e=>setInvForm(f=>({...f,email:e.target.value}))} required /></div>
                 <div className="form-group"><label>Commission (%)</label><input type="number" min={0} max={100} value={invForm.commission_pct} onChange={e=>setInvForm(f=>({...f,commission_pct:+e.target.value}))} /></div>
+                <div className="form-group">
+                  <label>Type d'intervenant</label>
+                  <select value={invForm.type_intervenant} onChange={e=>setInvForm(f=>({...f,type_intervenant:e.target.value as any}))}>
+                    <option value="entrepreneur">Entrepreneur (autonome)</option>
+                    <option value="salarie">Salarié</option>
+                  </select>
+                </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={()=>setModal(false)}>Annuler</button>
@@ -130,19 +180,90 @@ export default function UsersPage() {
         </div>
       )}
 
+      {/* Modal appareils admin */}
+      {devicesModal&&devicesTarget&&(
+        <div className="modal-overlay" onClick={()=>setDevicesModal(false)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">📱 Appareils — {devicesTarget.prenom} {devicesTarget.nom}</span>
+              <button className="btn-icon sm" onClick={()=>setDevicesModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              {devicesLoading ? (
+                <div style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>Chargement…</div>
+              ) : devicesData.length === 0 ? (
+                <div style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>Aucun appareil enregistré</div>
+              ) : (
+                <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
+                  {devicesData.map(d=>(
+                    <div key={d.id} style={{ display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,border:'1px solid var(--b1)' }}>
+                      <span style={{ fontSize:20,flexShrink:0 }}>{d.systeme_exploitation==='iOS'||d.systeme_exploitation==='Android'?'📱':'💻'}</span>
+                      <div style={{ flex:1,minWidth:0 }}>
+                        <div style={{ fontSize:13,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>
+                          {d.nom_appareil||'Appareil inconnu'}
+                          {isCurrentDevice(d.device_id)&&<span style={{ marginLeft:6,fontSize:10,padding:'1px 6px',background:'var(--bl)',color:'#fff',borderRadius:10 }}>Admin actuel</span>}
+                        </div>
+                        <div style={{ fontSize:11,color:'var(--t3)',marginTop:1 }}>
+                          1ère connexion : {new Date(d.date_premiere_connexion).toLocaleDateString('fr-FR')} · Dernière : {new Date(d.date_derniere_connexion).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})}
+                        </div>
+                      </div>
+                      <span className={`pill ${d.actif?'pill-green':'pill-gray'}`} style={{ fontSize:10 }}>{d.actif?'Actif':'Révoqué'}</span>
+                      {d.actif&&(
+                        <button onClick={()=>handleRevokeDevice(d.id)} className="btn btn-secondary btn-sm" style={{ color:'var(--rdTx)',flexShrink:0 }}>Révoquer</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={()=>setDevicesModal(false)}>Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal modifier */}
       {editModal&&editTarget&&(
         <div className="modal-overlay" onClick={()=>setEditModal(false)}>
           <div className="modal" onClick={e=>e.stopPropagation()}>
-            <div className="modal-header"><span className="modal-title">Modifier {editTarget.prenom} {editTarget.nom}</span><button className="btn-icon sm" onClick={()=>setEditModal(false)}>✕</button></div>
+            <div className="modal-header">
+              <span className="modal-title">Modifier {editTarget.prenom} {editTarget.nom}</span>
+              <button className="btn-icon sm" onClick={()=>setEditModal(false)}>✕</button>
+            </div>
             <form onSubmit={handleEdit}>
               <div className="modal-body">
-                <div className="form-row">
-                  <div className="form-group"><label>Prénom</label><input value={editForm.prenom} onChange={e=>setEditForm(f=>({...f,prenom:e.target.value}))} required /></div>
-                  <div className="form-group"><label>Nom</label><input value={editForm.nom} onChange={e=>setEditForm(f=>({...f,nom:e.target.value}))} required /></div>
-                </div>
+                <div className="form-group"><label>Prénom</label><input value={editForm.prenom} onChange={e=>setEditForm(f=>({...f,prenom:e.target.value}))} required /></div>
+                <div className="form-group"><label>Nom</label><input value={editForm.nom} onChange={e=>setEditForm(f=>({...f,nom:e.target.value}))} required /></div>
                 <div className="form-group"><label>Email</label><input type="email" value={editForm.email} disabled style={{ opacity:0.5 }} title="L'email ne peut pas être modifié ici" /></div>
-                {editTarget.role==='intervenant'&&<div className="form-group"><label>Commission (%)</label><input type="number" min={0} max={100} value={editForm.commission_pct} onChange={e=>setEditForm(f=>({...f,commission_pct:+e.target.value}))} /></div>}
+                {editTarget.role==='intervenant'&&(
+                  <>
+                    <div className="form-group"><label>Commission (%)</label><input type="number" min={0} max={100} value={editForm.commission_pct} onChange={e=>setEditForm(f=>({...f,commission_pct:+e.target.value}))} /></div>
+                    <div className="form-group">
+                      <label>Type d'intervenant</label>
+                      <select value={editForm.type_intervenant} onChange={e=>setEditForm(f=>({...f,type_intervenant:e.target.value as any}))}>
+                        <option value="">Non défini</option>
+                        <option value="entrepreneur">Entrepreneur (autonome)</option>
+                        <option value="salarie">Salarié</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Création de documents</label>
+                      <div style={{ display:'flex',alignItems:'center',gap:12,paddingTop:4 }}>
+                        <div
+                          className={`toggle ${editForm.can_create_documents?'':'off'}`}
+                          onClick={()=>setEditForm(f=>({...f,can_create_documents:!f.can_create_documents}))}
+                          style={{ cursor:'pointer',flexShrink:0 }}
+                        />
+                        <span style={{ fontSize:13,color:'var(--t1)' }}>
+                          {editForm.can_create_documents
+                            ? 'Peut créer des devis et factures'
+                            : 'Ne peut pas créer de devis/factures'}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={()=>setEditModal(false)}>Annuler</button>

@@ -1,15 +1,16 @@
 // src/types/index.ts
 export type Role = 'admin' | 'intervenant'
+export type TypeIntervenant = 'entrepreneur' | 'salarie'
 export type StatutIntervention = 'en_attente'|'accepte'|'refuse'|'en_cours'|'termine'|'annule'|'facture'
-export type StatutDevis = 'brouillon'|'envoye'|'accepte'|'refuse'|'expire'
-export type StatutPaiement = 'impayee'|'payee'|'acompte'|'partiel'|'annulee'
+export type StatutDevis = 'en_attente_validation'|'brouillon'|'envoye'|'accepte'|'refuse'|'expire'
+export type StatutPaiement = 'en_attente_validation'|'impayee'|'payee'|'acompte'|'partiel'|'annulee'
 export type ModePaiement = 'cb'|'especes'|'virement'|'cheque'
 export type Categorie = 'serrurerie'|'vitrerie'
 export type TypePhoto = 'avant'|'apres'|'autre'
 
 export interface Profile {
-  id: string; role: Role; nom: string; prenom: string; email: string
-  telephone?: string; commission_pct: number; actif: boolean
+  id: string; role: Role; type_intervenant?: TypeIntervenant; nom: string; prenom: string; email: string
+  telephone?: string; commission_pct: number; actif: boolean; can_create_documents?: boolean
   avatar_url?: string; created_at: string; updated_at: string
 }
 
@@ -43,7 +44,7 @@ export interface Intervention {
   date_prevue?: string; date_debut?: string; date_fin?: string
   description?: string; travail_realise?: string; materiel_utilise?: string
   temps_passe_min?: number; montant_ht?: number; tva_pct: number
-  montant_ttc?: number; notes_admin?: string; created_by?: string
+  montant_ttc?: number; cout_pieces?: number; notes_admin?: string; created_by?: string
   created_at: string; updated_at: string
   client?: Client; intervenant?: Profile; photos?: Photo[]
 }
@@ -111,4 +112,5 @@ export interface DashboardStats {
   interventions_today: number; ca_mois: number; factures_impayees: number
   montant_impaye: number; commissions_dues: number; devis_en_attente: number
   messages_non_lus: number
+  mes_commissions_mois?: number; mes_commissions_dues?: number
 }

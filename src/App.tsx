@@ -1,6 +1,6 @@
 // src/App.tsx
 import { useEffect, useState } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore, useUIStore, useParamsStore } from '@/lib/store'
@@ -19,15 +19,25 @@ import UsersPage from '@/pages/UsersPage'
 import ParamsPage from '@/pages/ParamsPage'
 import JournalPage from '@/pages/JournalPage'
 import ResetPasswordPage from '@/pages/ResetPasswordPage'
+import DevisApercuPage from '@/pages/DevisApercuPage'
 
-function Guard({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
+function Guard({ children, adminOnly = false, requireCanCreateDocs = false }: { children: React.ReactNode; adminOnly?: boolean; requireCanCreateDocs?: boolean }) {
   const { user, loading, error } = useAuthStore()
+  const location = useLocation()
 
   if (loading) return <Loader />
   if (error) return <ErrorDisplay error={error} />
-  if (!user) return <Navigate to="/login" replace />
-  if (adminOnly && user.role !== 'admin') return <Navigate to="/" replace />
-
+  if (!user) {
+    // Sauvegarder la destination pour redirection post-login (cas push notification)
+    const target = location.pathname + location.search
+    if (target && target !== '/' && !target.startsWith('/login')) {
+      sessionStorage.setItem('kaytek-push-redirect', target)
+      console.log('[Guard] non authentifié — redirect sauvegardé:', target)
+    }
+    return <Navigate to="/login" replace />
+  }
+  if (adminOnly && user.role !== 'admin') return <Navigate to="/dashboard" replace />
+  if (requireCanCreateDocs && user.role !== 'admin' && !user.can_create_documents) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
 
@@ -61,7 +71,21 @@ export default function App() {
   const { theme } = useUIStore()
   const { setParams } = useParamsStore()
   const qc = useQueryClient()
+  const nav = useNavigate()
   const [initDone, setInitDone] = useState(false)
+
+  // Listener SW — reçoit NAVIGATE depuis push-sw.js quand l'app est déjà ouverte
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'NAVIGATE' && event.data.url) {
+        console.log('[App] SW NAVIGATE →', event.data.url)
+        nav(event.data.url)
+      }
+    }
+    navigator.serviceWorker.addEventListener('message', handler)
+    return () => navigator.serviceWorker.removeEventListener('message', handler)
+  }, [nav])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -76,6 +100,15 @@ export default function App() {
     const initAuth = async () => {
       setLoading(true)
       setError(null)
+
+      // Ouverture depuis une notification push (push_open=1 ajouté par push-sw.js)
+      const searchParams = new URLSearchParams(window.location.search)
+      if (searchParams.get('push_open') === '1') {
+        sessionStorage.setItem('kaytek-active', '1')
+        const cleanUrl = window.location.pathname + window.location.hash
+        window.history.replaceState({}, '', cleanUrl)
+        console.log('[App] push_open détecté — kaytek-active activé, URL nettoyée:', cleanUrl)
+      }
 
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => {
@@ -95,7 +128,7 @@ export default function App() {
           throw new Error(`Erreur de session: ${sessionError.message}`)
         }
 
-        if (session?.user) {
+        if (session?.user && sessionStorage.getItem('kaytek-active')) {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -142,7 +175,7 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return
 
-      if (event === 'SIGNED_IN' && session?.user) {
+      if (event === 'SIGNED_IN' && session?.user && sessionStorage.getItem('kaytek-active')) {
         try {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
@@ -192,11 +225,12 @@ export default function App() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="interventions" element={<InterventionsPage />} />
         <Route path="interventions/:id" element={<InterventionDetailPage />} />
-        <Route path="devis" element={<DevisPage />} />
-        <Route path="devis/nouveau" element={<Guard><DevisFormPage /></Guard>} />
-        <Route path="devis/:id/editer" element={<Guard><DevisFormPage /></Guard>} />
-        <Route path="factures" element={<FacturesPage />} />
-        <Route path="clients" element={<ClientsPage />} />
+        <Route path="devis" element={<Guard><DevisPage /></Guard>} />
+        <Route path="devis/nouveau" element={<Guard requireCanCreateDocs><DevisFormPage /></Guard>} />
+        <Route path="devis/:id/editer" element={<Guard adminOnly><DevisFormPage /></Guard>} />
+        <Route path="devis/:id/apercu" element={<Guard><DevisApercuPage /></Guard>} />
+        <Route path="factures" element={<Guard><FacturesPage /></Guard>} />
+        <Route path="clients" element={<Guard adminOnly><ClientsPage /></Guard>} />
         <Route path="messagerie" element={<MessagingPage />} />
         <Route path="messagerie/:userId" element={<MessagingPage />} />
         <Route path="commissions" element={<CommissionsPage />} />

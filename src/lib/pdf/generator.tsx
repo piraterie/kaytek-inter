@@ -187,25 +187,35 @@ export async function generateDevisPDF(devis: Devis, params: ParametresEntrepris
 
         <Totals ht={devis.total_ht} tva={devis.tva_montant} remisePct={devis.remise_pct} remise={devis.remise_montant} ttc={devis.total_ttc} accent={accent} />
 
-        {/* Notes */}
-        {devis.notes && (
+        {/* Notes / Conditions — avant la signature */}
+        {devis.notes?.trim() ? (
           <View style={{ backgroundColor: '#fefce8', borderRadius: 6, padding: 12, marginBottom: 14, borderLeftWidth: 3, borderLeftColor: '#f59e0b' }}>
-            <Text style={[base.bold, base.upper, { color: '#92400e', marginBottom: 4 }]}>Notes</Text>
-            <Text style={{ fontSize: 9, color: '#78350f', lineHeight: 1.6 }}>{devis.notes}</Text>
+            <Text style={[base.bold, base.upper, { color: '#92400e', marginBottom: 6, fontSize: 8 }]}>Notes et conditions particulières</Text>
+            <Text style={{ fontSize: 9, color: '#374151', lineHeight: 1.7 }}>{devis.notes.trim()}</Text>
           </View>
-        )}
+        ) : null}
 
-        {/* Signature */}
-        <View style={{ borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 6, padding: 12, height: 80, marginBottom: 14 }}>
-          <Text style={[base.bold, base.upper, { color: '#6b7280', marginBottom: 6 }]}>Signature client — bon pour accord</Text>
-          {devis.signature_url
-            ? <>
-                <Image src={devis.signature_url} style={{ height: 38, marginTop: 4 }} />
-                <Text style={[base.muted, { marginTop: 3 }]}>Signé le {fmt(devis.signe_le)}</Text>
-              </>
-            : <Text style={{ color: '#d1d5db', fontSize: 8, marginTop: 14 }}>À signer</Text>
-          }
-        </View>
+        {/* Signature — signature_client (base64) stocké par DevisApercuPage */}
+        {(() => {
+          const d = devis as any
+          const sigImg  = d.signature_client || devis.signature_url
+          const sigDate = d.signature_date   || devis.signe_le
+          const sigPar  = d.signe_par        || devis.signe_par
+          return (
+            <View style={{ borderWidth: 1, borderColor: sigImg ? '#86efac' : '#e5e7eb', borderRadius: 6, padding: 12, minHeight: 80, marginBottom: 14 }}>
+              <Text style={[base.bold, base.upper, { color: '#6b7280', marginBottom: 6 }]}>Signature client — bon pour accord</Text>
+              {sigImg
+                ? <>
+                    <Image src={sigImg} style={{ height: 52, marginTop: 4, objectFit: 'contain' }} />
+                    <Text style={[base.muted, { marginTop: 4 }]}>
+                      {'Signé le ' + fmt(sigDate) + (sigPar ? ' par ' + sigPar : '')}
+                    </Text>
+                  </>
+                : <Text style={{ color: '#d1d5db', fontSize: 8, marginTop: 14 }}>À signer</Text>
+              }
+            </View>
+          )
+        })()}
 
         <View style={base.footer}>
           <Text style={base.ftxt}>{[params.cgv, params.rc_pro ? 'RC Pro : ' + params.rc_pro : ''].filter(Boolean).join('  ·  ')}</Text>
