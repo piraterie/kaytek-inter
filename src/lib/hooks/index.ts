@@ -462,9 +462,19 @@ export function useUploadPhoto() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ file, interventionId, type }: { file: File; interventionId: string; type: 'avant'|'apres'|'autre' }) => {
+      const org_id = orgId()
+      if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
       const { url, path, error } = await uploadPhotoStorage(file, interventionId, type)
       if (error) throw new Error(error)
-      const { error: dbErr } = await supabase.from('photos').insert({ intervention_id: interventionId, url, storage_path: path, type, uploaded_by: uid(), taille_octets: file.size })
+      const { error: dbErr } = await supabase.from('photos').insert({
+        intervention_id: interventionId,
+        url,
+        storage_path: path,
+        type,
+        uploaded_by: uid(),
+        taille_octets: file.size,
+        organisation_id: org_id
+      })
       if (dbErr) throw dbErr
     },
     onSuccess: (_: any, v: any) => qc.invalidateQueries({ queryKey: ['intervention', v.interventionId] })
