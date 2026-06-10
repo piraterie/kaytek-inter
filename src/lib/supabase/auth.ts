@@ -28,7 +28,7 @@ export async function signIn(email: string, password: string) {
     }
 
     // Vérification et enregistrement de l'appareil
-    const { error: deviceError } = await registerDevice(data.user.id)
+    const { error: deviceError } = await registerDevice(data.user.id, profile.organisation_id)
     if (deviceError === 'DEVICE_LIMIT') {
       await supabase.auth.signOut()
       return {

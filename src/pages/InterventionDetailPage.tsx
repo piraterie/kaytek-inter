@@ -97,10 +97,12 @@ export default function InterventionDetailPage() {
   async function notifyAdminsMessage(contenu: string) {
     const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin')
     if (!admins?.length) return
+    const org_id = user?.organisation_id
+    if (!org_id) return
     for (const admin of admins) {
       await supabase.from('messages').insert({
         expediteur_id: user!.id, destinataire_id: admin.id,
-        contenu, type: 'texte', intervention_id: id
+        contenu, type: 'texte', intervention_id: id, organisation_id: org_id
       })
     }
   }

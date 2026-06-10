@@ -636,6 +636,8 @@ function buildTelegramMessage(titre: string, contenu: string, lien?: string): st
 export async function notifyAdmins(titre: string, contenu: string, lien?: string) {
   const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin')
   if (!admins?.length) return
+  const org_id = orgId()
+  if (!org_id) return
   const msg = buildTelegramMessage(titre, contenu, lien)
   for (const admin of admins) {
     let telegramSent = false
@@ -647,12 +649,14 @@ export async function notifyAdmins(titre: string, contenu: string, lien?: string
     } catch { /* fallback vers push */ }
     await supabase.from('notifications').insert({
       user_id: admin.id, titre, contenu, type: 'info', lue: false, lien: lien || null,
-      skip_push: telegramSent
+      skip_push: telegramSent, organisation_id: org_id
     } as any)
   }
 }
 
 export async function notifyUser(userId: string, titre: string, contenu: string, lien?: string) {
+  const org_id = orgId()
+  if (!org_id) return
   let telegramSent = false
   try {
     const { data } = await supabase.functions.invoke('send-telegram', {
@@ -662,7 +666,7 @@ export async function notifyUser(userId: string, titre: string, contenu: string,
   } catch { /* fallback vers push */ }
   await supabase.from('notifications').insert({
     user_id: userId, titre, contenu, type: 'info', lue: false, lien: lien || null,
-    skip_push: telegramSent
+    skip_push: telegramSent, organisation_id: org_id
   } as any)
 }
 
@@ -1043,10 +1047,12 @@ export function useMarkCommissionReceived() {
     mutationFn: async ({ facture_id, intervention_id }: { facture_id: string; intervention_id: string }) => {
       const intervenant_id = uid()
       if (!intervenant_id) throw new Error('Non authentifié')
+      const org_id = orgId()
+      if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
       const { error } = await supabase
         .from('commission_receipts')
         .upsert(
-          { facture_id, intervention_id, intervenant_id, recue: true, recue_le: new Date().toISOString() },
+          { facture_id, intervention_id, intervenant_id, recue: true, recue_le: new Date().toISOString(), organisation_id: org_id },
           { onConflict: 'facture_id,intervenant_id' }
         )
       if (error) throw error
@@ -1137,7 +1143,9 @@ export function useSendMessage() {
         const { data: dest } = await supabase.from('profiles').select('role').eq('id', destinataire_id).single()
         if (!dest || dest.role !== 'admin') throw new Error('Vous ne pouvez envoyer des messages qu\'à l\'administrateur')
       }
-      const payload: any = { expediteur_id: user!.id, destinataire_id, contenu, type }
+      const org_id = orgId()
+      if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
+      const payload: any = { expediteur_id: user!.id, destinataire_id, contenu, type, organisation_id: org_id }
       if (intervention_id) payload.intervention_id = intervention_id
       if (media_url) payload.media_url = media_url
       const { error } = await supabase.from('messages').insert(payload)
@@ -1285,12 +1293,16 @@ export function usePushSubscription() {
       const auth = json.keys?.auth
       if (!p256dh || !auth) return
 
+      const org_id = user?.organisation_id
+      if (!org_id) return
+
       // Upsert: INSERT ou UPDATE (les deux opérations)
       await supabase.from('push_subscriptions').upsert({
         user_id: user!.id,
         endpoint: sub.endpoint,
         p256dh,
         auth,
+        organisation_id: org_id,
       }, { onConflict: 'endpoint' })
     }
 

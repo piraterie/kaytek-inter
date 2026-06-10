@@ -49,7 +49,7 @@ function getDeviceInfo() {
   return { nom_appareil, navigateur, systeme_exploitation }
 }
 
-export async function registerDevice(userId: string): Promise<{ error: string | null }> {
+export async function registerDevice(userId: string, organisationId: string): Promise<{ error: string | null }> {
   const device_id = getDeviceId()
   const { nom_appareil, navigateur, systeme_exploitation } = getDeviceInfo()
   const now = new Date().toISOString()
@@ -89,6 +89,7 @@ export async function registerDevice(userId: string): Promise<{ error: string | 
     date_premiere_connexion: now,
     date_derniere_connexion: now,
     actif: true,
+    organisation_id: organisationId,
   })
 
   return { error: null }
