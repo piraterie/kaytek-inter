@@ -283,7 +283,8 @@ export function useCreatePrestation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (data: Omit<Prestation, 'id'>) => {
-      const { data: result, error } = await supabase.from('prestations').insert(data).select().single()
+      const org_id = orgId(); if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
+      const { data: result, error } = await supabase.from('prestations').insert({ ...data, organisation_id: org_id }).select().single()
       if (error) throw error; return result
     },
     onSuccess: () => {
