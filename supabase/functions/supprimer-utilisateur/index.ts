@@ -10,30 +10,37 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const ANON_KEY     = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 
-async function requireAdmin(req: Request): Promise<string | null> {
+// Retourne l'organisationId du caller admin, ou une erreur
+async function requireAdmin(req: Request): Promise<{ error: string | null; organisationId: string | null }> {
   const auth = req.headers.get('Authorization')
-  if (!auth?.startsWith('Bearer ')) return 'Non authentifié'
+  if (!auth?.startsWith('Bearer ')) return { error: 'Non authentifié', organisationId: null }
 
   const userClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: auth } },
     auth: { autoRefreshToken: false, persistSession: false },
   })
   const { data: { user }, error } = await userClient.auth.getUser()
-  if (error || !user) return 'Token invalide'
+  if (error || !user) return { error: 'Token invalide', organisationId: null }
 
-  const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
+  const adminClient = createClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
-  const { data: profile } = await admin.from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') return 'Accès réservé aux administrateurs'
+  const { data: profile } = await adminClient
+    .from('profiles')
+    .select('role, organisation_id')
+    .eq('id', user.id)
+    .single()
 
-  return null
+  if (profile?.role !== 'admin') return { error: 'Accès réservé aux administrateurs', organisationId: null }
+  if (!profile?.organisation_id) return { error: "Administrateur sans organisation associée", organisationId: null }
+
+  return { error: null, organisationId: profile.organisation_id as string }
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
-  const deny = await requireAdmin(req)
+  const { error: deny, organisationId } = await requireAdmin(req)
   if (deny) return new Response(JSON.stringify({ error: deny }), {
     status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
@@ -47,6 +54,23 @@ serve(async (req) => {
     if (!userId) return new Response(JSON.stringify({ error: 'userId manquant' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+
+    // Vérification organisation : l'utilisateur cible doit appartenir à la même org que le caller
+    const { data: targetProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('organisation_id')
+      .eq('id', userId)
+      .single()
+
+    if (!targetProfile) return new Response(JSON.stringify({ error: 'Utilisateur introuvable' }), {
+      status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+
+    if (targetProfile.organisation_id !== organisationId) {
+      return new Response(JSON.stringify({ error: 'Suppression cross-organisation non autorisée' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
     if (error) return new Response(JSON.stringify({ error: error.message }), {

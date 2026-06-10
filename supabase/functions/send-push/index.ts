@@ -6,12 +6,15 @@ const VAPID_PUBLIC_KEY     = Deno.env.get('VAPID_PUBLIC_KEY')!
 const VAPID_PRIVATE_KEY    = Deno.env.get('VAPID_PRIVATE_KEY')!
 const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const SUPABASE_ANON_KEY    = Deno.env.get('SUPABASE_ANON_KEY')!
+const INTERNAL_PUSH_SECRET = Deno.env.get('INTERNAL_PUSH_SECRET') ?? ''
 
 // ── [BOOT] Vérification des secrets au démarrage ──────────────────
 console.log('[send-push] BOOT — VAPID_PUBLIC_KEY présente :', !!VAPID_PUBLIC_KEY, '— longueur :', VAPID_PUBLIC_KEY?.length ?? 0)
 console.log('[send-push] BOOT — VAPID_PRIVATE_KEY présente :', !!VAPID_PRIVATE_KEY, '— longueur :', VAPID_PRIVATE_KEY?.length ?? 0)
 console.log('[send-push] BOOT — SUPABASE_URL :', SUPABASE_URL ?? '(vide)')
 console.log('[send-push] BOOT — SERVICE_KEY présente :', !!SUPABASE_SERVICE_KEY)
+console.log('[send-push] BOOT — INTERNAL_PUSH_SECRET présente :', !!INTERNAL_PUSH_SECRET)
 
 try {
   webpush.setVapidDetails('mailto:castryludovic@gmail.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
@@ -22,7 +25,34 @@ try {
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-internal-secret',
+}
+
+// Deux chemins d'authentification :
+//   Chemin 1 — appel interne depuis le trigger DB :
+//     header X-Internal-Secret = INTERNAL_PUSH_SECRET (secret partagé, jamais exposé publiquement)
+//   Chemin 2 — appel frontend authentifié :
+//     header Authorization = Bearer <JWT utilisateur valide>
+// La clé anon dans Authorization n'est PAS acceptée comme authentification.
+async function requireAuth(req: Request): Promise<boolean> {
+  // Chemin 1 — secret interne (trigger DB)
+  // Guard : INTERNAL_PUSH_SECRET doit être configuré et non vide
+  const internalSecret = req.headers.get('x-internal-secret')
+  if (INTERNAL_PUSH_SECRET && internalSecret === INTERNAL_PUSH_SECRET) return true
+
+  // Chemin 2 — JWT utilisateur valide (frontend)
+  const auth = req.headers.get('Authorization')
+  if (!auth?.startsWith('Bearer ')) return false
+  try {
+    const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: auth } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+    const { data: { user } } = await client.auth.getUser()
+    return !!user
+  } catch {
+    return false
+  }
 }
 
 serve(async (req) => {
@@ -33,6 +63,14 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     console.log(`[send-push][${requestId}] OPTIONS preflight → 200`)
     return new Response('ok', { headers: cors })
+  }
+
+  const authed = await requireAuth(req)
+  if (!authed) {
+    console.warn(`[send-push][${requestId}] Requête non autorisée — JWT invalide et secret interne absent ou incorrect`)
+    return new Response(JSON.stringify({ error: 'Non autorisé' }), {
+      status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
+    })
   }
 
   try {
@@ -73,7 +111,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ sent: 0, reason: 'no_subscriptions' }), { headers: { ...cors, 'Content-Type': 'application/json' } })
     }
 
-    // Log les endpoints (tronqués pour confidentialité)
     subs.forEach((s, i) => {
       const endpointShort = s.endpoint?.slice(0, 60) + '…'
       console.log(`[send-push][${requestId}] [2] Sub[${i}] id=${s.id} | endpoint=${endpointShort} | p256dh=${!!s.p256dh} | auth=${!!s.auth}`)
@@ -85,9 +122,6 @@ serve(async (req) => {
       (titre && titre.toLowerCase().includes('intervention')) ||
       (lien && lien.includes('/interventions'))
     )
-    // TTL court pour les interventions : si FCM ne peut pas livrer dans les 60s,
-    // le message est abandonné plutôt que livré en batch au déverrouillage.
-    // TTL normal pour les autres notifications (factures, messages, etc.).
     const ttl = isIntervention ? 60 : 3600
     const pushPayload = JSON.stringify({
       title:          titre   || 'Kaytek Inter',
@@ -105,9 +139,6 @@ serve(async (req) => {
     console.log(`[send-push][${requestId}] [3] Payload FCM construit : ${pushPayload}`)
 
     // ── [4] Envoi Web Push ────────────────────────────────────────
-    // Aucun topic ni collapse_key : chaque notification est indépendante.
-    // urgency:'high' → FCM priority high → Android doit réveiller Chrome même en Doze.
-    // TTL court (60s) pour interventions → pas d'accumulation sur verrouillage long.
     let sent = 0
     const toDelete: string[] = []
     const results: any[] = []

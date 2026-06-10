@@ -56,15 +56,30 @@ serve(async (req) => {
     const profileData = { nom, prenom, role: 'intervenant', commission_pct: commission_pct ?? 30, actif: true, organisation_id: organisationId }
 
     // 1. Chercher si profil existe déjà
-    const { data: existingProfile } = await admin.from('profiles').select('id').eq('email', email).maybeSingle()
+    const { data: existingProfile } = await admin.from('profiles')
+      .select('id, organisation_id')
+      .eq('email', email)
+      .maybeSingle()
 
     let actionLink: string
     let isNew = false
 
     if (existingProfile?.id) {
-      // Utilisateur existant → mettre à jour profil + générer lien reset
-      console.log('[DBG] profiles.update payload:', JSON.stringify({ nom, prenom, commission_pct: commission_pct ?? 30, organisation_id: organisationId }))
-      const { error: updateErr } = await admin.from('profiles').update({ nom, prenom, commission_pct: commission_pct ?? 30, organisation_id: organisationId }).eq('id', existingProfile.id)
+      // Vérification isolation organisation : refuser si le profil appartient à une autre org
+      if (existingProfile.organisation_id && existingProfile.organisation_id !== organisationId) {
+        return respond({ error: 'Cet utilisateur appartient déjà à une autre organisation' })
+      }
+
+      // Utilisateur existant (même org ou sans org) → mise à jour profil + génération lien reset
+      // role forcé à 'intervenant' pour éviter toute escalade de privilèges
+      console.log('[DBG] profiles.update payload:', JSON.stringify({ nom, prenom, role: 'intervenant', commission_pct: commission_pct ?? 30, organisation_id: organisationId }))
+      const { error: updateErr } = await admin.from('profiles').update({
+        nom,
+        prenom,
+        role: 'intervenant',
+        commission_pct: commission_pct ?? 30,
+        organisation_id: organisationId,
+      }).eq('id', existingProfile.id)
       if (updateErr) console.error('[DBG] profiles.update error:', JSON.stringify({ message: updateErr.message, code: (updateErr as any).code, details: (updateErr as any).details, hint: (updateErr as any).hint }))
       const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
         type: 'recovery', email, options: { redirectTo }
@@ -72,9 +87,13 @@ serve(async (req) => {
       if (linkErr) return respond({ error: linkErr.message })
       actionLink = linkData.properties?.action_link ?? ''
     } else {
-      // Nouvel utilisateur → chercher dans auth ou créer
-      const { data: userList } = await admin.auth.admin.listUsers()
-      const authUser = (userList?.users ?? []).find((u: any) => u.email === email)
+      // Nouvel utilisateur — recherche ciblée dans auth.users par email (évite listUsers global)
+      const { data: authUser } = await admin
+        .schema('auth')
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle()
 
       if (authUser) {
         // Existe dans auth mais pas de profil
