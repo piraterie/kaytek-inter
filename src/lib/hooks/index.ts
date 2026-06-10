@@ -134,6 +134,24 @@ export function useUpdateParametres() {
   })
 }
 
+export const REQUIRED_PARAMS: Array<{ field: keyof ParametresEntreprise; label: string }> = [
+  { field: 'raison_sociale', label: 'Raison sociale' },
+  { field: 'email',          label: 'Email entreprise' },
+  { field: 'telephone',      label: 'Téléphone' },
+  { field: 'adresse',        label: 'Adresse' },
+]
+
+export function useParamsCompletion() {
+  const { data: params, isLoading } = useParametres()
+  if (isLoading) {
+    return { isComplete: true, missingFields: [] as typeof REQUIRED_PARAMS, isLoaded: false }
+  }
+  const missing = params
+    ? REQUIRED_PARAMS.filter(f => !params[f.field])
+    : [...REQUIRED_PARAMS]
+  return { isComplete: missing.length === 0, missingFields: missing, isLoaded: true }
+}
+
 // ── CLIENTS ──────────────────────────────────────────────────────
 export function useClients(search?: string, showArchived = false) {
   return useQuery<Client[]>({

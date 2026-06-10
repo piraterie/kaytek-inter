@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore, useUIStore, useToastStore } from '@/lib/store'
 import { signOut } from '@/lib/supabase/auth'
-import { useUnreadCount, useUpdateProfile, useIsMobile, useRequestNotificationPermission, usePushSubscription, useMyNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useDeleteNotification, useDeleteAllReadNotifications } from '@/lib/hooks'
+import { useUnreadCount, useUpdateProfile, useIsMobile, useRequestNotificationPermission, usePushSubscription, useMyNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useDeleteNotification, useDeleteAllReadNotifications, useParamsCompletion } from '@/lib/hooks'
 import { getMyDevices, disconnectDevice, disconnectAllOtherDevices, isCurrentDevice, type DeviceRecord } from '@/lib/devices'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 
@@ -30,6 +30,7 @@ export default function AppLayout() {
   const { toasts, remove, add } = useToastStore()
   const { data: unread = 0 } = useUnreadCount()
   const updProfile = useUpdateProfile()
+  const { isComplete: paramsComplete, missingFields: paramsMissing, isLoaded: paramsLoaded } = useParamsCompletion()
   useRequestNotificationPermission()
   usePushSubscription()
   const nav = useNavigate()
@@ -389,6 +390,23 @@ export default function AppLayout() {
             <button onClick={toggleTheme} className="btn-icon" style={{ fontSize: 17 }}>{theme === 'dark' ? '☀' : '🌙'}</button>
           </div>
         </header>
+        {/* Bannière paramètres incomplets — admin seulement */}
+        {isAdmin && paramsLoaded && !paramsComplete && (
+          <div style={{ background: 'var(--amBg)', borderBottom: '1px solid var(--amBd)', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 16 }}>⚠</span>
+            <span style={{ fontSize: 13, color: 'var(--amTx)', flex: 1, minWidth: 200 }}>
+              <strong>Paramètres entreprise incomplets</strong>
+              {paramsMissing.length > 0 && <> — manquants : {paramsMissing.map(f => f.label).join(', ')}</>}
+              . Complétez-les pour envoyer des devis et factures.
+            </span>
+            <button
+              onClick={() => nav('/parametres')}
+              style={{ fontSize: 12, fontWeight: 600, color: 'var(--amTx)', background: 'rgba(0,0,0,0.08)', border: '1px solid var(--amBd)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
+            >
+              Ouvrir les Paramètres →
+            </button>
+          </div>
+        )}
         {/* Content */}
         <main className="main-content" style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 18, scrollbarWidth: 'thin', scrollbarColor: 'var(--s3) transparent' }}>
           <Outlet />
@@ -436,9 +454,18 @@ export default function AppLayout() {
       {/* TOASTS */}
       <div className="toast-container">
         {toasts.map(t => (
-          <div key={t.id} className={`toast ${t.type}`} onClick={() => remove(t.id)}>
+          <div key={t.id} className={`toast ${t.type}`} onClick={() => remove(t.id)}
+            style={t.actionLabel ? { display: 'flex', alignItems: 'center', gap: 6 } : undefined}>
             <span>{t.type === 'success' ? '✓' : t.type === 'error' ? '✗' : t.type === 'warning' ? '⚠' : 'ℹ'}</span>
-            {t.message}
+            {t.actionLabel ? <span style={{ flex: 1 }}>{t.message}</span> : t.message}
+            {t.actionLabel && t.onAction && (
+              <button
+                onClick={e => { e.stopPropagation(); t.onAction!(); remove(t.id) }}
+                style={{ background: 'rgba(255,255,255,0.22)', border: 'none', color: 'inherit', padding: '2px 8px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit' }}
+              >
+                {t.actionLabel}
+              </button>
+            )}
           </div>
         ))}
       </div>

@@ -30,16 +30,21 @@ export const useParamsStore = create<{
 }>((set) => ({ params: null, setParams: p => set({ params: p }) }))
 
 export type ToastType = 'success'|'error'|'info'|'warning'
-export interface Toast { id: string; message: string; type: ToastType }
+export interface Toast {
+  id: string; message: string; type: ToastType
+  actionLabel?: string; onAction?: () => void
+}
 export const useToastStore = create<{
   toasts: Toast[]
-  add: (message: string, type?: ToastType) => void
+  add: (message: string, type?: ToastType, action?: { label: string; fn: () => void }) => void
   remove: (id: string) => void
 }>((set) => ({
   toasts: [],
-  add: (message, type = 'success') => {
+  add: (message, type = 'success', action) => {
     const id = crypto.randomUUID()
-    set(s => ({ toasts: [...s.toasts, { id, message, type }] }))
+    const toast: Toast = { id, message, type }
+    if (action) { toast.actionLabel = action.label; toast.onAction = action.fn }
+    set(s => ({ toasts: [...s.toasts, toast] }))
     const duration = type === 'error' ? 7000 : 3500
     setTimeout(() => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) })), duration)
   },

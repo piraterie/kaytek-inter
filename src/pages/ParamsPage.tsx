@@ -1,11 +1,10 @@
 // src/pages/ParamsPage.tsx
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react'
-import { useParametres, useUpdateParametres } from '@/lib/hooks'
+import { useParametres, useUpdateParametres, REQUIRED_PARAMS } from '@/lib/hooks'
 import { useToastStore, useParamsStore, useAuthStore } from '@/lib/store'
 import { uploadLogo } from '@/lib/supabase/storage'
 import { THEMES } from '@/lib/themes'
 
-// Composant extrait EN DEHORS du render pour éviter le démontage/remontage à chaque frappe
 interface ParamFieldProps {
   label: string
   field: string
@@ -13,17 +12,22 @@ interface ParamFieldProps {
   placeholder?: string
   form: Record<string, any>
   setForm: Dispatch<SetStateAction<Record<string, any>>>
+  required?: boolean
+  hasError?: boolean
 }
-function ParamField({ label, field, type = 'text', placeholder = '', form, setForm }: ParamFieldProps) {
+function ParamField({ label, field, type = 'text', placeholder = '', form, setForm, required = false, hasError = false }: ParamFieldProps) {
   return (
     <div className="param-field-row">
-      <div style={{ fontSize:13, fontWeight:500, color:'var(--t0)', flexShrink:0 }}>{label}</div>
+      <div style={{ fontSize:13, fontWeight:500, color: hasError ? 'var(--rdTx)' : 'var(--t0)', flexShrink:0 }}>
+        {label}{required && <span style={{ color:'var(--rdTx)', marginLeft:2 }}>*</span>}
+      </div>
       <input
         className="param-field-input"
         type={type}
         value={form[field] ?? ''}
         onChange={e => setForm((f: any) => ({ ...f, [field]: e.target.value }))}
         placeholder={placeholder}
+        style={hasError ? { borderColor:'var(--rdBd)', boxShadow:'0 0 0 2px rgba(220,38,38,0.12)' } : undefined}
       />
     </div>
   )
@@ -38,9 +42,9 @@ export default function ParamsPage() {
   const logoRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState<Record<string,any>>({})
   const [logoUploading, setLogoUploading] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({})
   const initialized = useRef(false)
 
-  // Initialiser le form uniquement au premier chargement — évite l'écrasement pendant la saisie
   useEffect(() => {
     if (params && !initialized.current) {
       setForm({ ...params })
@@ -48,8 +52,26 @@ export default function ParamsPage() {
     }
   }, [params])
 
+  // Indicateur de complétion calculé depuis le formulaire (temps réel)
+  const formMissing = initialized.current
+    ? REQUIRED_PARAMS.filter(f => !form[f.field as string]?.toString().trim())
+    : REQUIRED_PARAMS
+  const completionCount = REQUIRED_PARAMS.length - formMissing.length
+  const isFormComplete = formMissing.length === 0
+
   async function save(e: React.FormEvent) {
     e.preventDefault()
+    // Validation des champs obligatoires
+    const errors: Record<string, boolean> = {}
+    for (const { field } of REQUIRED_PARAMS) {
+      if (!form[field as string]?.toString().trim()) errors[field as string] = true
+    }
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors)
+      add(`Remplissez les champs obligatoires : ${REQUIRED_PARAMS.filter(f => errors[f.field as string]).map(f => f.label).join(', ')}`, 'warning')
+      return
+    }
+    setFieldErrors({})
     try {
       await upd.mutateAsync(form)
       setParams({ ...params!, ...form })
@@ -78,6 +100,18 @@ export default function ParamsPage() {
       <div style={{ marginBottom:20 }}>
         <h1 className="page-title">Paramètres</h1>
         <p className="page-subtitle">Ces informations apparaissent sur tous les devis, factures et emails</p>
+        {initialized.current && (
+          <div style={{ marginTop:8, display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ fontSize:13, fontWeight:600, color: isFormComplete ? 'var(--grTx, #16a34a)' : 'var(--amTx)' }}>
+              {isFormComplete ? '✓ ' : ''}Configuration : {completionCount}/{REQUIRED_PARAMS.length} champs obligatoires remplis
+            </span>
+            {!isFormComplete && (
+              <span style={{ fontSize:12, color:'var(--amTx)', opacity:0.8 }}>
+                — manquants : {formMissing.map(f => f.label).join(', ')}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <form onSubmit={save}>
@@ -108,11 +142,11 @@ export default function ParamsPage() {
               </div>
             </div>
 
-            <ParamField label="Raison sociale" field="raison_sociale" form={form} setForm={setForm} />
-            <ParamField label="Téléphone" field="telephone" type="tel" form={form} setForm={setForm} />
-            <ParamField label="Email" field="email" type="email" form={form} setForm={setForm} />
+            <ParamField label="Raison sociale" field="raison_sociale" form={form} setForm={setForm} required hasError={!!fieldErrors.raison_sociale} />
+            <ParamField label="Téléphone" field="telephone" type="tel" form={form} setForm={setForm} required hasError={!!fieldErrors.telephone} />
+            <ParamField label="Email" field="email" type="email" form={form} setForm={setForm} required hasError={!!fieldErrors.email} />
             <ParamField label="Site web" field="site_web" placeholder="www.exemple.fr" form={form} setForm={setForm} />
-            <ParamField label="Adresse" field="adresse" form={form} setForm={setForm} />
+            <ParamField label="Adresse" field="adresse" form={form} setForm={setForm} required hasError={!!fieldErrors.adresse} />
             <ParamField label="Code postal" field="code_postal" form={form} setForm={setForm} />
             <div className="param-field-row" style={{ borderBottom:'none' }}>
               <div style={{ fontSize:13, fontWeight:500, color:'var(--t0)', flexShrink:0 }}>Ville</div>
@@ -189,6 +223,11 @@ export default function ParamsPage() {
             style={{ minHeight:100 }}
             placeholder="Conditions de paiement, mentions légales…"
           />
+        </div>
+
+        {/* ── Légende champs obligatoires ──────────────── */}
+        <div style={{ fontSize:12, color:'var(--t3)', marginBottom:12 }}>
+          <span style={{ color:'var(--rdTx)' }}>*</span> Champs obligatoires pour l'envoi de devis et factures par email
         </div>
 
         {/* ── Actions desktop ──────────────────────────── */}

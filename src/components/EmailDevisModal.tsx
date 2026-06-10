@@ -1,8 +1,11 @@
 // src/components/EmailDevisModal.tsx
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { generateDevisPDF } from '@/lib/pdf/generator'
 import { envoyerEmail } from '@/lib/supabase/auth'
 import { getTheme } from '@/lib/themes'
+import { useAuthStore } from '@/lib/store'
+import { REQUIRED_PARAMS } from '@/lib/hooks'
 import type { Devis, ParametresEntreprise } from '@/types'
 
 interface Props {
@@ -13,9 +16,13 @@ interface Props {
 }
 
 export default function EmailDevisModal({ devis, params, onClose, onSent }: Props) {
+  const nav = useNavigate()
+  const user = useAuthStore(s => s.user)
+  const isAdmin = user?.role === 'admin'
   const [sending, setSending] = useState(false)
   const [emailTo, setEmailTo] = useState(devis.client?.email || '')
   const [error, setError] = useState('')
+  const [paramsError, setParamsError] = useState(false)
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
 
   // Pré-charge le logo en data-URL dès l'ouverture du modal pour éviter
@@ -37,99 +44,108 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
   }, [params.logo_url])
 
   async function handleSend() {
-    if (!emailTo) { setError('Email destinataire requis'); return }
-    setSending(true)
-    setError('')
-    const t0 = Date.now()
+    if (sending || !emailTo) { setError('Email destinataire requis'); return }
+    const missing = REQUIRED_PARAMS.filter(f => !params[f.field as keyof ParametresEntreprise])
+    if (missing.length > 0) {
+      setParamsError(true)
+      setError(
+        `Paramètres entreprise incomplets — complétez : ${missing.map(m => m.label).join(', ')}.` +
+        (isAdmin ? '' : ' Contactez votre administrateur.')
+      )
+      return
+    }
+    setParamsError(false)
 
-    async function doSend() {
-      console.log('[email] 1/4 start — devis', devis.numero)
+    // Capturer toutes les valeurs avant de fermer la modale
+    const _devis = devis
+    const _params = params
+    const _onSent = onSent
+    const _to = emailTo
+    const _logo = logoDataUrl
 
-      let blob: Blob
+    // Fermer la modale immédiatement — l'utilisateur n'attend pas
+    setSending(true) // évite double-clic pendant le re-render
+    onClose()
+    add('📧 Envoi en cours…', 'info')
+
+    // Envoi en arrière-plan — fire & forget
+    ;(async () => {
+      const t0 = Date.now()
       try {
-        const paramsForPDF = logoDataUrl ? { ...params, logo_url: logoDataUrl } : params
-        blob = await generateDevisPDF(devis, paramsForPDF, devis.modele_id ?? 0)
-      } catch (pdfErr: any) {
-        console.error('[email] pdf error', pdfErr)
-        throw new Error('Erreur génération PDF : ' + (pdfErr.message || 'Erreur inconnue'))
+        const paramsForPDF = _logo ? { ..._params, logo_url: _logo } : _params
+        const blob = await generateDevisPDF(_devis, paramsForPDF, _devis.modele_id ?? 0)
+        console.log(`[devis-email] PDF ${Date.now() - t0}ms (${(blob.size / 1024).toFixed(0)}KB)`)
+
+        const t1 = Date.now()
+        const buf = await blob.arrayBuffer()
+        const bytes = new Uint8Array(buf)
+        const pdfBase64 = btoa(Array.from(bytes, b => String.fromCharCode(b)).join(''))
+        console.log(`[devis-email] encode ${Date.now() - t1}ms`)
+
+        const modeleId = _devis.modele_id ?? 0
+        const theme = getTheme(modeleId)
+        const logoHtml = _params.logo_url
+          ? `<img src="${_params.logo_url}" alt="Logo" style="height:56px;margin-bottom:10px;"/>`
+          : `<div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;">K</div>`
+
+        const html = `
+        <div style="font-family:Arial,Helvetica,sans-serif;max-width:620px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+          <div style="background:${theme.primary};padding:32px 40px;text-align:center;">
+            ${logoHtml}
+            <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:1px;margin-top:6px;">${_params.raison_sociale || 'KAYTEK INTER'}</div>
+            <div style="color:rgba(255,255,255,0.65);font-size:12px;margin-top:4px;">Serrurerie · Vitrerie</div>
+          </div>
+          <div style="background:${theme.accent};height:4px;"></div>
+          <div style="background:#f8fafc;padding:24px 40px 0;text-align:center;">
+            <div style="display:inline-block;background:${theme.primary};color:#fff;font-size:13px;font-weight:700;padding:6px 20px;border-radius:20px;letter-spacing:1px;">DEVIS ${_devis.numero}</div>
+          </div>
+          <div style="padding:32px 40px;">
+            <p style="margin:0 0 16px;font-size:15px;color:#374151;">Bonjour <strong>${_devis.client?.prenom || ''} ${_devis.client?.nom || ''}</strong>,</p>
+            <p style="margin:0 0 16px;font-size:15px;color:#374151;">
+              Nous avons le plaisir de vous adresser votre devis pour nos prestations de <strong>${_devis.activite || 'serrurerie'}</strong>.
+              Veuillez trouver ci-joint le document correspondant.
+            </p>
+            <div style="background:#f8fafc;border-left:4px solid ${theme.accent};border-radius:6px;padding:20px 24px;margin:24px 0;">
+              <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Montant total TTC</div>
+              <div style="font-size:28px;font-weight:700;color:${theme.primary};">${(_devis.total_ttc || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
+              ${_devis.valide_jusqu_au ? `<div style="font-size:12px;color:${theme.accent};margin-top:8px;">⏳ Devis valable jusqu'au <strong>${new Date(_devis.valide_jusqu_au).toLocaleDateString('fr-FR')}</strong></div>` : ''}
+            </div>
+            <p style="margin:0 0 16px;font-size:15px;color:#374151;">
+              Pour accepter ce devis, il vous suffit de nous le retourner signé avec la mention <em>« Bon pour accord »</em>, ou de nous contacter directement.
+            </p>
+            <p style="margin:0;font-size:15px;color:#374151;">Nous restons à votre disposition pour toute question ou information complémentaire.</p>
+            <p style="margin:16px 0 0;font-size:15px;color:#374151;">Cordialement,</p>
+            <p style="margin:4px 0 0;font-size:15px;font-weight:700;color:${theme.primary};">${_params.raison_sociale || 'Kaytek Inter'}</p>
+          </div>
+          <div style="background:${theme.primary};padding:20px 40px;text-align:center;">
+            <div style="color:rgba(255,255,255,0.85);font-size:12px;line-height:1.8;">
+              ${_params.adresse ? `📍 ${_params.adresse}${_params.code_postal ? ', ' + _params.code_postal : ''}${_params.ville ? ' ' + _params.ville : ''}<br/>` : ''}
+              ${_params.telephone ? `📞 ${_params.telephone}` : ''}${_params.telephone && _params.email ? '  ·  ' : ''}${_params.email ? `✉ ${_params.email}` : ''}
+              ${_params.siret ? `<br/><span style="color:rgba(255,255,255,0.5);font-size:11px;">SIRET : ${_params.siret}</span>` : ''}
+            </div>
+          </div>
+        </div>`
+
+        const t2 = Date.now()
+        const response = await envoyerEmail({
+          to: _to,
+          subject: `Devis ${_devis.numero} — ${_params.raison_sociale}`,
+          html,
+          pdfBase64,
+          pdfFilename: `${_devis.numero}.pdf`
+        })
+        console.log(`[devis-email] edge fn ${Date.now() - t2}ms — total ${Date.now() - t0}ms`)
+
+        if (response.error) {
+          add(response.error, 'error')
+        } else {
+          _onSent() // marque le devis comme envoyé + notifie l'intervenant
+        }
+      } catch (e: any) {
+        console.error('[devis-email] erreur', e)
+        add('Erreur envoi : ' + (e.message || 'Erreur inconnue'), 'error')
       }
-      console.log('[email] 2/4 pdf ok', ((Date.now() - t0) / 1000).toFixed(1) + 's', (blob.size / 1024).toFixed(0) + 'KB')
-
-      const buf = await blob.arrayBuffer()
-      const bytes = new Uint8Array(buf)
-      const pdfBase64 = btoa(Array.from(bytes, b => String.fromCharCode(b)).join(''))
-
-      const modeleId = devis.modele_id ?? 0
-      const theme = getTheme(modeleId)
-      const logoHtml = params.logo_url
-        ? `<img src="${params.logo_url}" alt="Logo" style="height:56px;margin-bottom:10px;"/>`
-        : `<div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;">K</div>`
-
-      const html = `
-      <div style="font-family:Arial,Helvetica,sans-serif;max-width:620px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-        <div style="background:${theme.primary};padding:32px 40px;text-align:center;">
-          ${logoHtml}
-          <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:1px;margin-top:6px;">${params.raison_sociale || 'KAYTEK INTER'}</div>
-          <div style="color:rgba(255,255,255,0.65);font-size:12px;margin-top:4px;">Serrurerie · Vitrerie</div>
-        </div>
-        <div style="background:${theme.accent};height:4px;"></div>
-        <div style="background:#f8fafc;padding:24px 40px 0;text-align:center;">
-          <div style="display:inline-block;background:${theme.primary};color:#fff;font-size:13px;font-weight:700;padding:6px 20px;border-radius:20px;letter-spacing:1px;">DEVIS ${devis.numero}</div>
-        </div>
-        <div style="padding:32px 40px;">
-          <p style="margin:0 0 16px;font-size:15px;color:#374151;">Bonjour <strong>${devis.client?.prenom || ''} ${devis.client?.nom || ''}</strong>,</p>
-          <p style="margin:0 0 16px;font-size:15px;color:#374151;">
-            Nous avons le plaisir de vous adresser votre devis pour nos prestations de <strong>${devis.activite || 'serrurerie'}</strong>.
-            Veuillez trouver ci-joint le document correspondant.
-          </p>
-          <div style="background:#f8fafc;border-left:4px solid ${theme.accent};border-radius:6px;padding:20px 24px;margin:24px 0;">
-            <div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Montant total TTC</div>
-            <div style="font-size:28px;font-weight:700;color:${theme.primary};">${(devis.total_ttc || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
-            ${devis.valide_jusqu_au ? `<div style="font-size:12px;color:${theme.accent};margin-top:8px;">⏳ Devis valable jusqu'au <strong>${new Date(devis.valide_jusqu_au).toLocaleDateString('fr-FR')}</strong></div>` : ''}
-          </div>
-          <p style="margin:0 0 16px;font-size:15px;color:#374151;">
-            Pour accepter ce devis, il vous suffit de nous le retourner signé avec la mention <em>« Bon pour accord »</em>, ou de nous contacter directement.
-          </p>
-          <p style="margin:0;font-size:15px;color:#374151;">Nous restons à votre disposition pour toute question ou information complémentaire.</p>
-          <p style="margin:16px 0 0;font-size:15px;color:#374151;">Cordialement,</p>
-          <p style="margin:4px 0 0;font-size:15px;font-weight:700;color:${theme.primary};">${params.raison_sociale || 'Kaytek Inter'}</p>
-        </div>
-        <div style="background:${theme.primary};padding:20px 40px;text-align:center;">
-          <div style="color:rgba(255,255,255,0.85);font-size:12px;line-height:1.8;">
-            ${params.adresse ? `📍 ${params.adresse}${params.code_postal ? ', ' + params.code_postal : ''}${params.ville ? ' ' + params.ville : ''}<br/>` : ''}
-            ${params.telephone ? `📞 ${params.telephone}` : ''}${params.telephone && params.email ? '  ·  ' : ''}${params.email ? `✉ ${params.email}` : ''}
-            ${params.siret ? `<br/><span style="color:rgba(255,255,255,0.5);font-size:11px;">SIRET : ${params.siret}</span>` : ''}
-          </div>
-        </div>
-      </div>`
-
-      console.log('[email] 3/4 calling envoyerEmail')
-      const response = await envoyerEmail({
-        to: emailTo,
-        subject: `Devis ${devis.numero} — ${params.raison_sociale}`,
-        html,
-        pdfBase64,
-        pdfFilename: `${devis.numero}.pdf`
-      })
-      console.log('[email] 4/4 response', response)
-
-      if (response.error) throw new Error(response.error)
-    }
-
-    try {
-      await Promise.race([
-        doSend(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout : l'email n'a pas pu être envoyé. Vérifiez votre connexion et réessayez.")), 20_000)
-        )
-      ])
-      onSent()
-    } catch (e: any) {
-      console.error('[email-send-error]', e)
-      setError(e.message || 'Erreur inconnue')
-    } finally {
-      setSending(false)
-    }
+    })()
   }
 
   return (
@@ -179,6 +195,15 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
         {error && (
           <div style={{ fontSize: 13, color: 'var(--rdTx)', padding: '8px 12px', background: 'var(--rdBg)', borderRadius: 'var(--r2)', border: '1px solid var(--rdBd)' }}>
             {error}
+            {paramsError && isAdmin && (
+              <button
+                type="button"
+                onClick={() => { onClose(); nav('/parametres') }}
+                style={{ marginTop: 8, display: 'block', width: '100%', padding: '6px 12px', background: 'rgba(220,38,38,0.12)', border: '1px solid var(--rdBd)', borderRadius: 6, color: 'var(--rdTx)', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Ouvrir les Paramètres →
+              </button>
+            )}
           </div>
         )}
 
@@ -192,7 +217,7 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
             disabled={sending || !emailTo}
             style={{ minHeight: 44, padding: '0 20px', display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 10, fontWeight: 600, fontSize: 15 }}
           >
-            {sending ? '📤 Envoi en cours…' : <><span style={{ fontSize: 20, lineHeight: 1 }}>📧</span><span>Envoyer le devis</span></>}
+            <span style={{ fontSize: 20, lineHeight: 1 }}>📧</span><span>Envoyer le devis</span>
           </button>
         </div>
       </div>

@@ -10,40 +10,64 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const ANON_KEY     = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 
-async function requireCanSendEmail(req: Request): Promise<string | null> {
+async function requireCanSendEmail(req: Request): Promise<{ deny: string | null; organisationId: string | null }> {
   const auth = req.headers.get('Authorization')
-  if (!auth?.startsWith('Bearer ')) return 'Non authentifié'
+  if (!auth?.startsWith('Bearer ')) return { deny: 'Non authentifié', organisationId: null }
 
   const userClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: auth } },
     auth: { autoRefreshToken: false, persistSession: false },
   })
   const { data: { user }, error } = await userClient.auth.getUser()
-  if (error || !user) return 'Token invalide'
+  if (error || !user) return { deny: 'Token invalide', organisationId: null }
 
   const adminClient = createClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
   const { data: profile } = await adminClient
     .from('profiles')
-    .select('role, can_create_documents, can_bypass_validation')
+    .select('role, can_create_documents, can_bypass_validation, organisation_id')
     .eq('id', user.id)
     .single()
 
   const canSend = profile?.role === 'admin' ||
     (profile?.can_create_documents === true && profile?.can_bypass_validation === true)
-  if (!canSend) return 'Accès non autorisé'
+  if (!canSend) return { deny: 'Accès non autorisé', organisationId: null }
 
-  return null
+  return { deny: null, organisationId: (profile?.organisation_id as string) ?? null }
 }
+
+const REQUIRED_PARAMS = [
+  { field: 'raison_sociale', label: 'Raison sociale' },
+  { field: 'email',          label: 'Email entreprise' },
+  { field: 'telephone',      label: 'Téléphone' },
+  { field: 'adresse',        label: 'Adresse' },
+] as const
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
-  const deny = await requireCanSendEmail(req)
+  const { deny, organisationId } = await requireCanSendEmail(req)
   if (deny) return new Response(JSON.stringify({ error: deny }), {
     status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
+
+  // Validation des paramètres entreprise obligatoires
+  if (organisationId) {
+    const sb = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
+    const { data: pe } = await sb
+      .from('parametres_entreprise')
+      .select('raison_sociale, email, telephone, adresse')
+      .eq('organisation_id', organisationId)
+      .maybeSingle()
+    const pe2 = pe as Record<string, string | null> | null
+    const missing = REQUIRED_PARAMS.filter(r => !pe2?.[r.field])
+    if (missing.length > 0) {
+      return new Response(JSON.stringify({
+        error: `Paramètres entreprise incomplets — complétez dans les Paramètres : ${missing.map(r => r.label).join(', ')}.`,
+      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+  }
 
   try {
     const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY')

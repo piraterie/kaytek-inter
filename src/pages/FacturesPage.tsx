@@ -1,6 +1,7 @@
 // src/pages/FacturesPage.tsx
 import { useState } from 'react'
-import { useFactures, useUpdateFacture, useDeleteFacture, useDeleteAllFactures, useParametres, notifyAdmins } from '@/lib/hooks'
+import { useNavigate } from 'react-router-dom'
+import { useFactures, useUpdateFacture, useDeleteFacture, useDeleteAllFactures, useParametres, notifyAdmins, REQUIRED_PARAMS } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
 import { generateFacturePDF, downloadBlob } from '@/lib/pdf/generator'
@@ -24,6 +25,7 @@ const chkStyle: React.CSSProperties = { width: 18, height: 18, cursor: 'pointer'
 const STATUTS = ['tous', 'en_attente_validation', 'impayee', 'payee', 'acompte', 'partiel', 'annulee']
 
 export default function FacturesPage() {
+  const nav = useNavigate()
   const { params: storeParams } = useParamsStore()
   const { data: dbParams } = useParametres()
   const params = storeParams || dbParams
@@ -76,8 +78,26 @@ export default function FacturesPage() {
     } catch (e: any) { add(e.message, 'error') }
   }
 
+  function checkParams(): boolean {
+    if (!params) {
+      add('Configurez les paramètres entreprise dans Paramètres', 'warning',
+        isAdmin ? { label: 'Ouvrir', fn: () => nav('/parametres') } : undefined)
+      return false
+    }
+    const missing = REQUIRED_PARAMS.filter(f => !params[f.field as keyof typeof params])
+    if (missing.length > 0) {
+      add(
+        `Paramètres incomplets — complétez : ${missing.map(m => m.label).join(', ')}`,
+        'warning',
+        isAdmin ? { label: 'Ouvrir', fn: () => nav('/parametres') } : undefined
+      )
+      return false
+    }
+    return true
+  }
+
   async function dlPDF(f: Facture) {
-    if (!params) { add('Parametres entreprise manquants — allez dans Parametres', 'warning'); return }
+    if (!checkParams()) return
     try {
       add('Generation PDF...', 'info')
       const blob = await generateFacturePDF(f, f.devis || null, params)
@@ -86,49 +106,65 @@ export default function FacturesPage() {
     } catch (e: any) { add('Erreur PDF: ' + e.message, 'error') }
   }
 
-  async function handleEmail(f: Facture) {
+  function handleEmail(f: Facture) {
     if (sendingEmailId) return
     const email = f.client?.email
     if (!email) { add('Ce client n\'a pas d\'adresse email', 'warning'); return }
-    if (!params) { add('Configurez les infos entreprise dans Parametres', 'warning'); return }
+    if (!checkParams()) return
+
+    // Feedback immédiat — l'UI n'est pas bloquée
+    add('📧 Envoi en cours…', 'info')
     setSendingEmailId(f.id)
-    try {
-      const blob = await generateFacturePDF(f, f.devis || null, params)
-      const buf = await blob.arrayBuffer()
-      const bytes = new Uint8Array(buf)
-      let binary = ''
-      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
-      const pdfBase64 = btoa(binary)
-      const estPayee = f.statut_paiement === 'payee'
-      const modeleId = f.devis?.modele_id ?? params.modele_pdf_defaut ?? 0
-      const theme = getTheme(modeleId)
-      const logoHtml = params.logo_url
-        ? `<img src="${params.logo_url}" alt="Logo" style="height:56px;margin-bottom:10px;"/>`
-        : `<div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;">K</div>`
-      const accentColor = estPayee ? '#16a34a' : theme.accent
-      const html = `
-      <div style="font-family:Arial,Helvetica,sans-serif;max-width:620px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-        <div style="background:${theme.primary};padding:32px 40px;text-align:center;">${logoHtml}<div style="color:#ffffff;font-size:20px;font-weight:700;margin-top:6px;">${params.raison_sociale || 'KAYTEK SERRURE'}</div><div style="color:rgba(255,255,255,0.65);font-size:12px;margin-top:4px;">Serrurerie · Vitrerie</div></div>
-        <div style="background:${accentColor};height:4px;"></div>
-        <div style="background:#f8fafc;padding:24px 40px 0;text-align:center;"><div style="display:inline-block;background:${theme.primary};color:#fff;font-size:13px;font-weight:700;padding:6px 20px;border-radius:20px;">FACTURE ${f.numero}</div>${estPayee ? `<div style="display:inline-block;margin-left:10px;background:#dcfce7;color:#16a34a;font-size:12px;font-weight:700;padding:6px 16px;border-radius:20px;">✓ PAYÉE</div>` : ''}</div>
-        <div style="padding:32px 40px;"><p style="margin:0 0 16px;font-size:15px;color:#374151;">Bonjour <strong>${f.client?.prenom || ''} ${f.client?.nom || ''}</strong>,</p><p style="margin:0 0 16px;font-size:15px;color:#374151;">Veuillez trouver ci-joint votre facture pour nos prestations de serrurerie. ${estPayee ? 'Merci pour votre paiement.' : 'Merci de procéder au règlement avant la date d\'échéance indiquée.'}</p>
-        <div style="background:#f8fafc;border-left:4px solid ${accentColor};border-radius:6px;padding:20px 24px;margin:24px 0;"><div style="font-size:12px;color:#6b7280;text-transform:uppercase;margin-bottom:6px;">Montant total TTC</div><div style="font-size:28px;font-weight:700;color:${theme.primary};">${(f.montant_ttc||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</div>${!estPayee && f.date_echeance ? `<div style="font-size:12px;color:${theme.accent};margin-top:8px;">⏳ À régler avant le <strong>${new Date(f.date_echeance).toLocaleDateString('fr-FR')}</strong></div>` : ''}${estPayee && f.date_paiement ? `<div style="font-size:12px;color:#16a34a;margin-top:8px;">✓ Réglée le ${new Date(f.date_paiement).toLocaleDateString('fr-FR')}</div>` : ''}</div>
-        <p style="margin:16px 0 0;font-size:15px;font-weight:700;color:${theme.primary};">${params.raison_sociale || 'Kaytek Serrure'}</p></div>
-        <div style="background:${theme.primary};padding:20px 40px;text-align:center;"><div style="color:rgba(255,255,255,0.85);font-size:12px;line-height:1.8;">${params.adresse ? `📍 ${params.adresse}${params.code_postal ? ', ' + params.code_postal : ''}${params.ville ? ' ' + params.ville : ''}<br/>` : ''}${params.telephone ? `📞 ${params.telephone}` : ''}${params.telephone && params.email ? '  ·  ' : ''}${params.email ? `✉ ${params.email}` : ''}${params.siret ? `<br/><span style="color:rgba(255,255,255,0.5);font-size:11px;">SIRET : ${params.siret}</span>` : ''}</div></div>
-      </div>`
-      const timeoutPromise = new Promise<{ error: string }>(resolve =>
-        setTimeout(() => resolve({ error: "L'envoi prend trop de temps. Vérifiez votre connexion et réessayez." }), 20_000)
-      )
-      const { error } = await Promise.race([
-        envoyerEmail({ to: email, subject: `Facture ${f.numero} — ${params.raison_sociale}`, html, pdfBase64, pdfFilename: `${f.numero}.pdf` }),
-        timeoutPromise
-      ])
-      if (error) { add(error, 'error') } else { add(`Facture envoyée à ${email}`) }
-    } catch (e: any) {
-      add('Erreur: ' + (e.message || 'Erreur inconnue'), 'error')
-    } finally {
-      setSendingEmailId(null)
-    }
+
+    // Envoi en arrière-plan — fire & forget
+    ;(async () => {
+      const t0 = Date.now()
+      try {
+        const blob = await generateFacturePDF(f, f.devis || null, params)
+        console.log(`[facture-email] PDF ${Date.now() - t0}ms (${(blob.size / 1024).toFixed(0)}KB)`)
+
+        const t1 = Date.now()
+        const buf = await blob.arrayBuffer()
+        const bytes = new Uint8Array(buf)
+        let binary = ''
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+        const pdfBase64 = btoa(binary)
+        console.log(`[facture-email] encode ${Date.now() - t1}ms`)
+
+        const estPayee = f.statut_paiement === 'payee'
+        const modeleId = f.devis?.modele_id ?? params!.modele_pdf_defaut ?? 0
+        const theme = getTheme(modeleId)
+        const logoHtml = params!.logo_url
+          ? `<img src="${params!.logo_url}" alt="Logo" style="height:56px;margin-bottom:10px;"/>`
+          : `<div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;">K</div>`
+        const accentColor = estPayee ? '#16a34a' : theme.accent
+        const html = `
+        <div style="font-family:Arial,Helvetica,sans-serif;max-width:620px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+          <div style="background:${theme.primary};padding:32px 40px;text-align:center;">${logoHtml}<div style="color:#ffffff;font-size:20px;font-weight:700;margin-top:6px;">${params!.raison_sociale || 'KAYTEK SERRURE'}</div><div style="color:rgba(255,255,255,0.65);font-size:12px;margin-top:4px;">Serrurerie · Vitrerie</div></div>
+          <div style="background:${accentColor};height:4px;"></div>
+          <div style="background:#f8fafc;padding:24px 40px 0;text-align:center;"><div style="display:inline-block;background:${theme.primary};color:#fff;font-size:13px;font-weight:700;padding:6px 20px;border-radius:20px;">FACTURE ${f.numero}</div>${estPayee ? `<div style="display:inline-block;margin-left:10px;background:#dcfce7;color:#16a34a;font-size:12px;font-weight:700;padding:6px 16px;border-radius:20px;">✓ PAYÉE</div>` : ''}</div>
+          <div style="padding:32px 40px;"><p style="margin:0 0 16px;font-size:15px;color:#374151;">Bonjour <strong>${f.client?.prenom || ''} ${f.client?.nom || ''}</strong>,</p><p style="margin:0 0 16px;font-size:15px;color:#374151;">Veuillez trouver ci-joint votre facture pour nos prestations de serrurerie. ${estPayee ? 'Merci pour votre paiement.' : 'Merci de procéder au règlement avant la date d\'échéance indiquée.'}</p>
+          <div style="background:#f8fafc;border-left:4px solid ${accentColor};border-radius:6px;padding:20px 24px;margin:24px 0;"><div style="font-size:12px;color:#6b7280;text-transform:uppercase;margin-bottom:6px;">Montant total TTC</div><div style="font-size:28px;font-weight:700;color:${theme.primary};">${(f.montant_ttc||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</div>${!estPayee && f.date_echeance ? `<div style="font-size:12px;color:${theme.accent};margin-top:8px;">⏳ À régler avant le <strong>${new Date(f.date_echeance).toLocaleDateString('fr-FR')}</strong></div>` : ''}${estPayee && f.date_paiement ? `<div style="font-size:12px;color:#16a34a;margin-top:8px;">✓ Réglée le ${new Date(f.date_paiement).toLocaleDateString('fr-FR')}</div>` : ''}</div>
+          <p style="margin:16px 0 0;font-size:15px;font-weight:700;color:${theme.primary};">${params!.raison_sociale || 'Kaytek Serrure'}</p></div>
+          <div style="background:${theme.primary};padding:20px 40px;text-align:center;"><div style="color:rgba(255,255,255,0.85);font-size:12px;line-height:1.8;">${params!.adresse ? `📍 ${params!.adresse}${params!.code_postal ? ', ' + params!.code_postal : ''}${params!.ville ? ' ' + params!.ville : ''}<br/>` : ''}${params!.telephone ? `📞 ${params!.telephone}` : ''}${params!.telephone && params!.email ? '  ·  ' : ''}${params!.email ? `✉ ${params!.email}` : ''}${params!.siret ? `<br/><span style="color:rgba(255,255,255,0.5);font-size:11px;">SIRET : ${params!.siret}</span>` : ''}</div></div>
+        </div>`
+
+        const t2 = Date.now()
+        const { error } = await envoyerEmail({
+          to: email,
+          subject: `Facture ${f.numero} — ${params!.raison_sociale}`,
+          html, pdfBase64, pdfFilename: `${f.numero}.pdf`
+        })
+        console.log(`[facture-email] edge fn ${Date.now() - t2}ms — total ${Date.now() - t0}ms`)
+
+        if (error) { add(error, 'error') }
+        else { add(`✅ Facture ${f.numero} envoyée à ${email}`) }
+      } catch (e: any) {
+        add('Erreur : ' + (e.message || 'Erreur inconnue'), 'error')
+      } finally {
+        setSendingEmailId(null)
+      }
+    })()
   }
 
   function handleEmailClick(f: Facture) {
