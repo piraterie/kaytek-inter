@@ -43,9 +43,9 @@ export async function getSignedUrls(paths: string[], bucket = 'intervention-phot
   return map
 }
 
-export async function uploadLogo(file: File) {
+export async function uploadLogo(file: File, orgId: string) {
   const ext = file.name.split('.').pop() || 'png'
-  const path = `logo.${ext}`
+  const path = `${orgId}/logo.${ext}`
   const { error } = await supabase.storage.from('logos').upload(path, file, { contentType: file.type, upsert: true })
   if (error) return { url: '', error: error.message }
   const { data } = supabase.storage.from('logos').getPublicUrl(path)

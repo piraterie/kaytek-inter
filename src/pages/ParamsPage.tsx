@@ -1,7 +1,7 @@
 // src/pages/ParamsPage.tsx
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react'
 import { useParametres, useUpdateParametres } from '@/lib/hooks'
-import { useToastStore, useParamsStore } from '@/lib/store'
+import { useToastStore, useParamsStore, useAuthStore } from '@/lib/store'
 import { uploadLogo } from '@/lib/supabase/storage'
 import { THEMES } from '@/lib/themes'
 
@@ -32,6 +32,7 @@ function ParamField({ label, field, type = 'text', placeholder = '', form, setFo
 export default function ParamsPage() {
   const { add } = useToastStore()
   const { setParams } = useParamsStore()
+  const user = useAuthStore(s => s.user)
   const { data: params, isLoading } = useParametres()
   const upd = useUpdateParametres()
   const logoRef = useRef<HTMLInputElement>(null)
@@ -58,8 +59,10 @@ export default function ParamsPage() {
 
   async function handleLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
+    const orgId = user?.organisation_id
+    if (!orgId) { add('Organisation introuvable — reconnectez-vous', 'error'); return }
     setLogoUploading(true)
-    const { url, error } = await uploadLogo(file)
+    const { url, error } = await uploadLogo(file, orgId)
     setLogoUploading(false)
     if (error) { add(error,'error'); return }
     setForm((f: any) => ({ ...f, logo_url: url }))
