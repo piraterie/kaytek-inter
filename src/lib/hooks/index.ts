@@ -124,7 +124,9 @@ export function useUpdateParametres() {
         const { error } = await supabase.from('parametres_entreprise').update(data).eq('id', ex.id)
         if (error) throw error
       } else {
-        const { error } = await supabase.from('parametres_entreprise').insert(data)
+        const org_id = orgId()
+        if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
+        const { error } = await supabase.from('parametres_entreprise').insert({ ...data, organisation_id: org_id })
         if (error) throw error
       }
     },
