@@ -38,21 +38,25 @@
 
 
 -- ================================================================
--- ÉTAPE 0 — Supprimer toutes les policies actuelles sur storage.objects
--- (état actuel inconnu — set via dashboard Supabase sans migration SQL)
+-- ÉTAPE 0 — Supprimer uniquement les 16 policies de cette migration
+-- (DROP ciblé — ne touche pas aux autres policies éventuelles)
 -- ================================================================
-DO $$
-DECLARE
-  pol RECORD;
-BEGIN
-  FOR pol IN
-    SELECT policyname
-    FROM pg_policies
-    WHERE schemaname = 'storage' AND tablename = 'objects'
-  LOOP
-    EXECUTE format('DROP POLICY IF EXISTS %I ON storage.objects', pol.policyname);
-  END LOOP;
-END $$;
+DROP POLICY IF EXISTS "intervention_photos_select" ON storage.objects;
+DROP POLICY IF EXISTS "intervention_photos_insert" ON storage.objects;
+DROP POLICY IF EXISTS "intervention_photos_delete" ON storage.objects;
+DROP POLICY IF EXISTS "signatures_select"          ON storage.objects;
+DROP POLICY IF EXISTS "signatures_insert"          ON storage.objects;
+DROP POLICY IF EXISTS "signatures_update"          ON storage.objects;
+DROP POLICY IF EXISTS "signatures_delete"          ON storage.objects;
+DROP POLICY IF EXISTS "logos_insert"               ON storage.objects;
+DROP POLICY IF EXISTS "logos_update"               ON storage.objects;
+DROP POLICY IF EXISTS "logos_delete"               ON storage.objects;
+DROP POLICY IF EXISTS "chat_media_select"          ON storage.objects;
+DROP POLICY IF EXISTS "chat_media_insert"          ON storage.objects;
+DROP POLICY IF EXISTS "chat_media_delete"          ON storage.objects;
+DROP POLICY IF EXISTS "pdf_documents_select"       ON storage.objects;
+DROP POLICY IF EXISTS "pdf_documents_insert"       ON storage.objects;
+DROP POLICY IF EXISTS "pdf_documents_delete"       ON storage.objects;
 
 
 -- ================================================================
