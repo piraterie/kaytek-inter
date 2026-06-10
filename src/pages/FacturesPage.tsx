@@ -358,13 +358,14 @@ export default function FacturesPage() {
                   <span className={`pill ${SC[f.statut_paiement] || 'pill-gray'}`}>{SL[f.statut_paiement] || f.statut_paiement}</span>
                 </div>
               </div>
-              {canSendEmail && f.client?.email && !selectionMode && (
+              {canSendEmail && !selectionMode && (
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--b0)' }}>
                   <button
                     className="btn btn-secondary btn-sm"
-                    onClick={e => { e.stopPropagation(); handleEmailClick(f) }}
-                    disabled={!!sendingEmailId}
-                    style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={e => { e.stopPropagation(); if (f.client?.email) handleEmailClick(f) }}
+                    disabled={!!sendingEmailId || !f.client?.email}
+                    title={!f.client?.email ? 'Aucun email client renseigné' : undefined}
+                    style={{ width: '100%', justifyContent: 'center', opacity: !f.client?.email ? 0.45 : 1 }}
                   >{sendingEmailId === f.id ? '⏳ Envoi…' : '📧 Email'}</button>
                 </div>
               )}
@@ -403,8 +404,14 @@ export default function FacturesPage() {
                   <td><span className={`pill ${SC[f.statut_paiement] || 'pill-gray'}`}>{SL[f.statut_paiement] || f.statut_paiement}</span></td>
                   <td>
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
-                      {canSendEmail && f.client?.email && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => handleEmailClick(f)} title={`Envoyer à ${f.client.email}`} disabled={!!sendingEmailId}>{sendingEmailId === f.id ? '⏳' : '📧'}</button>
+                      {canSendEmail && (
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => f.client?.email && handleEmailClick(f)}
+                          title={f.client?.email ? `Envoyer à ${f.client.email}` : 'Aucun email client renseigné'}
+                          disabled={!!sendingEmailId || !f.client?.email}
+                          style={{ opacity: !f.client?.email ? 0.45 : 1 }}
+                        >{sendingEmailId === f.id ? '⏳' : '📧'}</button>
                       )}
                       <button
                         className="btn-icon sm"
@@ -487,12 +494,13 @@ export default function FacturesPage() {
               onClick={() => { setActiveSheet(null); dlPDF(activeSheet) }}
             />
           )}
-          {canSendEmail && activeSheet.client?.email && (
+          {canSendEmail && (
             <SheetRow
               icon="📧"
               label="Envoyer par email"
-              sublabel={activeSheet.client.email}
+              sublabel={activeSheet.client?.email ?? 'Aucun email client renseigné'}
               onClick={() => { setActiveSheet(null); handleEmailClick(activeSheet) }}
+              disabled={!activeSheet.client?.email}
               loading={sendingEmailId === activeSheet.id}
             />
           )}
