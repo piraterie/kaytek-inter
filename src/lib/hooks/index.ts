@@ -18,6 +18,7 @@ import type { Intervention, Devis, Facture, Client, Commission, Message, Profile
 
 const uid = () => useAuthStore.getState().user?.id
 const isAdm = () => useAuthStore.getState().user?.role === 'admin'
+const orgId = () => useAuthStore.getState().user?.organisation_id
 
 // ── DASHBOARD ────────────────────────────────────────────────────
 export function useDashboard() {
@@ -132,15 +133,19 @@ export function useUpdateParametres() {
 }
 
 // ── CLIENTS ──────────────────────────────────────────────────────
-export function useClients(search?: string) {
+export function useClients(search?: string, showArchived = false) {
   return useQuery<Client[]>({
-    queryKey: ['clients', search],
+    queryKey: ['clients', search, showArchived],
     queryFn: async () => {
       let q = supabase.from('clients').select('*').order('nom')
       if (search) q = q.or(`nom.ilike.%${search}%,email.ilike.%${search}%,telephone.ilike.%${search}%`)
       const { data, error } = await q
       if (error) throw error
-      return data || []
+      const all = data || []
+      // Filtrage côté client — fonctionne avant et après migration (archive peut être undefined)
+      return showArchived
+        ? all.filter(c => c.archive === true)
+        : all.filter(c => c.archive !== true)
     }
   })
 }
@@ -148,7 +153,8 @@ export function useCreateClient() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (data: Omit<Client, 'id'|'created_at'|'updated_at'>) => {
-      const { data: result, error } = await supabase.from('clients').insert({ ...data, created_by: uid() }).select().single()
+      const org_id = orgId(); if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
+      const { data: result, error } = await supabase.from('clients').insert({ ...data, created_by: uid(), organisation_id: org_id }).select().single()
       if (error) throw error; return result
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] })
@@ -164,13 +170,99 @@ export function useUpdateClient() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] })
   })
 }
+export function useArchiveClient() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, archive }: { id: string; archive: boolean }) => {
+      console.log('[archive-client] id:', id, '| archive:', archive)
+      const { data, error } = await supabase
+        .from('clients')
+        .update({ archive: archive })
+        .eq('id', id)
+        .select()
+      console.log('[archive-client] result:', { data, error })
+      if (error) throw error
+      if (!data || data.length === 0) throw new Error('Aucune ligne mise à jour — droits insuffisants ou id introuvable')
+      return data[0]
+    },
+    onMutate: async ({ id, archive }) => {
+      await qc.cancelQueries({ queryKey: ['clients'] })
+      const snapshot = qc.getQueriesData<Client[]>({ queryKey: ['clients'] })
+      // Suppression immédiate de la liste courante
+      snapshot.forEach(([key]) => {
+        const showArchived = (key as any[])[2] as boolean
+        qc.setQueryData<Client[]>(key as any, (old) => {
+          if (!Array.isArray(old)) return old ?? []
+          // Archivage → retirer de la vue non-archivée
+          if (archive && !showArchived) return old.filter(c => c.id !== id)
+          // Restauration → retirer de la vue archivée
+          if (!archive && showArchived) return old.filter(c => c.id !== id)
+          return old
+        })
+      })
+      return { snapshot }
+    },
+    onError: (_err, _vars, ctx: any) => {
+      if (ctx?.snapshot) ctx.snapshot.forEach(([key, data]: any) => qc.setQueryData(key, data))
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['clients'] })
+  })
+}
+export function useDeleteClientSafe() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const [{ count: d }, { count: f }, { count: i }] = await Promise.all([
+        supabase.from('devis').select('id', { count: 'exact', head: true }).eq('client_id', id),
+        supabase.from('factures').select('id', { count: 'exact', head: true }).eq('client_id', id),
+        supabase.from('interventions').select('id', { count: 'exact', head: true }).eq('client_id', id),
+      ])
+      if ((d || 0) + (f || 0) + (i || 0) > 0)
+        throw new Error('Ce client a des données liées (devis, factures ou interventions). Archivez-le plutôt.')
+      const { error } = await supabase.from('clients').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] })
+  })
+}
+export function useBulkArchiveClients() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from('clients').update({ archive: true }).in('id', ids)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] })
+  })
+}
+export function useDeleteArchivedClients() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from('clients').delete().in('id', ids)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] })
+  })
+}
+export function useClient(id: string) {
+  return useQuery<Client>({
+    queryKey: ['client', id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clients').select('*').eq('id', id).single()
+      if (error) throw error
+      return data
+    },
+    enabled: !!id
+  })
+}
 
 // ── PRESTATIONS ──────────────────────────────────────────────────
 export function usePrestations(categorie?: string) {
   return useQuery<Prestation[]>({
     queryKey: ['prestations', categorie],
     queryFn: async () => {
-      let q = supabase.from('prestations').select('*').eq('actif', true).order('ordre')
+      let q = supabase.from('prestations').select('*').eq('actif', true).order('ordre').order('nom')
       if (categorie) q = q.eq('categorie', categorie)
       const { data, error } = await q
       if (error) throw error; return data || []
@@ -178,9 +270,44 @@ export function usePrestations(categorie?: string) {
     staleTime: 1000 * 60 * 5
   })
 }
+export function useAllPrestations() {
+  return useQuery<Prestation[]>({
+    queryKey: ['prestations-all'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('prestations').select('*').order('categorie').order('ordre').order('nom')
+      if (error) throw error; return data || []
+    }
+  })
+}
+export function useCreatePrestation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (data: Omit<Prestation, 'id'>) => {
+      const { data: result, error } = await supabase.from('prestations').insert(data).select().single()
+      if (error) throw error; return result
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['prestations'] })
+      qc.invalidateQueries({ queryKey: ['prestations-all'] })
+    }
+  })
+}
+export function useUpdatePrestation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...data }: Partial<Prestation> & { id: string }) => {
+      const { error } = await supabase.from('prestations').update(data).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['prestations'] })
+      qc.invalidateQueries({ queryKey: ['prestations-all'] })
+    }
+  })
+}
 
 // ── INTERVENTIONS ────────────────────────────────────────────────
-export function useInterventions(filters?: { statut?: string; intervenant_id?: string; search?: string }) {
+export function useInterventions(filters?: { statut?: string; intervenant_id?: string; search?: string; showArchived?: boolean }) {
   const user = useAuthStore(s => s.user)
   return useQuery<Intervention[]>({
     queryKey: ['interventions', filters, user?.id],
@@ -193,9 +320,70 @@ export function useInterventions(filters?: { statut?: string; intervenant_id?: s
       if (filters?.intervenant_id) q = q.eq('intervenant_id', filters.intervenant_id)
       if (filters?.search) q = q.or(`description.ilike.%${filters.search}%,adresse.ilike.%${filters.search}%`)
       const { data, error } = await q
-      if (error) throw error; return (data || []) as any
+      if (error) throw error
+      const all = (data || []) as any[]
+      // Filtrage côté client — fonctionne avant et après migration (archive peut être undefined)
+      return (filters?.showArchived
+        ? all.filter(i => i.archive === true)
+        : all.filter(i => i.archive !== true)) as any
     },
     enabled: !!user
+  })
+}
+export function useArchiveIntervention() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, archive }: { id: string; archive: boolean }) => {
+      console.log('[archive-intervention] id:', id, '| archive:', archive)
+      const { data, error } = await supabase
+        .from('interventions')
+        .update({ archive: archive })
+        .eq('id', id)
+        .select()
+      console.log('[archive-intervention] result:', { data, error })
+      if (error) throw error
+      if (!data || data.length === 0) throw new Error('Aucune ligne mise à jour — droits insuffisants ou id introuvable')
+      return data[0]
+    },
+    onMutate: async ({ id, archive }) => {
+      await qc.cancelQueries({ queryKey: ['interventions'] })
+      const snapshot = qc.getQueriesData<Intervention[]>({ queryKey: ['interventions'] })
+      snapshot.forEach(([key]) => {
+        const filters = (key as any[])[1] as any
+        const showArchived = filters?.showArchived as boolean
+        qc.setQueryData<Intervention[]>(key as any, (old) => {
+          if (!Array.isArray(old)) return old ?? []
+          if (archive && !showArchived) return old.filter(i => i.id !== id)
+          if (!archive && showArchived) return old.filter(i => i.id !== id)
+          return old
+        })
+      })
+      return { snapshot }
+    },
+    onError: (_err, _vars, ctx: any) => {
+      if (ctx?.snapshot) ctx.snapshot.forEach(([key, data]: any) => qc.setQueryData(key, data))
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['interventions'] })
+  })
+}
+export function useBulkArchiveInterventions() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from('interventions').update({ archive: true }).in('id', ids)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['interventions'] })
+  })
+}
+export function useDeleteArchivedInterventions() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from('interventions').delete().in('id', ids)
+      if (error) throw error
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['interventions'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
   })
 }
 export function useIntervention(id: string) {
@@ -214,8 +402,20 @@ export function useCreateIntervention() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (data: Partial<Intervention>) => {
-      const { data: result, error } = await supabase.from('interventions').insert({ ...data, created_by: uid(), tva_pct: data.tva_pct || 10 }).select().single()
-      if (error) throw error; return result
+      const { numero: _dropNumero, ...cleanData } = data
+      console.log('[create-intervention payload]', cleanData)
+      const org_id = orgId(); if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
+      const { data: result, error } = await supabase.from('interventions').insert({ ...cleanData, created_by: uid(), tva_pct: cleanData.tva_pct || 10, organisation_id: org_id }).select().single()
+      if (error) {
+        if (error.code === '23505') throw new Error('Numéro d\'intervention déjà utilisé — veuillez réessayer.')
+        throw error
+      }
+      // Si un intervenant est assigné dès la création, le notifier
+      if (data.intervenant_id) {
+        const lien = `/interventions/${(result as any).id}`
+        notifyUser(data.intervenant_id, '🚨 Nouvelle intervention', 'Une intervention vous a été attribuée.', lien).catch(() => {})
+      }
+      return result
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['interventions'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
   })
@@ -226,6 +426,23 @@ export function useUpdateIntervention() {
     mutationFn: async ({ id, ...data }: Partial<Intervention> & { id: string }) => {
       const { error } = await supabase.from('interventions').update(data).eq('id', id)
       if (error) throw error
+      const lien = `/interventions/${id}`
+      const user = useAuthStore.getState().user
+      const userName = `${user?.prenom || ''} ${user?.nom || ''}`.trim()
+      if (data.statut === 'accepte') {
+        notifyAdmins('✅ Intervention acceptée', `${userName} a accepté une intervention.`, lien).catch(() => {})
+      } else if (data.statut === 'refuse') {
+        notifyAdmins('❌ Intervention refusée', `${userName} a refusé une intervention.`, lien).catch(() => {})
+      } else if (data.intervenant_id) {
+        // Réassignation d'intervenant
+        notifyUser(data.intervenant_id, '🚨 Nouvelle intervention', 'Une intervention vous a été attribuée.', lien).catch(() => {})
+      } else if (data.statut) {
+        // Autre changement de statut → notifier l'intervenant assigné
+        const { data: current } = await supabase.from('interventions').select('intervenant_id').eq('id', id).single()
+        if (current?.intervenant_id) {
+          notifyUser(current.intervenant_id, '🔄 Intervention mise à jour', 'Une intervention vous concernant a été modifiée.', lien).catch(() => {})
+        }
+      }
     },
     onSuccess: (_: any, v: any) => { qc.invalidateQueries({ queryKey: ['interventions'] }); qc.invalidateQueries({ queryKey: ['intervention', v.id] }) }
   })
@@ -282,19 +499,31 @@ export function useCreateDevis() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (data: any) => {
+      const user = useAuthStore.getState().user
       if (!isAdm()) {
-        const user = useAuthStore.getState().user
         if (!user?.can_create_documents) throw new Error('Vous n\'êtes pas autorisé à créer des devis')
       }
-      const { data: result, error } = await supabase.from('devis').insert({ ...data, created_by: uid() }).select().single()
-      if (error) throw error
+      const { numero: _dropNumero, ...cleanDevis } = data
+      const org_id = orgId(); if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
+      const { data: result, error } = await supabase.from('devis').insert({ ...cleanDevis, created_by: uid(), organisation_id: org_id }).select().single()
+      if (error) {
+        if (error.code === '23505') throw new Error('Numéro de devis déjà utilisé — veuillez réessayer.')
+        throw error
+      }
       if (!isAdm()) {
-        const user = useAuthStore.getState().user
-        await notifyAdmins(
-          '📄 Nouveau devis à valider',
-          `${user?.prenom || ''} ${user?.nom || ''} a soumis un devis en attente de validation`,
-          '/devis'
-        )
+        if (data.statut === 'en_attente_validation') {
+          await notifyAdmins(
+            '📄 Nouveau devis à valider',
+            `${user?.prenom || ''} ${user?.nom || ''} a soumis un devis en attente de validation`,
+            '/devis'
+          )
+        } else {
+          await notifyAdmins(
+            'ℹ Nouveau devis créé',
+            `${user?.prenom || ''} ${user?.nom || ''} a créé le devis ${(result as any)?.numero || ''}.`,
+            '/devis'
+          )
+        }
       }
       return result
     },
@@ -337,15 +566,44 @@ export function useDevisToFacture() {
     mutationFn: async (devisId: string) => {
       const { data: devis, error } = await supabase.from('devis').select('*').eq('id', devisId).single()
       if (error || !devis) throw new Error('Devis introuvable')
+      if (!devis.client_id) throw new Error("Ce devis n'a pas de client associé")
+
+      // Vérifier qu'une facture n'existe pas déjà pour ce devis
+      const { count: existingCount } = await supabase
+        .from('factures')
+        .select('id', { count: 'exact', head: true })
+        .eq('devis_id', devisId)
+      if ((existingCount ?? 0) > 0)
+        throw new Error('Ce devis a déjà été converti en facture — consultez l\'onglet Factures.')
+
+      const org_id = orgId(); if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
       const echeance = new Date(); echeance.setDate(echeance.getDate() + 30)
-      const { data: facture, error: fErr } = await supabase.from('factures').insert({
-        devis_id: devisId, client_id: devis.client_id, intervention_id: devis.intervention_id,
-        montant_ht: devis.total_ht, tva_montant: devis.tva_montant, montant_ttc: devis.total_ttc,
-        statut_paiement: 'impayee', date_echeance: echeance.toISOString().split('T')[0],
-        created_by: uid()
-      }).select().single()
-      if (fErr) throw fErr
-      await supabase.from('devis').update({ statut: 'accepte' }).eq('id', devisId)
+      const facturePayload: any = {
+        devis_id: devisId,
+        client_id: devis.client_id,
+        montant_ht: devis.total_ht,
+        tva_montant: devis.tva_montant,
+        montant_ttc: devis.total_ttc,
+        statut_paiement: 'impayee',
+        date_echeance: echeance.toISOString().split('T')[0],
+        created_by: uid(),
+        ...(devis.notes ? { notes: devis.notes } : {}),
+        organisation_id: org_id
+      }
+      if (devis.intervention_id) facturePayload.intervention_id = devis.intervention_id
+
+      // Tentative avec retry sur conflit de numéro (trigger concurrent)
+      let facture: any = null
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data, error: fErr } = await supabase.from('factures').insert(facturePayload).select().single()
+        if (!fErr) { facture = data; break }
+        if (fErr.code === '23505' && attempt < 2) continue
+        if (fErr.code === '23505') throw new Error('Impossible de générer un numéro unique — veuillez réessayer.')
+        throw fErr
+      }
+
+      const { error: updErr } = await supabase.from('devis').update({ statut: 'accepte' }).eq('id', devisId)
+      if (updErr) console.warn('[devisToFacture] mise à jour statut devis échouée:', updErr.message)
       return facture
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['devis'] }); qc.invalidateQueries({ queryKey: ['factures'] }) }
@@ -353,21 +611,48 @@ export function useDevisToFacture() {
 }
 
 // ── NOTIFICATIONS ────────────────────────────────────────────────
-// L'insertion en DB déclenche automatiquement le trigger pg_net → send-push
+// Priorité : Telegram si configuré → skip_push=true dans la notification (pas de doublon push)
+// Fallback  : si Telegram non configuré ou échoue → push via trigger DB (skip_push=false)
+
+const APP_URL = 'https://kaytek-inter.vercel.app'
+
+function buildTelegramMessage(titre: string, contenu: string, lien?: string): string {
+  const lines = [titre, contenu]
+  if (lien) lines.push(`👉 Ouvrir : ${APP_URL}${lien}`)
+  return lines.join('\n')
+}
+
 export async function notifyAdmins(titre: string, contenu: string, lien?: string) {
   const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin')
   if (!admins?.length) return
+  const msg = buildTelegramMessage(titre, contenu, lien)
   for (const admin of admins) {
+    let telegramSent = false
+    try {
+      const { data } = await supabase.functions.invoke('send-telegram', {
+        body: { user_id: admin.id, message: msg }
+      })
+      telegramSent = data?.sent === true
+    } catch { /* fallback vers push */ }
     await supabase.from('notifications').insert({
-      user_id: admin.id, titre, contenu, type: 'info', lue: false, lien: lien || null
-    })
+      user_id: admin.id, titre, contenu, type: 'info', lue: false, lien: lien || null,
+      skip_push: telegramSent
+    } as any)
   }
 }
 
 export async function notifyUser(userId: string, titre: string, contenu: string, lien?: string) {
+  let telegramSent = false
+  try {
+    const { data } = await supabase.functions.invoke('send-telegram', {
+      body: { user_id: userId, message: buildTelegramMessage(titre, contenu, lien) }
+    })
+    telegramSent = data?.sent === true
+  } catch { /* fallback vers push */ }
   await supabase.from('notifications').insert({
-    user_id: userId, titre, contenu, type: 'info', lue: false, lien: lien || null
-  })
+    user_id: userId, titre, contenu, type: 'info', lue: false, lien: lien || null,
+    skip_push: telegramSent
+  } as any)
 }
 
 // ── NOTIFICATIONS IN-APP ──────────────────────────────────────────
@@ -531,7 +816,7 @@ export function useFactures(filters?: { statut?: string }) {
   return useQuery<Facture[]>({
     queryKey: ['factures', filters, user?.id],
     queryFn: async () => {
-      let q = supabase.from('factures').select('*, client:clients(id,nom,prenom,email,telephone)').order('created_at', { ascending: false })
+      let q = supabase.from('factures').select('*, client:clients(id,nom,prenom,email,telephone), devis:devis(id,modele_id,activite,lignes,total_ht,tva_montant,remise_pct,remise_montant)').order('created_at', { ascending: false })
       if (!isAdm()) q = q.eq('created_by', user!.id)
       if (filters?.statut && filters.statut !== 'tous') q = q.eq('statut_paiement', filters.statut)
       const { data, error } = await q
@@ -544,25 +829,39 @@ export function useCreateFacture() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (data: Partial<Facture> & { intervention_id: string }) => {
+      const user = useAuthStore.getState().user
       if (!isAdm()) {
-        const user = useAuthStore.getState().user
         if (!user?.can_create_documents) throw new Error('Vous n\'êtes pas autorisé à créer des factures')
       }
+      const canBypass = !isAdm() && user?.can_bypass_validation === true
+      const { numero: _dropNumero, ...cleanFacture } = data
+      const org_id = orgId(); if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
       const payload = {
-        ...data,
-        statut_paiement: 'en_attente_validation',
+        ...cleanFacture,
+        statut_paiement: canBypass ? 'impayee' : 'en_attente_validation',
         date_emission: new Date().toISOString().split('T')[0],
         created_by: uid(),
-        acompte_recu: data.acompte_recu ?? 0
+        acompte_recu: cleanFacture.acompte_recu ?? 0,
+        organisation_id: org_id
       }
       const { data: result, error } = await supabase.from('factures').insert(payload).select().single()
-      if (error) throw error
-      const user = useAuthStore.getState().user
-      await notifyAdmins(
-        '🧾 Nouvelle facture à valider',
-        `${user?.prenom || ''} ${user?.nom || ''} a soumis une facture en attente de validation`,
-        '/factures'
-      )
+      if (error) {
+        if (error.code === '23505') throw new Error('Numéro de facture déjà utilisé — veuillez réessayer.')
+        throw error
+      }
+      if (canBypass) {
+        await notifyAdmins(
+          'ℹ Nouvelle facture créée',
+          `${user?.prenom || ''} ${user?.nom || ''} a créé une facture directement.`,
+          '/factures'
+        )
+      } else {
+        await notifyAdmins(
+          '🧾 Nouvelle facture à valider',
+          `${user?.prenom || ''} ${user?.nom || ''} a soumis une facture en attente de validation`,
+          '/factures'
+        )
+      }
       return result
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['factures'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
@@ -572,10 +871,16 @@ export function useUpdateFacture() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Facture> & { id: string }) => {
-      const { error } = await supabase.from('factures').update(data).eq('id', id)
+      const { data: updated, error } = await supabase.from('factures').update(data).eq('id', id).select()
       if (error) throw error
+      if (!updated || updated.length === 0) throw new Error('Mise à jour impossible — droits insuffisants ou facture introuvable')
+      console.log('[useUpdateFacture] DB updated', updated[0]?.id, '| statut_paiement:', updated[0]?.statut_paiement, '| statut:', (updated[0] as any)?.statut)
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['factures'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['factures'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['commissions-data'] })
+    }
   })
 }
 export function useDeleteFacture() {
@@ -625,6 +930,143 @@ export function useUpdateCommission() {
   })
 }
 
+export function useCommissionsData() {
+  const user = useAuthStore(s => s.user)
+  return useQuery({
+    queryKey: ['commissions-data', user?.id],
+    queryFn: async () => {
+      console.log('[commissions] user', user?.id, user?.role)
+
+      // !inner = INNER JOIN requis pour filtrer sur intervention.intervenant_id
+      let q = supabase.from('factures')
+        .select(`
+          id, numero, montant_ttc, date_paiement, created_at,
+          intervention:intervention_id!inner(
+            id, numero, adresse, intervenant_id, cout_pieces, materiel_confirme, materiel_payeur,
+            intervenant:profiles!intervenant_id(id, nom, prenom, commission_pct)
+          ),
+          client:client_id(id, nom, prenom)
+        `)
+        .eq('statut_paiement', 'payee')
+        .order('created_at', { ascending: false })
+
+      // Admin voit tout ; intervenant voit uniquement ses interventions
+      if (!isAdm()) q = (q as any).eq('intervention.intervenant_id', user!.id)
+
+      const { data, error } = await q
+      if (error) throw error
+
+      const factures = (data || []) as any[]
+      console.log('[commissions] factures payées', factures.length, factures)
+
+      // Statuts "reçue" depuis commission_receipts (table optionnelle — silencieux si absente)
+      const factureIds = factures.map(f => f.id)
+      const receiptsMap: Record<string, any> = {}
+      if (factureIds.length > 0) {
+        const { data: receipts } = await supabase
+          .from('commission_receipts')
+          .select('id, facture_id, intervenant_id, recue, recue_le')
+          .in('facture_id', factureIds)
+        ;(receipts || []).forEach((r: any) => {
+          receiptsMap[`${r.facture_id}_${r.intervenant_id}`] = r
+        })
+      }
+
+      const result = factures
+        .filter(f => f.intervention?.intervenant_id)
+        .map(f => {
+          const inter = f.intervention
+          const intervenant = inter?.intervenant
+          const commPct = intervenant?.commission_pct ?? 30
+          const ttc = f.montant_ttc || 0
+          const coutPieces = (inter?.materiel_confirme && inter?.cout_pieces) ? inter.cout_pieces : 0
+          const base = Math.max(0, Math.round((ttc - coutPieces) * 100) / 100)
+          const commIntervenant = Math.round(base * commPct / 100 * 100) / 100
+          const resteEntreprise = Math.round((base - commIntervenant) * 100) / 100
+          const receipt = receiptsMap[`${f.id}_${inter.intervenant_id}`]
+          return {
+            id: f.id,
+            facture_numero: f.numero,
+            intervention_id: inter?.id,
+            intervention_numero: inter?.numero,
+            intervention_adresse: inter?.adresse,
+            intervenant_id: inter?.intervenant_id,
+            intervenant,
+            client: f.client,
+            montant_ttc: ttc,
+            cout_pieces: coutPieces,
+            cout_pieces_raw: inter?.cout_pieces || 0,
+            materiel_confirme: inter?.materiel_confirme || false,
+            materiel_payeur: inter?.materiel_payeur || null,
+            base_commissionnable: base,
+            commission_pct: commPct,
+            commission_intervenant: commIntervenant,
+            reste_entreprise: resteEntreprise,
+            date_paiement: f.date_paiement,
+            created_at: f.created_at,
+            recue: receipt?.recue === true,
+            recue_le: receipt?.recue_le || null,
+          }
+        })
+
+      // Compter les factures payées sans intervention (non incluses dans les commissions) — admin uniquement
+      let unattributedCount = 0
+      if (isAdm()) {
+        const { count } = await supabase
+          .from('factures')
+          .select('*', { count: 'exact', head: true })
+          .eq('statut_paiement', 'payee')
+          .is('intervention_id', null)
+        unattributedCount = count || 0
+      }
+
+      return { items: result, unattributedCount }
+    },
+    enabled: !!user,
+  })
+}
+
+export function useMarkCommissionReceived() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ facture_id, intervention_id }: { facture_id: string; intervention_id: string }) => {
+      const intervenant_id = uid()
+      if (!intervenant_id) throw new Error('Non authentifié')
+      const { error } = await supabase
+        .from('commission_receipts')
+        .upsert(
+          { facture_id, intervention_id, intervenant_id, recue: true, recue_le: new Date().toISOString() },
+          { onConflict: 'facture_id,intervenant_id' }
+        )
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['commissions-data'] }),
+  })
+}
+
+export function useUpdateInterventionMateriel() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ intervention_id, cout_pieces, materiel_payeur, confirmer }: {
+      intervention_id: string; cout_pieces: number; materiel_payeur: string | null; confirmer: boolean
+    }) => {
+      const payload: any = { cout_pieces, materiel_payeur }
+      if (confirmer) {
+        payload.materiel_confirme = true
+        payload.materiel_confirme_par = uid()
+        payload.materiel_confirme_at = new Date().toISOString()
+      } else {
+        payload.materiel_confirme = false
+        payload.materiel_confirme_par = null
+        payload.materiel_confirme_at = null
+      }
+      const { error } = await supabase.from('interventions').update(payload).eq('id', intervention_id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['commissions-data'] }),
+  })
+}
+
 // ── MESSAGES + REALTIME ──────────────────────────────────────────
 export function useMessages(withUserId: string) {
   const user = useAuthStore(s => s.user)
@@ -649,7 +1091,7 @@ export function useMessages(withUserId: string) {
       )
       if (mediaMsgs.length) {
         const paths = mediaMsgs.map((m: any) => m.media_url)
-        const { data: signed } = await supabase.storage.from('chat-media').createSignedUrls(paths, 3600)
+        const { data: signed } = await supabase.storage.from('chat-media').createSignedUrls(paths, 604800)
         const signedMap: Record<string, string> = {}
         signed?.forEach((s: any, i: number) => { if (s.signedUrl) signedMap[paths[i]] = s.signedUrl })
         return msgs.map((m: any) => {
@@ -689,16 +1131,26 @@ export function useSendMessage() {
       if (media_url) payload.media_url = media_url
       const { error } = await supabase.from('messages').insert(payload)
       if (error) throw error
-      // Push notification au destinataire — lien vers la conversation avec l'expéditeur
+      // Telegram en priorité — push uniquement si Telegram non configuré ou échoue
       const senderName = `${user!.prenom || ''} ${user!.nom || ''}`.trim() || 'Kaytek'
-      supabase.functions.invoke('send-push', {
-        body: {
-          user_id: destinataire_id,
-          titre: `💬 ${senderName}`,
-          contenu: type === 'texte' ? contenu : type === 'audio' || type === 'vocal' ? '🎤 Message vocal' : '📷 Photo',
-          lien: `/messagerie/${user!.id}`,
-        }
-      }).catch(() => {})
+      const pushContenu = type === 'texte' ? contenu : type === 'audio' || type === 'vocal' ? '🎤 Message vocal' : '📷 Photo'
+      const telegramMsg = [
+        '💬 NOUVEAU MESSAGE',
+        `${senderName} vous a envoyé un message.`,
+        `👉 Ouvrir : ${APP_URL}/messagerie/${user!.id}`,
+      ].join('\n')
+      let telegramSent = false
+      try {
+        const { data } = await supabase.functions.invoke('send-telegram', {
+          body: { user_id: destinataire_id, message: telegramMsg }
+        })
+        telegramSent = data?.sent === true
+      } catch { /* fallback vers push */ }
+      if (!telegramSent) {
+        supabase.functions.invoke('send-push', {
+          body: { user_id: destinataire_id, titre: `💬 ${senderName}`, contenu: pushContenu, lien: `/messagerie/${user!.id}` }
+        }).catch(() => {})
+      }
     },
     onSuccess: (_: any, v: any) => qc.invalidateQueries({ queryKey: ['messages', v.destinataire_id] })
   })
@@ -706,16 +1158,67 @@ export function useSendMessage() {
 
 export function useConversations() {
   const user = useAuthStore(s => s.user)
-  return useQuery<Profile[]>({
+  const qc = useQueryClient()
+
+  // Realtime: rafraîchir la liste quand un message arrive
+  useEffect(() => {
+    if (!user) return
+    const ch = supabase.channel(`conv-rt-${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'messages',
+        filter: `destinataire_id=eq.${user.id}`
+      }, () => qc.invalidateQueries({ queryKey: ['conversations', user.id] }))
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [user?.id, qc])
+
+  return useQuery<(Profile & { lastMessage: any; unreadCount: number })[]>({
     queryKey: ['conversations', user?.id],
     queryFn: async () => {
+      // 1. Contacts disponibles
       let q = supabase.from('profiles').select('*').neq('id', user!.id).eq('actif', true)
-      // Les intervenants ne peuvent contacter que l'admin
       if (user!.role !== 'admin') q = q.eq('role', 'admin')
-      const { data } = await q.order('nom')
-      return data || []
+      const { data: profiles } = await q.order('nom')
+      const profileList = (profiles || []) as Profile[]
+      if (!profileList.length) return []
+
+      // 2. Messages récents pour preview + unread count
+      const { data: recentMsgs } = await supabase
+        .from('messages')
+        .select('id, expediteur_id, destinataire_id, contenu, type, created_at, lu')
+        .or(`expediteur_id.eq.${user!.id},destinataire_id.eq.${user!.id}`)
+        .order('created_at', { ascending: false })
+        .limit(300)
+
+      const msgs = recentMsgs || []
+      const partnerSet = new Set(profileList.map(p => p.id))
+      const convMap: Record<string, { lastMsg: any; unreadCount: number }> = {}
+      for (const p of profileList) convMap[p.id] = { lastMsg: null, unreadCount: 0 }
+
+      for (const m of msgs) {
+        const partnerId = m.expediteur_id === user!.id ? m.destinataire_id : m.expediteur_id
+        if (!partnerSet.has(partnerId)) continue
+        if (!convMap[partnerId].lastMsg) convMap[partnerId].lastMsg = m
+        // Comptage non lus : messages du partenaire vers moi, non lus
+        if (m.expediteur_id === partnerId && m.destinataire_id === user!.id && !m.lu) {
+          convMap[partnerId].unreadCount++
+        }
+      }
+
+      // 3. Tri : non lus d'abord, puis par heure du dernier message
+      return profileList
+        .map(p => ({ ...p, lastMessage: convMap[p.id].lastMsg, unreadCount: convMap[p.id].unreadCount }))
+        .sort((a, b) => {
+          const au = a.unreadCount > 0 ? 1 : 0
+          const bu = b.unreadCount > 0 ? 1 : 0
+          if (bu !== au) return bu - au
+          const at = a.lastMessage?.created_at || a.created_at
+          const bt = b.lastMessage?.created_at || b.created_at
+          return bt.localeCompare(at)
+        })
     },
-    enabled: !!user
+    enabled: !!user,
+    refetchInterval: 20_000
   })
 }
 

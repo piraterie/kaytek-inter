@@ -5,13 +5,17 @@ export type StatutIntervention = 'en_attente'|'accepte'|'refuse'|'en_cours'|'ter
 export type StatutDevis = 'en_attente_validation'|'brouillon'|'envoye'|'accepte'|'refuse'|'expire'
 export type StatutPaiement = 'en_attente_validation'|'impayee'|'payee'|'acompte'|'partiel'|'annulee'
 export type ModePaiement = 'cb'|'especes'|'virement'|'cheque'
-export type Categorie = 'serrurerie'|'vitrerie'
+export type Categorie = 'serrurerie'|'vitrerie'|'plomberie'|'electricite'
 export type TypePhoto = 'avant'|'apres'|'autre'
 
 export interface Profile {
   id: string; role: Role; type_intervenant?: TypeIntervenant; nom: string; prenom: string; email: string
   telephone?: string; commission_pct: number; actif: boolean; can_create_documents?: boolean
+  can_bypass_validation?: boolean
+  telegram_chat_id?: string
+  telegram_notifications_enabled?: boolean
   avatar_url?: string; created_at: string; updated_at: string
+  organisation_id: string
 }
 
 export interface ParametresEntreprise {
@@ -28,13 +32,13 @@ export interface Client {
   id: string; type: string; nom: string; prenom?: string; raison_sociale?: string
   telephone?: string; email?: string; adresse_intervention?: string
   cp_intervention?: string; ville_intervention?: string; adresse_facturation?: string
-  notes_internes?: string; created_by?: string; created_at: string; updated_at: string
+  notes_internes?: string; archive?: boolean; created_by?: string; created_at: string; updated_at: string
 }
 
 export interface Prestation {
   id: string; nom: string; categorie: Categorie; sous_categorie?: string
   description?: string; prix_min?: number; prix_conseille?: number; prix_urgence?: number
-  tva_pct: number; actif: boolean; ordre: number
+  tva_pct: number; actif: boolean; ordre: number; created_at?: string
 }
 
 export interface Intervention {
@@ -44,7 +48,9 @@ export interface Intervention {
   date_prevue?: string; date_debut?: string; date_fin?: string
   description?: string; travail_realise?: string; materiel_utilise?: string
   temps_passe_min?: number; montant_ht?: number; tva_pct: number
-  montant_ttc?: number; cout_pieces?: number; notes_admin?: string; created_by?: string
+  montant_ttc?: number; cout_pieces?: number; materiel_payeur?: 'admin' | 'intervenant' | null
+  materiel_confirme?: boolean; materiel_confirme_par?: string | null; materiel_confirme_at?: string | null
+  notes_admin?: string; archive?: boolean; created_by?: string
   created_at: string; updated_at: string
   client?: Client; intervenant?: Profile; photos?: Photo[]
 }
