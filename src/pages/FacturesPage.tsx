@@ -358,6 +358,16 @@ export default function FacturesPage() {
                   <span className={`pill ${SC[f.statut_paiement] || 'pill-gray'}`}>{SL[f.statut_paiement] || f.statut_paiement}</span>
                 </div>
               </div>
+              {canSendEmail && f.client?.email && !selectionMode && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--b0)' }}>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={e => { e.stopPropagation(); handleEmailClick(f) }}
+                    disabled={!!sendingEmailId}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >{sendingEmailId === f.id ? '⏳ Envoi…' : '📧 Email'}</button>
+                </div>
+              )}
             </div>
           )
         })}
@@ -392,14 +402,19 @@ export default function FacturesPage() {
                   <td className="td-bold">{eur(f.montant_ttc)}</td>
                   <td><span className={`pill ${SC[f.statut_paiement] || 'pill-gray'}`}>{SL[f.statut_paiement] || f.statut_paiement}</span></td>
                   <td>
-                    <button
-                      className="btn-icon sm"
-                      onClick={() => setActiveSheet(f)}
-                      title="Actions"
-                      style={{ fontSize: 18, letterSpacing: 1 }}
-                    >
-                      ···
-                    </button>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
+                      {canSendEmail && f.client?.email && (
+                        <button className="btn btn-secondary btn-sm" onClick={() => handleEmailClick(f)} title={`Envoyer à ${f.client.email}`} disabled={!!sendingEmailId}>{sendingEmailId === f.id ? '⏳' : '📧'}</button>
+                      )}
+                      <button
+                        className="btn-icon sm"
+                        onClick={() => setActiveSheet(f)}
+                        title="Actions"
+                        style={{ fontSize: 18, letterSpacing: 1 }}
+                      >
+                        ···
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )

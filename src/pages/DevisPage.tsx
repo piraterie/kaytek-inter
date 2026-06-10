@@ -313,6 +313,15 @@ export default function DevisPage() {
                 <span className={`pill ${SC[d.statut] || 'pill-gray'}`}>{SL[d.statut] || d.statut}</span>
               </div>
             </div>
+            {canSendEmail && d.client?.email && !selectionMode && (
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--b0)' }}>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={e => { e.stopPropagation(); handleEmail(d) }}
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >📧 Email</button>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -357,14 +366,19 @@ export default function DevisPage() {
                 {isAdmin && <td style={{ fontSize: 12 }}>{d.intervenant?.nom ? `${d.intervenant.prenom} ${d.intervenant.nom}` : '—'}</td>}
                 <td style={{ fontSize: 12 }}>{fmtDate(d.created_at)}</td>
                 <td>
-                  <button
-                    className="btn-icon sm"
-                    onClick={() => setActiveSheet(d)}
-                    title="Actions"
-                    style={{ fontSize: 18, letterSpacing: 1 }}
-                  >
-                    ···
-                  </button>
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
+                    {canSendEmail && d.client?.email && (
+                      <button className="btn btn-secondary btn-sm" onClick={() => handleEmail(d)} title={`Envoyer à ${d.client.email}`}>📧</button>
+                    )}
+                    <button
+                      className="btn-icon sm"
+                      onClick={() => setActiveSheet(d)}
+                      title="Actions"
+                      style={{ fontSize: 18, letterSpacing: 1 }}
+                    >
+                      ···
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
