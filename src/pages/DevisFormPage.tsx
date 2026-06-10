@@ -5,7 +5,6 @@ import SignaturePad from 'signature_pad'
 import { useCreateDevis, useUpdateDevis, useDevisById, useClients, useProfiles, usePrestations, useCreatePrestation, useParametres } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
-import { uploadSignature } from '@/lib/supabase/storage'
 import { generateDevisPDF, downloadBlob } from '@/lib/pdf/generator'
 import { THEMES } from '@/lib/themes'
 import { CustomSelect } from '@/components/CustomSelect'
@@ -213,11 +212,14 @@ export default function DevisFormPage() {
     setSigSaving(true)
     try {
       const dataUrl = sigPadRef.current.toDataURL('image/png')
-      const blob = dataUrlToBlob(dataUrl)
-      const { url, error } = await uploadSignature(blob, id!, 'devis')
-      if (error) { add('Erreur upload signature : ' + error, 'error'); return }
-      if (!url) { add('URL signature vide — vérifiez le bucket Supabase "signatures"', 'error'); return }
-      await update.mutateAsync({ id: id!, signature_url: url, signe_le: new Date().toISOString(), statut: 'accepte' })
+      await (update.mutateAsync as any)({
+        id: id!,
+        signature_client: dataUrl,
+        signature_date: new Date().toISOString(),
+        signe_le: new Date().toISOString(),
+        statut: 'accepte',
+        signe_par: `${user?.prenom || ''} ${user?.nom || ''}`.trim() || 'Admin'
+      })
       add('Signature enregistrée ✓')
       setShowSig(false)
     } catch (e: any) {
@@ -536,7 +538,7 @@ export default function DevisFormPage() {
               <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>Le client signe ici pour accepter le devis</div>
             </div>
           </div>
-          {existing?.signature_url
+          {(existing?.signature_url || (existing as any)?.signature_client)
             ? <span className="pill pill-green">✓ Signé le {existing.signe_le ? new Date(existing.signe_le).toLocaleDateString('fr-FR') : ''}</span>
             : isEdit
               ? <button className="btn btn-secondary btn-sm" onClick={() => setShowSig(!showSig)}>
@@ -547,7 +549,7 @@ export default function DevisFormPage() {
         </div>
 
         {/* MODALE SIGNATURE PLEIN ÉCRAN — logique inchangée */}
-        {showSig && !existing?.signature_url && (
+        {showSig && !(existing?.signature_url || (existing as any)?.signature_client) && (
           <div style={{ position:'fixed', inset:0, background:'#fff', zIndex:200, display:'flex', flexDirection:'column' }}>
             <div style={{ background:'#1e3a5f', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
               <div>

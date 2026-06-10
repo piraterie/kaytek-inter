@@ -52,12 +52,17 @@ export async function uploadLogo(file: File) {
   return { url: data.publicUrl + '?t=' + Date.now(), error: null }
 }
 
-export async function uploadSignature(blob: Blob, docId: string, docType: 'devis'|'facture') {
-  const path = `${docType}-${docId}.png`
+export async function uploadSignature(blob: Blob, docId: string, docType: 'devis'|'facture', orgId: string) {
+  const path = `${orgId}/${docType}-${docId}.png`
   const { error } = await supabase.storage.from('signatures').upload(path, blob, { contentType: 'image/png', upsert: true })
-  if (error) return { url: '', error: error.message }
-  const { data } = await supabase.storage.from('signatures').createSignedUrl(path, 300)
-  return { url: data?.signedUrl || '', error: null }
+  if (error) return { path: '', error: error.message }
+  return { path, error: null }
+}
+
+export async function getSignatureUrl(storagePath: string): Promise<string> {
+  if (!storagePath || storagePath.startsWith('https://')) return ''
+  const { data } = await supabase.storage.from('signatures').createSignedUrl(storagePath, 3600)
+  return data?.signedUrl || ''
 }
 
 export async function uploadChatMedia(file: File | Blob, type: 'photo' | 'audio', userId: string) {
