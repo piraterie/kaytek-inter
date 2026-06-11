@@ -14,7 +14,7 @@ export function useIsMobile(breakpoint = 768) {
 import { supabase } from '@/lib/supabase/client'
 import { uploadPhoto as uploadPhotoStorage } from '@/lib/supabase/storage'
 import { useAuthStore, useToastStore } from '@/lib/store'
-import type { Intervention, Devis, Facture, Client, Commission, Message, Profile, Prestation, ParametresEntreprise, DashboardStats } from '@/types'
+import type { Intervention, Devis, Facture, Client, Commission, Message, Profile, Prestation, ParametresEntreprise, DashboardStats, JournalEntry } from '@/types'
 
 const uid = () => useAuthStore.getState().user?.id
 const isAdm = () => useAuthStore.getState().user?.role === 'admin'
@@ -1395,20 +1395,38 @@ export function useDeleteJournalEntry() {
       if (error) throw error
       if (!data || data.length === 0) throw new Error('Suppression impossible — droits insuffisants ou entrée introuvable')
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['journal'] })
+    onMutate: async (id: string) => {
+      await qc.cancelQueries({ queryKey: ['journal'] })
+      const previous = qc.getQueryData<JournalEntry[]>(['journal'])
+      qc.setQueryData<JournalEntry[]>(['journal'], old => (old ?? []).filter(j => j.id !== id))
+      return { previous }
+    },
+    onError: (_err: unknown, _id: string, context: any) => {
+      if (context?.previous) qc.setQueryData(['journal'], context.previous)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['journal'] })
   })
 }
 
 export function useDeleteAllJournal() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (ids: string[]) => {
-      if (!ids.length) return
-      const { data, error } = await supabase.from('journal').delete().in('id', ids).select()
+    mutationFn: async () => {
+      const org_id = orgId()
+      if (!org_id) throw new Error('Organisation introuvable — reconnectez-vous')
+      const { error } = await supabase.from('journal').delete().eq('organisation_id', org_id)
       if (error) throw error
-      if (!data || data.length === 0) throw new Error('Suppression impossible — droits insuffisants sur le journal')
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['journal'] })
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ['journal'] })
+      const previous = qc.getQueryData<JournalEntry[]>(['journal'])
+      qc.setQueryData<JournalEntry[]>(['journal'], [])
+      return { previous }
+    },
+    onError: (_err: unknown, _vars: unknown, context: any) => {
+      if (context?.previous) qc.setQueryData(['journal'], context.previous)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['journal'] })
   })
 }
 
@@ -1419,7 +1437,7 @@ export function useUpdateJournalEntry() {
       const { error } = await supabase.from('journal').update({ description }).eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['journal'] })
+    onSettled: () => qc.invalidateQueries({ queryKey: ['journal'] })
   })
 }
 

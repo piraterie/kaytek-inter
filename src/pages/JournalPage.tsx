@@ -135,11 +135,11 @@ export default function JournalPage() {
   }
 
   function handleDeleteAll() {
-    if (!filtered.length) { add('Aucune entrée à supprimer', 'warning'); return }
+    if (!journal.length) { add('Aucune entrée à supprimer', 'warning'); return }
     setConfirmDialog({
-      message: `Supprimer les ${filtered.length} entrée${filtered.length > 1 ? 's' : ''} affichées ?\nCette action est irréversible.`,
+      message: `Supprimer toutes les ${journal.length} entrée${journal.length > 1 ? 's' : ''} du journal ?\nCette action est irréversible.`,
       action: async () => {
-        try { await delAll.mutateAsync(filtered.map(j => j.id)); add(`${filtered.length} entrée${filtered.length > 1 ? 's' : ''} supprimée${filtered.length > 1 ? 's' : ''}`) }
+        try { await delAll.mutateAsync(); add('Journal vidé') }
         catch (e: any) { add(e.message, 'error') }
       }
     })
