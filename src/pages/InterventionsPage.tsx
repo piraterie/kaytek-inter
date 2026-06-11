@@ -8,6 +8,8 @@ import ConfirmModal from '@/components/ConfirmModal'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 import type { Categorie, Intervention } from '@/types'
 
+const ns = (s: string) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+
 const ACTIVITES: { value: Categorie; label: string }[] = [
   { value: 'serrurerie', label: 'Serrurerie' },
   { value: 'plomberie', label: 'Plomberie' },
@@ -41,7 +43,21 @@ export default function InterventionsPage() {
   const [selectionMode, setSelectionMode] = useState(false)
   const [activeSheet, setActiveSheet] = useState<Intervention | null>(null)
 
-  const { data: items = [], isLoading, isError, error } = useInterventions({ statut, search, showArchived })
+  const { data: rawItems = [], isLoading, isError, error } = useInterventions({ statut, showArchived })
+
+  const items = rawItems.filter(i => {
+    if (!search.trim()) return true
+    const q = ns(search)
+    return (
+      ns(i.numero || '').includes(q) ||
+      ns(`${i.client?.nom || ''} ${i.client?.prenom || ''}`).includes(q) ||
+      ns(i.client?.telephone || '').includes(q) ||
+      ns(i.adresse || '').includes(q) ||
+      ns(i.description || '').includes(q) ||
+      ns(i.type || '').includes(q) ||
+      ns(`${i.intervenant?.prenom || ''} ${i.intervenant?.nom || ''}`).includes(q)
+    )
+  })
   const { data: clients = [] } = useClients()
   const { data: intervenants = [] } = useIntervenants()
   const { data: profiles = [] } = useProfiles()
@@ -291,7 +307,16 @@ export default function InterventionsPage() {
       {/* MOBILE : cards */}
       <div className="show-mobile">
         {isLoading && <div style={{ textAlign:'center',padding:32,color:'var(--t3)' }}>Chargement…</div>}
-        {!isLoading && items.length === 0 && <div style={{ textAlign:'center',padding:40,color:'var(--t3)' }}>Aucune intervention</div>}
+        {!isLoading && items.length === 0 && (
+          <div style={{ textAlign:'center',padding:40,color:'var(--t3)' }}>
+            {search.trim() ? (
+              <>
+                <p style={{ marginBottom:12 }}>Aucun résultat pour « {search} »</p>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button>
+              </>
+            ) : 'Aucune intervention'}
+          </div>
+        )}
         {items.map(i => (
           <div key={i.id}
             style={{
@@ -354,7 +379,13 @@ export default function InterventionsPage() {
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={selectionMode ? 9 : 8} style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>Chargement…</td></tr>}
-            {!isLoading&&items.length===0 && <tr><td colSpan={selectionMode ? 9 : 8} style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>Aucune intervention</td></tr>}
+            {!isLoading&&items.length===0 && (
+              <tr><td colSpan={selectionMode ? 9 : 8} style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>
+                {search.trim()
+                  ? <><span>Aucun résultat — </span><button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer</button></>
+                  : 'Aucune intervention'}
+              </td></tr>
+            )}
             {items.map(i => (
               <tr key={i.id} style={selected.has(i.id) ? { background: 'var(--blBg)' } : {}}>
                 {selectionMode && <td style={{ paddingRight: 0 }}><input type="checkbox" style={chkStyle} checked={selected.has(i.id)} onChange={() => toggleSelect(i.id)} /></td>}

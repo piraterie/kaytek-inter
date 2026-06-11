@@ -585,8 +585,10 @@ export function useDeleteAllDevis() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase.from('devis').delete().in('id', ids)
+      if (!ids.length) return
+      const { data, error } = await supabase.from('devis').delete().in('id', ids).select()
       if (error) throw error
+      if (!data || data.length === 0) throw new Error('Suppression refusée — droits insuffisants ou devis introuvables')
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['devis'] })
   })
@@ -931,8 +933,10 @@ export function useDeleteAllFactures() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase.from('factures').delete().in('id', ids)
+      if (!ids.length) return
+      const { data, error } = await supabase.from('factures').delete().in('id', ids).select()
       if (error) throw error
+      if (!data || data.length === 0) throw new Error('Suppression refusée — droits insuffisants ou factures introuvables')
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['factures'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
   })
@@ -1387,8 +1391,9 @@ export function useDeleteJournalEntry() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('journal').delete().eq('id', id)
+      const { data, error } = await supabase.from('journal').delete().eq('id', id).select()
       if (error) throw error
+      if (!data || data.length === 0) throw new Error('Suppression impossible — droits insuffisants ou entrée introuvable')
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['journal'] })
   })
@@ -1398,8 +1403,10 @@ export function useDeleteAllJournal() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase.from('journal').delete().in('id', ids)
+      if (!ids.length) return
+      const { data, error } = await supabase.from('journal').delete().in('id', ids).select()
       if (error) throw error
+      if (!data || data.length === 0) throw new Error('Suppression impossible — droits insuffisants sur le journal')
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['journal'] })
   })

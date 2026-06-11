@@ -26,6 +26,8 @@ const chkStyle: React.CSSProperties = { width: 18, height: 18, cursor: 'pointer'
 
 const STATUTS = ['tous', 'en_attente_validation', 'impayee', 'payee', 'acompte', 'partiel', 'annulee']
 
+const ns = (s: string) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+
 export default function FacturesPage() {
   const nav = useNavigate()
   const { params: storeParams } = useParamsStore()
@@ -43,6 +45,7 @@ export default function FacturesPage() {
   const delAll = useDeleteAllFactures()
 
   const [filterStatut, setFilterStatut] = useState('tous')
+  const [search, setSearch] = useState('')
   const [payModal, setPayModal] = useState<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; action: () => void } | null>(null)
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null)
@@ -51,7 +54,21 @@ export default function FacturesPage() {
   const [selectionMode, setSelectionMode] = useState(false)
   const [activeSheet, setActiveSheet] = useState<Facture | null>(null)
 
-  const filtered = filterStatut === 'tous' ? factures : factures.filter(f => f.statut_paiement === filterStatut)
+  const filtered = factures
+    .filter(f => filterStatut === 'tous' || f.statut_paiement === filterStatut)
+    .filter(f => {
+      if (!search.trim()) return true
+      const q = ns(search)
+      return (
+        ns(f.numero).includes(q) ||
+        ns(`${f.client?.nom || ''} ${f.client?.prenom || ''}`).includes(q) ||
+        ns(f.client?.telephone || '').includes(q) ||
+        ns(f.client?.email || '').includes(q) ||
+        ns(SL[f.statut_paiement] || '').includes(q) ||
+        ns(f.devis?.activite || '').includes(q) ||
+        String(f.montant_ttc || 0).includes(search.replace(',', '.'))
+      )
+    })
   const pendingCount = factures.filter(f => f.statut_paiement === 'en_attente_validation').length
   const impaye = factures.filter(f => f.statut_paiement === 'impayee').reduce((s, f) => s + f.montant_ttc, 0)
   const paye = factures.filter(f => f.statut_paiement === 'payee').reduce((s, f) => s + f.montant_ttc, 0)
@@ -248,7 +265,7 @@ export default function FacturesPage() {
   function handleVider() {
     if (!factures.length) { add('Aucune facture à supprimer', 'warning'); return }
     setConfirmDialog({
-      message: `Voulez-vous vraiment supprimer toutes les factures ?\nCette action est irréversible.`,
+      message: `Voulez-vous vraiment tout supprimer ?\nCette action est irréversible.`,
       action: async () => {
         try { await delAll.mutateAsync(factures.map(f => f.id)); add('Toutes les factures ont été supprimées') }
         catch (e: any) { add(e.message, 'error') }
@@ -299,8 +316,8 @@ export default function FacturesPage() {
               <button className="btn btn-secondary btn-sm hide-mobile" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
             )}
             {isAdmin && factures.length > 0 && (
-              <button className="btn btn-secondary btn-sm hide-mobile" style={{ color: 'var(--rdTx)' }} onClick={handleVider} disabled={delAll.isPending}>
-                🗑 Vider
+              <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={handleVider} disabled={delAll.isPending}>
+                🗑 Tout supprimer
               </button>
             )}
           </div>
@@ -369,15 +386,31 @@ export default function FacturesPage() {
         </div>
       </div>
 
-      {/* ── Filtres ─────────────────────────────────────── */}
-      <div className="filter-bar" style={{ marginBottom: 14 }}>
-        {STATUTS.map(s => (
-          <button key={s}
-            onClick={() => { setFilterStatut(s); setSelected(new Set()) }}
-            className={`btn btn-sm ${filterStatut === s ? 'btn-primary' : 'btn-secondary'}`}>
-            {s === 'tous' ? 'Tous' : (SL[s] || s)}
-          </button>
-        ))}
+      {/* ── Recherche + Filtres ─────────────────────────── */}
+      <div style={{ marginBottom: 14 }}>
+        <div className="search-bar" style={{ marginBottom: 10 }}>
+          <span style={{ color: 'var(--t3)', fontSize: 15, flexShrink: 0 }}>🔍</span>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher par n°, client, téléphone, montant…"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              style={{ border: 'none', background: 'none', color: 'var(--t3)', cursor: 'pointer', padding: '0 2px', fontSize: 16, lineHeight: 1, flexShrink: 0 }}
+            >✕</button>
+          )}
+        </div>
+        <div className="filter-bar">
+          {STATUTS.map(s => (
+            <button key={s}
+              onClick={() => { setFilterStatut(s); setSelected(new Set()) }}
+              className={`btn btn-sm ${filterStatut === s ? 'btn-primary' : 'btn-secondary'}`}>
+              {s === 'tous' ? 'Tous' : (SL[s] || s)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {isError && (
@@ -390,7 +423,14 @@ export default function FacturesPage() {
       <div className="show-mobile">
         {isLoading && <div style={{ textAlign: 'center', padding: 32, color: 'var(--t3)' }}>Chargement…</div>}
         {!isLoading && filtered.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 48, color: 'var(--t3)' }}>Aucune facture</div>
+          <div style={{ textAlign: 'center', padding: 48, color: 'var(--t3)' }}>
+            {search.trim() ? (
+              <>
+                <p style={{ marginBottom: 12 }}>Aucun résultat pour « {search} »</p>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button>
+              </>
+            ) : 'Aucune facture'}
+          </div>
         )}
         {filtered.map(f => {
           const enRetard = f.date_echeance && new Date(f.date_echeance) < new Date() && f.statut_paiement !== 'payee'
@@ -464,7 +504,13 @@ export default function FacturesPage() {
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={selectionMode ? 8 : 7} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Chargement…</td></tr>}
-            {!isLoading && filtered.length === 0 && <tr><td colSpan={selectionMode ? 8 : 7} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Aucune facture</td></tr>}
+            {!isLoading && filtered.length === 0 && (
+              <tr><td colSpan={selectionMode ? 8 : 7} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>
+                {search.trim()
+                  ? <><span>Aucun résultat — </span><button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button></>
+                  : 'Aucune facture'}
+              </td></tr>
+            )}
             {filtered.map(f => {
               const enRetard = f.date_echeance && new Date(f.date_echeance) < new Date() && f.statut_paiement !== 'payee'
               return (

@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react'
 import { useJournal, useDeleteJournalEntry, useDeleteAllJournal, useUpdateJournalEntry, useInterventions, useDevis, useFactures, useCommissionsData } from '@/lib/hooks'
 import { useToastStore } from '@/lib/store'
+import ConfirmModal from '@/components/ConfirmModal'
 import type { JournalEntry } from '@/types'
 
 const ACTION_CLS: Record<string, string> = {
@@ -99,6 +100,7 @@ export default function JournalPage() {
   const [editEntry, setEditEntry] = useState<JournalEntry | null>(null)
   const [editDesc, setEditDesc] = useState('')
   const [isExporting, setIsExporting] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; action: () => void } | null>(null)
 
   const periodStart = useMemo(() => getPeriodStart(filterPeriod), [filterPeriod])
 
@@ -122,16 +124,25 @@ export default function JournalPage() {
     .filter(f => f.statut_paiement === 'payee' && f.date_paiement && new Date(f.date_paiement) >= statsStart)
     .reduce((s, f) => s + (f.montant_ttc || 0), 0)
 
-  async function handleDelete(id: string) {
-    if (!confirm('Supprimer cette entrée du journal ?')) return
-    try { await delOne.mutateAsync(id); add('Entrée supprimée') }
-    catch (e: any) { add(e.message, 'error') }
+  function handleDelete(id: string) {
+    setConfirmDialog({
+      message: 'Supprimer cette entrée du journal ?',
+      action: async () => {
+        try { await delOne.mutateAsync(id); add('Entrée supprimée') }
+        catch (e: any) { add(e.message, 'error') }
+      }
+    })
   }
 
-  async function handleDeleteAll() {
-    if (!confirm(`Supprimer les ${filtered.length} entrées affichées ?\nCette action est irréversible.`)) return
-    try { await delAll.mutateAsync(filtered.map(j => j.id)); add(`${filtered.length} entrées supprimées`) }
-    catch (e: any) { add(e.message, 'error') }
+  function handleDeleteAll() {
+    if (!filtered.length) { add('Aucune entrée à supprimer', 'warning'); return }
+    setConfirmDialog({
+      message: `Supprimer les ${filtered.length} entrée${filtered.length > 1 ? 's' : ''} affichées ?\nCette action est irréversible.`,
+      action: async () => {
+        try { await delAll.mutateAsync(filtered.map(j => j.id)); add(`${filtered.length} entrée${filtered.length > 1 ? 's' : ''} supprimée${filtered.length > 1 ? 's' : ''}`) }
+        catch (e: any) { add(e.message, 'error') }
+      }
+    })
   }
 
   function openEdit(j: JournalEntry) {
@@ -467,6 +478,14 @@ export default function JournalPage() {
           </tbody>
         </table>
       </div>
+
+      {confirmDialog && (
+        <ConfirmModal
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.action}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
 
       {/* MODAL NOTE */}
       {editEntry && (

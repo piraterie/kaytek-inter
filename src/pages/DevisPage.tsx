@@ -31,6 +31,8 @@ const chkStyle: React.CSSProperties = { width: 18, height: 18, cursor: 'pointer'
 
 const STATUTS = ['tous', 'en_attente_validation', 'brouillon', 'envoye', 'accepte', 'refuse', 'expire']
 
+const ns = (s: string) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+
 function devisExpired(d: Devis) {
   return d.valide_jusqu_au && new Date(d.valide_jusqu_au) < new Date() && !['accepte', 'refuse', 'expire'].includes(d.statut)
 }
@@ -69,9 +71,17 @@ export default function DevisPage() {
     .filter(d => filterStatut === 'tous' || d.statut === filterStatut)
     .filter(d => {
       if (!search.trim()) return true
-      const q = search.toLowerCase()
-      return d.numero.toLowerCase().includes(q) ||
-        `${d.client?.nom || ''} ${d.client?.prenom || ''}`.toLowerCase().includes(q)
+      const q = ns(search)
+      return (
+        ns(d.numero).includes(q) ||
+        ns(`${d.client?.nom || ''} ${d.client?.prenom || ''}`).includes(q) ||
+        ns(d.client?.telephone || '').includes(q) ||
+        ns(d.client?.email || '').includes(q) ||
+        ns(d.activite || '').includes(q) ||
+        ns(SL[d.statut] || '').includes(q) ||
+        ns(`${d.intervenant?.prenom || ''} ${d.intervenant?.nom || ''}`).includes(q) ||
+        String(d.total_ttc || 0).includes(search.replace(',', '.'))
+      )
     })
 
   const pendingCount = devis.filter(d => d.statut === 'en_attente_validation').length
@@ -165,7 +175,7 @@ export default function DevisPage() {
   function handleVider() {
     if (!devis.length) { add('Aucun devis à supprimer', 'warning'); return }
     setConfirmDialog({
-      message: 'Voulez-vous vraiment supprimer tous les devis ?\nCette action est irréversible.',
+      message: 'Voulez-vous vraiment tout supprimer ?\nCette action est irréversible.',
       action: async () => {
         try { await delAll.mutateAsync(devis.map(d => d.id)); add('Tous les devis ont été supprimés') }
         catch (e: any) { add(e.message, 'error') }
@@ -234,8 +244,8 @@ export default function DevisPage() {
               <button className="btn btn-secondary btn-sm hide-mobile" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
             )}
             {isAdmin && devis.length > 0 && (
-              <button className="btn btn-secondary btn-sm hide-mobile" style={{ color: 'var(--rdTx)' }} onClick={handleVider} disabled={delAll.isPending}>
-                🗑 Vider
+              <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={handleVider} disabled={delAll.isPending}>
+                🗑 Tout supprimer
               </button>
             )}
             {!isAdmin && (
