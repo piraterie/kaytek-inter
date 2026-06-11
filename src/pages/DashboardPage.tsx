@@ -23,7 +23,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 18 }}>
+      <div className="page-header">
         <h1 className="page-title">Bonjour, {user?.prenom} 👋</h1>
         <p className="page-subtitle">{format(new Date(), 'EEEE d MMMM yyyy', { locale: fr })}</p>
       </div>

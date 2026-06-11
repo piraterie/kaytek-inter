@@ -176,7 +176,7 @@ export default function PlanningPage() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+      <div className="page-header">
         <div>
           <div className="page-title">📅 Planning</div>
           <div className="page-subtitle">

@@ -349,13 +349,13 @@ export default function JournalPage() {
   return (
     <div>
       {/* En-tête */}
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 10 }}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Journal d'activité</h1>
           <p className="page-subtitle">{journal.length} entrées · Qui a fait quoi, quand</p>
         </div>
         {/* Desktop : inchangé */}
-        <div className="hide-mobile" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="page-actions hide-mobile">
           <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={filtered.length === 0}>
             📥 Export ({filtered.length})
           </button>
@@ -382,7 +382,7 @@ export default function JournalPage() {
       </div>
 
       {/* Statistiques */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 16 }}>
+      <div className="grid-stats">
         <div className="stat-card">
           <div className="stat-value">{statsInter}</div>
           <div className="stat-label">Interventions</div>

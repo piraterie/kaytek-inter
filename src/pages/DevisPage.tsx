@@ -230,49 +230,47 @@ export default function DevisPage() {
   return (
     <>
       {/* ── En-tête ─────────────────────────────────────── */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
-          <div>
-            <h1 className="page-title">Devis</h1>
-            <p className="page-subtitle">
-              {devis.length} devis
-              {pendingCount > 0 && <span style={{ color: 'var(--amTx)', fontWeight: 600 }}> · {pendingCount} à valider</span>}
-            </p>
-          </div>
-          {/* Desktop : inchangé */}
-          <div className="hide-mobile" style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
-            <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}>📥 CSV</button>
-            {isAdmin && !selectionMode && filtered.length > 0 && (
-              <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
-            )}
-            {isAdmin && devis.length > 0 && (
-              <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={handleVider} disabled={delAll.isPending}>
-                🗑 Tout supprimer
-              </button>
-            )}
-            {!isAdmin && (
-              <button className="btn btn-secondary btn-sm" onClick={() => nav('/interventions')}>← Interventions</button>
-            )}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Devis</h1>
+          <p className="page-subtitle">
+            {devis.length} devis
+            {pendingCount > 0 && <span style={{ color: 'var(--amTx)', fontWeight: 600 }}> · {pendingCount} à valider</span>}
+          </p>
+        </div>
+        {/* Desktop : inchangé */}
+        <div className="page-actions hide-mobile">
+          <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}>📥 CSV</button>
+          {isAdmin && !selectionMode && filtered.length > 0 && (
+            <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
+          )}
+          {isAdmin && devis.length > 0 && (
+            <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={handleVider} disabled={delAll.isPending}>
+              🗑 Tout supprimer
+            </button>
+          )}
+          {!isAdmin && (
+            <button className="btn btn-secondary btn-sm" onClick={() => nav('/interventions')}>← Interventions</button>
+          )}
+          {canCreateDocs && (
+            <button className="btn btn-primary" onClick={() => nav('/devis/nouveau')}>+ Nouveau</button>
+          )}
+        </div>
+        {/* Mobile : ligne compacte sous le titre */}
+        <div className="show-mobile" style={{ width: '100%' }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             {canCreateDocs && (
-              <button className="btn btn-primary" onClick={() => nav('/devis/nouveau')}>+ Nouveau</button>
-            )}
-          </div>
-          {/* Mobile : ligne compacte sous le titre */}
-          <div className="show-mobile" style={{ width: '100%' }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {canCreateDocs && (
-                <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => nav('/devis/nouveau')}>
-                  + Nouveau devis
-                </button>
-              )}
-              <button
-                className="btn btn-secondary"
-                style={{ paddingLeft: 16, paddingRight: 16, justifyContent: 'center' }}
-                onClick={() => setShowMobileActions(true)}
-              >
-                ···
+              <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => nav('/devis/nouveau')}>
+                + Nouveau devis
               </button>
-            </div>
+            )}
+            <button
+              className="btn btn-secondary"
+              style={{ paddingLeft: 16, paddingRight: 16, justifyContent: 'center' }}
+              onClick={() => setShowMobileActions(true)}
+            >
+              ···
+            </button>
           </div>
         </div>
       </div>

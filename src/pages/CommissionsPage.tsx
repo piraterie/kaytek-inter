@@ -346,7 +346,7 @@ export default function CommissionsPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4" style={{ flexWrap: 'wrap', gap: 10 }}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Commissions</h1>
           <p className="page-subtitle">Calculées sur les factures payées · {items.length} entrée{items.length !== 1 ? 's' : ''}</p>

@@ -361,6 +361,12 @@ label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;le
 .page-subtitle{font-size:12px;color:var(--t3);font-weight:500;letter-spacing:.01em}
 .filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 
+/* ── Structure de page standardisée ──────────────────────── */
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.page-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0}
+/* Grid stats auto-responsive : s'adapte à tout nombre de cartes */
+.grid-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px}
+
 /* ── Misc components ─────────────────────────────────────── */
 .urgence-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:var(--rpill);font-size:10px;font-weight:700;background:var(--rdBg);color:var(--rdTx);border:1px solid var(--rdBd)}
 .feed-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--b0)}
@@ -466,6 +472,7 @@ label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;le
 @media(min-width:769px) and (max-width:1024px){
   .grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
   .grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -505,6 +512,10 @@ label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;le
   .data-table th,.data-table td{padding:9px 11px;font-size:12px;white-space:nowrap}
   .data-table td{max-width:140px;overflow:hidden;text-overflow:ellipsis}
   .col-hide-mobile{display:none!important}
+
+  /* Page structure */
+  .page-header{margin-bottom:12px;gap:10px}
+  .grid-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
 
   /* Page headers */
   .page-title{font-size:22px;font-weight:800;letter-spacing:-.05em}

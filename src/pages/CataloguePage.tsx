@@ -87,7 +87,7 @@ export default function CataloguePage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4" style={{ flexWrap: 'wrap', gap: 10 }}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Catalogue des prestations</h1>
           <p className="page-subtitle">{stats.actives} actives · {stats.inactives} inactives · {stats.total} total</p>

@@ -240,13 +240,13 @@ export default function InterventionsPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4" style={{ flexWrap:'wrap', gap:10 }}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Interventions{showArchived ? ' — Archives' : ''}</h1>
           <p className="page-subtitle">{items.length} résultat{items.length>1?'s':''}</p>
         </div>
         {/* Desktop : inchangé */}
-        <div className="hide-mobile" style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+        <div className="page-actions hide-mobile">
           <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={items.length===0}>📥 CSV</button>
           {isAdmin && (
             <button

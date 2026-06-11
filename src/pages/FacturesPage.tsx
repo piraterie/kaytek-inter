@@ -302,8 +302,8 @@ export default function FacturesPage() {
   return (
     <>
       {/* ── En-tête ─────────────────────────────────────── */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 0 }}>
           <div>
             <h1 className="page-title">Factures</h1>
             <p className="page-subtitle">
@@ -312,7 +312,7 @@ export default function FacturesPage() {
             </p>
           </div>
           {/* Desktop : inchangé */}
-          <div className="hide-mobile" style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
+          <div className="page-actions hide-mobile">
             <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}>📥 CSV</button>
             {isAdmin && !selectionMode && filtered.length > 0 && (
               <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>

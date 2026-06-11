@@ -128,7 +128,7 @@ export default function UsersPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4" style={{ flexWrap:'wrap',gap:10 }}>
+      <div className="page-header">
         <div>
           <h1 className="page-title">Utilisateurs</h1>
           <p className="page-subtitle">{profiles.length} utilisateur{profiles.length > 1 ? 's' : ''} · Admin : accès total · Intervenants : données isolées (RLS)</p>
