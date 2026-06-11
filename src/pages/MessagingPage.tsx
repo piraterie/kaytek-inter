@@ -13,7 +13,6 @@ function getBestAudioMime(): string | null {
   return types.find(t => MediaRecorder.isTypeSupported(t)) ?? ''
 }
 
-// Aperçu texte du dernier message
 function formatLastMsg(msg: any): string {
   if (!msg) return ''
   if (msg.type === 'audio' || msg.type === 'vocal') return '🎤 Message vocal'
@@ -22,7 +21,6 @@ function formatLastMsg(msg: any): string {
   return text.length > 52 ? text.slice(0, 52) + '…' : text
 }
 
-// Heure ou date courte du dernier message
 function formatMsgTime(dateStr: string): string {
   if (!dateStr) return ''
   const d = new Date(dateStr)
@@ -46,11 +44,12 @@ export default function MessagingPage() {
   const [selected, setSelected] = useState<Profile | null>(null)
   const [recording, setRecording] = useState(false)
   const [recordingSecs, setRecordingSecs] = useState(0)
+  const [cancelProgress, setCancelProgress] = useState(0) // 0→1 swipe-left cancel
   const [uploading, setUploading] = useState(false)
   const [showList, setShowList] = useState(!userId)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
-  // Suivi du premier message non lu pour le séparateur + scroll
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null)
+  const [showScrollDown, setShowScrollDown] = useState(false)
   const msgsRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const mediaRef = useRef<MediaRecorder | null>(null)
@@ -58,8 +57,8 @@ export default function MessagingPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isFirstLoad = useRef(true)
   const isAtBottom = useRef(true)
-  const [showScrollDown, setShowScrollDown] = useState(false)
-  const [showScrollUp, setShowScrollUp] = useState(false)
+  const isCancelling = useRef(false)
+  const recordStartX = useRef(0)
   const isMobile = useIsMobile()
   const isAdmin = user?.role === 'admin'
 
@@ -95,21 +94,21 @@ export default function MessagingPage() {
     isFirstLoad.current = true
     isAtBottom.current = true
     setShowScrollDown(false)
-    setShowScrollUp(false)
   }, [activeId])
 
-  // À l'ouverture : scroll en haut (premier message visible)
-  // Nouveau message : auto-scroll bas uniquement si déjà en bas
+  // Premier chargement → scroll en bas (dernier message), nouveaux messages → scroll si déjà en bas
   useEffect(() => {
     if (!messages.length) return
     if (isFirstLoad.current) {
       isFirstLoad.current = false
-      // Conserver le séparateur "Nouveaux messages" mais rester en haut
       const firstUnread = (messages as any[]).find(m => m.destinataire_id === user?.id && !m.lu)
       if (firstUnread) setFirstUnreadId(firstUnread.id)
-      if (msgsRef.current) msgsRef.current.scrollTop = 0
+      // Toujours ouvrir sur le dernier message
+      requestAnimationFrame(() => {
+        if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight
+      })
     } else {
-      // Nouveau message temps réel → scroll bas seulement si l'utilisateur est déjà en bas
+      // Nouveau message temps réel → scroll si déjà en bas
       if (isAtBottom.current && msgsRef.current) {
         msgsRef.current.scrollTop = msgsRef.current.scrollHeight
       }
@@ -132,15 +131,10 @@ export default function MessagingPage() {
     const distFromBottom = scrollHeight - scrollTop - clientHeight
     isAtBottom.current = distFromBottom < 60
     setShowScrollDown(distFromBottom > 120)
-    setShowScrollUp(scrollTop > 120)
   }
 
   function scrollToBottom() {
     msgsRef.current?.scrollTo({ top: msgsRef.current.scrollHeight, behavior: 'smooth' })
-  }
-
-  function scrollToTop() {
-    msgsRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function selectConversation(c: Profile) {
@@ -168,26 +162,23 @@ export default function MessagingPage() {
     if (fileRef.current) fileRef.current.value = ''
   }
 
-  async function toggleRecording() {
+  // ── Enregistrement vocal WhatsApp-style ──────────────────────────────
+  async function startRecording() {
     if (!window.isSecureContext) { add('Microphone indisponible : HTTPS requis', 'error'); return }
     if (!navigator.mediaDevices?.getUserMedia) { add('Microphone non disponible sur ce navigateur', 'warning'); return }
-    if (recording) {
-      mediaRef.current?.stop()
-      if (timerRef.current) clearInterval(timerRef.current)
-      return
-    }
     const mimeType = getBestAudioMime()
     if (mimeType === null) { add('Enregistrement audio non supporté sur ce navigateur', 'warning'); return }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const mr = new MediaRecorder(stream, mimeType ? { mimeType } : {})
       chunksRef.current = []
+      isCancelling.current = false
       mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       mr.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
         setRecording(false); setRecordingSecs(0)
         if (timerRef.current) clearInterval(timerRef.current)
-        if (!chunksRef.current.length || !activeId) return
+        if (isCancelling.current || !chunksRef.current.length || !activeId) return
         setUploading(true)
         const blob = new Blob(chunksRef.current, mimeType ? { type: mimeType } : {})
         const { url, path, error } = await uploadChatMedia(blob, 'audio', user!.id)
@@ -211,23 +202,65 @@ export default function MessagingPage() {
     }
   }
 
+  function stopRecording(cancelled: boolean) {
+    isCancelling.current = cancelled
+    mediaRef.current?.stop()
+    if (timerRef.current) clearInterval(timerRef.current)
+    setCancelProgress(0)
+  }
+
+  // Pointer events — capture le pointer pour recevoir move/up partout
+  function handleMicDown(e: React.PointerEvent<HTMLButtonElement>) {
+    e.preventDefault()
+    if (uploading || recording) return
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch {}
+    recordStartX.current = e.clientX
+    isCancelling.current = false
+    setCancelProgress(0)
+    startRecording()
+  }
+
+  function handleMicMove(e: React.PointerEvent<HTMLButtonElement>) {
+    if (!recording) return
+    const dx = e.clientX - recordStartX.current
+    if (dx < 0) {
+      const progress = Math.min(1, -dx / 80)
+      setCancelProgress(progress)
+      isCancelling.current = dx < -80
+    } else {
+      setCancelProgress(0)
+      isCancelling.current = false
+    }
+  }
+
+  function handleMicUp(e: React.PointerEvent<HTMLButtonElement>) {
+    if (!recording) return
+    stopRecording(isCancelling.current)
+  }
+  // ─────────────────────────────────────────────────────────────────────
+
   function fmtSecs(s: number) { return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}` }
   function isAudioUrl(url: string) { return url.includes('/audio-') || /\.(webm|mp3|ogg|opus|wav|m4a)(\?|$)/i.test(url) }
 
   function renderMessage(contenu: string, type: string) {
     if (type === 'audio' || (type === 'photo' && isAudioUrl(contenu))) return (
-      <audio src={contenu} controls style={{ maxWidth: '100%', width: 220, height: 36, display: 'block' }} />
+      <audio src={contenu} controls style={{ maxWidth: '100%', width: 210, height: 36, display: 'block' }} />
     )
     if (type === 'photo') return (
-      <img src={contenu} alt="photo" onClick={() => setLightboxSrc(contenu)}
-        style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 10, display: 'block', cursor: 'zoom-in', objectFit: 'cover' }} />
+      <img
+        src={contenu}
+        alt="photo"
+        onClick={() => setLightboxSrc(contenu)}
+        style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, display: 'block', cursor: 'zoom-in', objectFit: 'cover', width: '100%' }}
+      />
     )
-    return <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 14, lineHeight: 1.5 }}>{contenu}</span>
+    return <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 14, lineHeight: 1.45 }}>{contenu}</span>
   }
 
   const audioSupported = typeof MediaRecorder !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
   const bubbleSent = 'var(--bl)'
   const bubbleReceived = 'var(--s0)'
+  const isCancelActive = cancelProgress > 0.55
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 52px)', marginTop: -16, marginLeft: -16, marginRight: -16 }}>
@@ -242,7 +275,6 @@ export default function MessagingPage() {
           background: 'var(--s0)',
           borderRight: '1px solid var(--b0)',
         }}>
-          {/* Header */}
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--b0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t0)', letterSpacing: '-.02em' }}>Messages</span>
             <span style={{ fontSize: 12, color: 'var(--t3)', background: 'var(--s2)', padding: '2px 8px', borderRadius: 20 }}>
@@ -250,7 +282,6 @@ export default function MessagingPage() {
             </span>
           </div>
 
-          {/* Liste */}
           <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' }}>
             {conversations.length === 0 && (
               <div style={{ padding: 32, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
@@ -270,21 +301,18 @@ export default function MessagingPage() {
                   key={c.id}
                   onClick={() => selectConversation(c)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px',
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
                     cursor: 'pointer', borderBottom: '1px solid var(--b0)',
                     background: active ? 'var(--blBg)' : 'transparent',
                     transition: 'background .12s',
-                    minHeight: 72,
+                    minHeight: 68,
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                   onMouseEnter={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = 'var(--s1)' }}
                   onMouseLeave={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
                 >
-                  {/* Avatar + badge */}
                   <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <div
-                      className={`avatar ${c.role === 'admin' ? 'purple' : ''}`}
-                      style={{ width: 46, height: 46, fontSize: 15 }}
-                    >
+                    <div className={`avatar ${c.role === 'admin' ? 'purple' : ''}`} style={{ width: 46, height: 46, fontSize: 15 }}>
                       {(c.prenom?.[0] || c.email?.[0] || '?').toUpperCase()}
                       {(c.nom?.[0] || '').toUpperCase()}
                     </div>
@@ -303,9 +331,8 @@ export default function MessagingPage() {
                     )}
                   </div>
 
-                  {/* Nom + preview */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 3 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 2 }}>
                       <span style={{
                         fontSize: 14, fontWeight: hasUnread ? 700 : 500,
                         color: active ? 'var(--blTx)' : 'var(--t0)',
@@ -331,7 +358,6 @@ export default function MessagingPage() {
                     </div>
                   </div>
 
-                  {/* Indicateur actif */}
                   {active && !hasUnread && (
                     <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--bl)', flexShrink: 0 }} />
                   )}
@@ -346,11 +372,11 @@ export default function MessagingPage() {
           {selected ? (
             <>
               {/* Header chat */}
-              <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--b0)', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--s0)', flexShrink: 0, minHeight: 56 }}>
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--b0)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--s0)', flexShrink: 0, minHeight: 52 }}>
                 {isAdmin && isMobile && (
                   <button onClick={() => setShowList(true)} className="btn-icon" style={{ flexShrink: 0 }}>←</button>
                 )}
-                <div className="avatar" style={{ width: 36, height: 36, fontSize: 12, flexShrink: 0 }}>
+                <div className="avatar" style={{ width: 34, height: 34, fontSize: 11, flexShrink: 0 }}>
                   {(selected.prenom?.[0] || selected.email?.[0] || '?').toUpperCase()}
                   {(selected.nom?.[0] || '').toUpperCase()}
                 </div>
@@ -360,150 +386,225 @@ export default function MessagingPage() {
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--t3)' }}>{selected.role === 'admin' ? 'Administrateur' : 'Intervenant'}</div>
                 </div>
-                {uploading && <span style={{ fontSize: 12, color: 'var(--t3)', flexShrink: 0 }}>Envoi…</span>}
+                {uploading && <span style={{ fontSize: 11, color: 'var(--t3)', flexShrink: 0 }}>Envoi…</span>}
               </div>
 
-              {/* ── Messages ── */}
+              {/* ── Zone messages ── */}
               <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-              <div
-                ref={msgsRef}
-                onScroll={handleScroll}
-                style={{ height: '100%', overflowY: 'auto', padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 4, scrollbarWidth: 'none' }}
-              >
-                {messages.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: 40, color: 'var(--t3)', fontSize: 13 }}>
-                    <div style={{ fontSize: 36, marginBottom: 10 }}>👋</div>
-                    Commencez la conversation
-                  </div>
-                )}
+                <div
+                  ref={msgsRef}
+                  onScroll={handleScroll}
+                  style={{ height: '100%', overflowY: 'auto', padding: isMobile ? '10px 8px' : '14px 12px', display: 'flex', flexDirection: 'column', gap: 2, scrollbarWidth: 'none' }}
+                >
+                  {messages.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: 40, color: 'var(--t3)', fontSize: 13 }}>
+                      <div style={{ fontSize: 36, marginBottom: 10 }}>👋</div>
+                      Commencez la conversation
+                    </div>
+                  )}
 
-                {(messages as any[]).map((m, idx) => {
-                  const isMe = m.expediteur_id === user?.id
-                  const prevMsg = (messages as any[])[idx - 1]
-                  const showAvatar = !isMe && (!prevMsg || prevMsg.expediteur_id !== m.expediteur_id)
-                  const isPhoto = m.type === 'photo'
-                  const isAudio = m.type === 'audio'
-                  const isFirstUnread = firstUnreadId === m.id
+                  {(messages as any[]).map((m, idx) => {
+                    const isMe = m.expediteur_id === user?.id
+                    const prevMsg = (messages as any[])[idx - 1]
+                    const nextMsg = (messages as any[])[idx + 1]
+                    const showAvatar = !isMe && (!prevMsg || prevMsg.expediteur_id !== m.expediteur_id)
+                    const isLastInGroup = !nextMsg || nextMsg.expediteur_id !== m.expediteur_id
+                    const isPhoto = m.type === 'photo'
+                    const isAudio = m.type === 'audio'
+                    const isFirstUnread = firstUnreadId === m.id
 
-                  return (
-                    <div key={m.id} style={{ display: 'contents' }}>
-                      {/* Séparateur "Nouveaux messages" */}
-                      {isFirstUnread && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px', flexShrink: 0 }}>
-                          <div style={{ flex: 1, height: 1, background: 'var(--blBd)' }} />
-                          <span style={{
-                            fontSize: 11, fontWeight: 600, color: 'var(--blTx)',
-                            background: 'var(--blBg)', padding: '4px 14px', borderRadius: 20,
-                            border: '1px solid var(--blBd)', whiteSpace: 'nowrap', letterSpacing: '.01em',
-                          }}>
-                            ✉ Nouveaux messages
-                          </span>
-                          <div style={{ flex: 1, height: 1, background: 'var(--blBd)' }} />
-                        </div>
-                      )}
-
-                      {/* Bulle de message */}
-                      <div
-                        id={`msg-${m.id}`}
-                        className={isFirstUnread ? 'msg-first-unread' : ''}
-                        style={{
-                          display: 'flex', gap: 8, alignItems: 'flex-end',
-                          flexDirection: isMe ? 'row-reverse' : 'row',
-                          marginTop: showAvatar ? 10 : 2,
-                        }}
-                      >
-                        {/* Avatar expéditeur (messages reçus seulement) */}
-                        {!isMe && (
-                          <div style={{ width: 28, flexShrink: 0 }}>
-                            {showAvatar && (
-                              <div className="avatar" style={{ width: 28, height: 28, fontSize: 9 }}>
-                                {(m.expediteur?.prenom?.[0] || '') + (m.expediteur?.nom?.[0] || '')}
-                              </div>
-                            )}
+                    return (
+                      <div key={m.id} style={{ display: 'contents' }}>
+                        {/* Séparateur "Nouveaux messages" */}
+                        {isFirstUnread && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 4px', flexShrink: 0 }}>
+                            <div style={{ flex: 1, height: 1, background: 'var(--blBd)' }} />
+                            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--blTx)', background: 'var(--blBg)', padding: '3px 12px', borderRadius: 20, border: '1px solid var(--blBd)', whiteSpace: 'nowrap' }}>
+                              ✉ Nouveaux messages
+                            </span>
+                            <div style={{ flex: 1, height: 1, background: 'var(--blBd)' }} />
                           </div>
                         )}
-                        <div style={{ maxWidth: isMobile ? '78%' : '60%', display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
-                          {/* Nom expéditeur au-dessus de la première bulle d'un groupe */}
-                          {showAvatar && !isMe && (
-                            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 3, paddingLeft: 4, fontWeight: 500 }}>
-                              {m.expediteur?.prenom || m.expediteur?.nom || ''}
+
+                        {/* Bulle */}
+                        <div
+                          id={`msg-${m.id}`}
+                          style={{
+                            display: 'flex', gap: 6, alignItems: 'flex-end',
+                            flexDirection: isMe ? 'row-reverse' : 'row',
+                            marginTop: showAvatar ? 8 : 1,
+                            marginBottom: isLastInGroup ? 2 : 0,
+                          }}
+                        >
+                          {/* Avatar (messages reçus) */}
+                          {!isMe && (
+                            <div style={{ width: isMobile ? 24 : 28, flexShrink: 0 }}>
+                              {showAvatar && (
+                                <div className="avatar" style={{ width: isMobile ? 24 : 28, height: isMobile ? 24 : 28, fontSize: isMobile ? 8 : 9 }}>
+                                  {(m.expediteur?.prenom?.[0] || '') + (m.expediteur?.nom?.[0] || '')}
+                                </div>
+                              )}
                             </div>
                           )}
-                          <div style={{
-                            padding: isPhoto ? 4 : isAudio ? '8px 12px' : '9px 13px',
-                            borderRadius: isMe ? '18px 4px 18px 18px' : '4px 18px 18px 18px',
-                            background: isMe ? bubbleSent : bubbleReceived,
-                            color: isMe ? '#fff' : 'var(--t0)',
-                            border: isMe ? 'none' : '1px solid var(--b1)',
-                            boxShadow: '0 1px 2px rgba(0,0,0,.08)',
-                            wordBreak: 'break-word', maxWidth: '100%',
-                          }}>
-                            {renderMessage(m.contenu, m.type)}
-                          </div>
-                          <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 3, paddingLeft: 4, paddingRight: 4 }}>
-                            {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                            {isMe && <span style={{ marginLeft: 4, color: 'var(--bl)' }}>✓✓</span>}
+                          <div style={{ maxWidth: isMobile ? '82%' : '62%', display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start' }}>
+                            {showAvatar && !isMe && (
+                              <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2, paddingLeft: 4, fontWeight: 500 }}>
+                                {m.expediteur?.prenom || m.expediteur?.nom || ''}
+                              </div>
+                            )}
+                            <div style={{
+                              padding: isPhoto ? 3 : isAudio ? '7px 11px' : '8px 12px',
+                              borderRadius: isMe
+                                ? (showAvatar ? '16px 4px 16px 16px' : '16px 4px 16px 16px')
+                                : (showAvatar ? '4px 16px 16px 16px' : '4px 16px 16px 16px'),
+                              background: isMe ? bubbleSent : bubbleReceived,
+                              color: isMe ? '#fff' : 'var(--t0)',
+                              border: isMe ? 'none' : '1px solid var(--b1)',
+                              boxShadow: '0 1px 2px rgba(0,0,0,.07)',
+                              wordBreak: 'break-word', maxWidth: '100%',
+                            }}>
+                              {renderMessage(m.contenu, m.type)}
+                            </div>
+                            <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 2, paddingLeft: 4, paddingRight: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <span>{new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                              {isMe && <span style={{ color: 'var(--bl)' }}>✓✓</span>}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
-              {showScrollUp && (
-                <button onClick={scrollToTop} style={{ position:'absolute', top:12, right:12, background:'var(--s0)', border:'1px solid var(--b1)', borderRadius:20, padding:'7px 14px', fontSize:12, fontWeight:600, color:'var(--t1)', cursor:'pointer', boxShadow:'0 2px 8px rgba(0,0,0,.14)', display:'flex', alignItems:'center', gap:5, zIndex:10, backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)', whiteSpace:'nowrap', fontFamily:'inherit' }}>
-                  ↑ Premier message
-                </button>
-              )}
-              {showScrollDown && (
-                <button onClick={scrollToBottom} style={{ position:'absolute', bottom:12, right:12, background:'var(--bl)', border:'none', borderRadius:20, padding:'7px 14px', fontSize:12, fontWeight:600, color:'#fff', cursor:'pointer', boxShadow:'0 2px 8px rgba(37,99,235,.35)', display:'flex', alignItems:'center', gap:5, zIndex:10, whiteSpace:'nowrap', fontFamily:'inherit' }}>
-                  ↓ Derniers messages
-                </button>
-              )}
+                    )
+                  })}
+                </div>
+
+                {/* Bouton flottant "↓ Nouveau message" */}
+                {showScrollDown && (
+                  <button
+                    onClick={scrollToBottom}
+                    style={{
+                      position: 'absolute', bottom: 12, right: 12,
+                      background: 'var(--bl)', border: 'none',
+                      borderRadius: 20, padding: '7px 14px',
+                      fontSize: 12, fontWeight: 600, color: '#fff',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 10px rgba(37,99,235,.40)',
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      zIndex: 10, whiteSpace: 'nowrap', fontFamily: 'inherit',
+                    }}
+                  >
+                    ↓ Nouveau message
+                  </button>
+                )}
               </div>
 
               {/* ── Barre d'envoi ── */}
-              <form onSubmit={handleSend} style={{ padding: '10px 12px', paddingBottom: 'calc(10px + env(safe-area-inset-bottom))', borderTop: '1px solid var(--b0)', display: 'flex', gap: 8, alignItems: 'center', background: 'var(--s0)', flexShrink: 0 }}>
+              <form
+                onSubmit={handleSend}
+                style={{
+                  padding: isMobile ? '7px 10px' : '9px 12px',
+                  paddingBottom: `calc(${isMobile ? 7 : 9}px + env(safe-area-inset-bottom))`,
+                  borderTop: '1px solid var(--b0)',
+                  display: 'flex', gap: 7, alignItems: 'center',
+                  background: 'var(--s0)', flexShrink: 0,
+                }}
+              >
                 <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={handlePhoto} />
 
-                <button type="button" className="btn-icon" title="Photo" onClick={() => fileRef.current?.click()} disabled={uploading || recording}
-                  style={{ flexShrink: 0, fontSize: 18 }}>📷</button>
-
-                {audioSupported && !recording && (
-                  <button type="button" className="btn-icon" title="Message vocal" onClick={toggleRecording} disabled={uploading}
-                    style={{ flexShrink: 0, fontSize: 18 }}>🎤</button>
-                )}
-
-                {recording && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, background: 'var(--rdBg)', border: '1px solid var(--rdBd)', borderRadius: 24, padding: '8px 14px' }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--rd)', display: 'inline-block', animation: 'pulse 1s infinite' }} />
-                    <span style={{ fontSize: 14, color: 'var(--rdTx)', fontWeight: 500 }}>{fmtSecs(recordingSecs)}</span>
-                    <span style={{ fontSize: 12, color: 'var(--rdTx)', flex: 1 }}>Enregistrement…</span>
-                    <button type="button" onClick={toggleRecording} style={{ background: 'var(--rd)', border: 'none', color: '#fff', borderRadius: 16, padding: '4px 12px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
-                      ⏹ Envoyer
-                    </button>
-                  </div>
-                )}
-
+                {/* Bouton photo (masqué pendant enregistrement) */}
                 {!recording && (
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 24, padding: '8px 16px', minHeight: 44, transition: 'border-color .15s' }}>
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    title="Photo"
+                    style={{ flexShrink: 0, width: 38, height: 38, borderRadius: '50%', border: '1px solid var(--b1)', background: 'var(--s1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 17, color: 'var(--t2)' }}
+                  >
+                    📷
+                  </button>
+                )}
+
+                {/* Zone centrale : indicateur d'enregistrement OU input texte */}
+                {recording ? (
+                  <div style={{
+                    flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+                    background: 'var(--rdBg)', border: `1px solid ${isCancelActive ? 'var(--rd)' : 'var(--rdBd)'}`,
+                    borderRadius: 24, padding: '0 14px', minHeight: 38,
+                    transition: 'border-color .15s',
+                    overflow: 'hidden',
+                  }}>
+                    {/* Indication annulation */}
+                    <span style={{
+                      fontSize: 12, fontWeight: isCancelActive ? 700 : 400,
+                      color: isCancelActive ? 'var(--rd)' : 'var(--t3)',
+                      transition: 'color .15s, font-weight .15s',
+                      whiteSpace: 'nowrap', overflow: 'hidden',
+                      maxWidth: cancelProgress > 0.1 ? 120 : 0,
+                      opacity: cancelProgress,
+                      transitionProperty: 'max-width, opacity, color',
+                    }}>
+                      {isCancelActive ? '✕ Annuler' : '← Glisser'}
+                    </span>
+                    <span style={{ flex: 1 }} />
+                    {/* Dot animé */}
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--rd)', display: 'inline-block', flexShrink: 0, animation: 'pulse 1s infinite' }} />
+                    {/* Timer */}
+                    <span style={{ fontSize: 13, color: 'var(--rdTx)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '.03em', flexShrink: 0 }}>
+                      {fmtSecs(recordingSecs)}
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 24, padding: '0 14px', minHeight: 38, transition: 'border-color .15s' }}>
                     <input
                       value={text}
                       onChange={e => setText(e.target.value)}
                       placeholder={uploading ? 'Envoi en cours…' : 'Message…'}
                       disabled={uploading}
-                      style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: 14, color: 'var(--t0)', minHeight: 'auto', padding: 0, width: '100%' }}
+                      style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: 14, color: 'var(--t0)', padding: 0, width: '100%' }}
                       onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend(e as any))}
                     />
                   </div>
                 )}
 
-                {!recording && (
-                  <button type="submit" disabled={!text.trim() || send.isPending || uploading}
-                    style={{ width: 44, height: 44, borderRadius: '50%', background: text.trim() ? 'var(--bl)' : 'var(--s2)', border: 'none', color: text.trim() ? '#fff' : 'var(--t3)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: text.trim() ? 'pointer' : 'default', transition: 'background .15s', flexShrink: 0, fontSize: 18 }}>
+                {/* Bouton droit : Envoyer (texte) ou Micro (maintenir = enregistrer) */}
+                {text.trim() && !recording ? (
+                  <button
+                    type="submit"
+                    disabled={send.isPending || uploading}
+                    style={{
+                      width: 40, height: 40, borderRadius: '50%',
+                      background: 'var(--bl)', border: 'none', color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', fontSize: 17, flexShrink: 0,
+                      transition: 'opacity .15s',
+                    }}
+                  >
                     ➤
                   </button>
-                )}
+                ) : audioSupported ? (
+                  <button
+                    type="button"
+                    onPointerDown={handleMicDown}
+                    onPointerMove={handleMicMove}
+                    onPointerUp={handleMicUp}
+                    disabled={uploading}
+                    title={recording ? 'Relâcher pour envoyer · Glisser ← pour annuler' : 'Maintenir pour enregistrer'}
+                    style={{
+                      width: 40, height: 40, borderRadius: '50%',
+                      background: recording
+                        ? (isCancelActive ? 'var(--s2)' : 'var(--rd)')
+                        : 'var(--s2)',
+                      border: recording ? 'none' : '1px solid var(--b1)',
+                      color: recording ? '#fff' : 'var(--t2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', fontSize: 18, flexShrink: 0,
+                      transition: 'background .15s, transform .1s',
+                      transform: recording ? `scale(${1.15 - cancelProgress * 0.35})` : 'scale(1)',
+                      touchAction: 'none',
+                      userSelect: 'none', WebkitUserSelect: 'none',
+                    }}
+                  >
+                    🎤
+                  </button>
+                ) : null}
               </form>
             </>
           ) : (
