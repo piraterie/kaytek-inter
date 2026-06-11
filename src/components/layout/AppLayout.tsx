@@ -74,7 +74,8 @@ export default function AppLayout() {
     staleTime: 2 * 60 * 1000,
   })
 
-  const sidebarW = isMobile ? (sidebarOpen ? 280 : 0) : (compact ? 72 : 280)
+  // Mobile : sidebar toujours position:fixed (hors flux), translateX gère l'affichage
+  const sidebarW = isMobile ? 0 : (compact ? 72 : 280)
 
   const { data: notifications = [] } = useMyNotifications()
   const markRead = useMarkNotificationRead()
@@ -166,22 +167,45 @@ export default function AppLayout() {
 
   return (
     <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
-      {/* OVERLAY MOBILE */}
-      {isMobile && sidebarOpen && (
-        <div onClick={toggleSidebar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 99 }} />
+      {/* OVERLAY MOBILE — toujours dans le DOM, fade via opacity */}
+      {isMobile && (
+        <div
+          onClick={sidebarOpen ? toggleSidebar : undefined}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 99,
+            background: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
+            opacity: sidebarOpen ? 1 : 0,
+            pointerEvents: sidebarOpen ? 'auto' : 'none',
+            transition: 'opacity 220ms cubic-bezier(0.32,0.72,0,1)',
+          } as React.CSSProperties}
+        />
       )}
       {/* SIDEBAR */}
       <aside style={{
-        width: sidebarW,
-        minWidth: sidebarW,
         background: 'var(--nav)',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'width .22s ease, min-width .22s ease',
         overflow: 'hidden',
         borderRight: '1px solid var(--navBd)',
         flexShrink: 0,
-        ...(isMobile && sidebarOpen ? { position: 'fixed', top: 0, left: 0, height: '100dvh', zIndex: 100 } : {})
+        ...(isMobile ? {
+          // Mobile : position:fixed + slide GPU via transform (pas de reflow)
+          position: 'fixed', top: 0, left: 0,
+          width: 280, minWidth: 280,
+          height: '100dvh', zIndex: 100,
+          transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+          // visibility passe à hidden seulement après la fin de l'animation de fermeture
+          visibility: sidebarOpen ? 'visible' : 'hidden',
+          transition: `transform 220ms cubic-bezier(0.32,0.72,0,1), visibility ${sidebarOpen ? '0ms' : '220ms'}`,
+          willChange: 'transform',
+        } : {
+          // Desktop : compact toggle via width
+          width: sidebarW,
+          minWidth: sidebarW,
+          transition: 'width 200ms cubic-bezier(0.32,0.72,0,1), min-width 200ms cubic-bezier(0.32,0.72,0,1)',
+        }),
       }}>
 
         {/* ── LOGO / BRAND ── */}
