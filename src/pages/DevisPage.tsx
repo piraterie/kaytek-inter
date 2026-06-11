@@ -61,6 +61,7 @@ export default function DevisPage() {
 
   const [filterStatut, setFilterStatut] = useState('tous')
   const [search, setSearch] = useState('')
+  const [showMobileActions, setShowMobileActions] = useState(false)
   const [emailDevis, setEmailDevis] = useState<Devis | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; action: () => void } | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -238,7 +239,8 @@ export default function DevisPage() {
               {pendingCount > 0 && <span style={{ color: 'var(--amTx)', fontWeight: 600 }}> · {pendingCount} à valider</span>}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
+          {/* Desktop : inchangé */}
+          <div className="hide-mobile" style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}>📥 CSV</button>
             {isAdmin && !selectionMode && filtered.length > 0 && (
               <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
@@ -254,6 +256,23 @@ export default function DevisPage() {
             {canCreateDocs && (
               <button className="btn btn-primary" onClick={() => nav('/devis/nouveau')}>+ Nouveau</button>
             )}
+          </div>
+          {/* Mobile : ligne compacte sous le titre */}
+          <div className="show-mobile" style={{ width: '100%' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {canCreateDocs && (
+                <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => nav('/devis/nouveau')}>
+                  + Nouveau devis
+                </button>
+              )}
+              <button
+                className="btn btn-secondary"
+                style={{ paddingLeft: 16, paddingRight: 16, justifyContent: 'center' }}
+                onClick={() => setShowMobileActions(true)}
+              >
+                ···
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -638,6 +657,48 @@ export default function DevisPage() {
                 label="Supprimer ce devis"
                 danger
                 onClick={() => { setActiveSheet(null); handleDel(activeSheet.id) }}
+              />
+            </>
+          )}
+        </DocSheet>
+      )}
+
+      {/* ── Actions globales mobile ─────────────────────── */}
+      {showMobileActions && (
+        <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
+          <SheetRow
+            icon="📥"
+            label="Exporter CSV"
+            sublabel={filtered.length === 0 ? 'Aucun devis' : `${filtered.length} devis`}
+            onClick={() => { setShowMobileActions(false); handleExportCSV() }}
+            disabled={filtered.length === 0}
+          />
+          {isAdmin && !selectionMode && filtered.length > 0 && (
+            <SheetRow
+              icon="☑"
+              label="Mode sélection"
+              sublabel="Sélectionner des devis"
+              onClick={() => { setShowMobileActions(false); setSelectionMode(true) }}
+            />
+          )}
+          {!isAdmin && (
+            <SheetRow
+              icon="←"
+              label="Interventions"
+              sublabel="Retour à la liste"
+              onClick={() => { setShowMobileActions(false); nav('/interventions') }}
+            />
+          )}
+          {isAdmin && devis.length > 0 && (
+            <>
+              <SheetSection label="Zone dangereuse" />
+              <SheetRow
+                icon="🗑️"
+                label="Tout supprimer"
+                sublabel={`Supprimer les ${devis.length} devis`}
+                danger
+                onClick={() => { setShowMobileActions(false); handleVider() }}
+                disabled={delAll.isPending}
               />
             </>
           )}
