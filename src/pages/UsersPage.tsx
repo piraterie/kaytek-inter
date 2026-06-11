@@ -1,5 +1,5 @@
 // src/pages/UsersPage.tsx
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useProfiles, useUpdateProfile } from '@/lib/hooks'
 import { useToastStore } from '@/lib/store'
 import { inviterIntervenant, supprimerUtilisateur } from '@/lib/supabase/auth'
@@ -7,10 +7,13 @@ import { supabase } from '@/lib/supabase/client'
 import { getUserDevices, revokeDevice, isCurrentDevice, type DeviceRecord } from '@/lib/devices'
 import type { Profile } from '@/types'
 
+const ns = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
 export default function UsersPage() {
   const { add } = useToastStore()
   const { data: profiles = [], isLoading, refetch } = useProfiles()
   const upd = useUpdateProfile()
+  const [search, setSearch] = useState('')
   const [modal, setModal] = useState(false)
   const [editModal, setEditModal] = useState(false)
   const [editTarget, setEditTarget] = useState<Profile | null>(null)
@@ -26,6 +29,17 @@ export default function UsersPage() {
   const [tgTestLoading, setTgTestLoading] = useState(false)
   const [tgTestResult, setTgTestResult] = useState<'idle'|'ok'|'error'>('idle')
   const [tgTestError, setTgTestError] = useState('')
+
+  const filteredProfiles = useMemo(() => {
+    if (!search.trim()) return profiles
+    const q = ns(search)
+    return profiles.filter(p =>
+      ns(p.nom).includes(q) ||
+      ns(p.prenom).includes(q) ||
+      ns(p.email).includes(q) ||
+      ns(p.role).includes(q)
+    )
+  }, [profiles, search])
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault(); setInvLoading(true)
@@ -117,13 +131,32 @@ export default function UsersPage() {
       <div className="flex justify-between items-center mb-4" style={{ flexWrap:'wrap',gap:10 }}>
         <div>
           <h1 className="page-title">Utilisateurs</h1>
-          <p className="page-subtitle">Admin : accès total · Intervenants : données isolées (RLS)</p>
+          <p className="page-subtitle">{profiles.length} utilisateur{profiles.length > 1 ? 's' : ''} · Admin : accès total · Intervenants : données isolées (RLS)</p>
         </div>
         <button className="btn btn-primary" onClick={()=>setModal(true)}>+ Inviter intervenant</button>
       </div>
+
+      <div className="search-bar" style={{ marginBottom: 14 }}>
+        <span style={{ color:'var(--t3)',fontSize:15,flexShrink:0 }}>🔍</span>
+        <input placeholder="Rechercher par nom, prénom, email…" value={search} onChange={e=>setSearch(e.target.value)} />
+        {search && (
+          <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',fontSize:16,lineHeight:1,flexShrink:0 }}>✕</button>
+        )}
+      </div>
+
       <div className="card">
         {isLoading&&<div style={{ padding:24,textAlign:'center',color:'var(--t3)' }}>Chargement…</div>}
-        {profiles.map(p=>(
+        {!isLoading && filteredProfiles.length === 0 && (
+          <div style={{ padding:24,textAlign:'center',color:'var(--t3)' }}>
+            {search.trim() ? (
+              <>
+                <p style={{ marginBottom:10 }}>Aucun résultat pour « {search} »</p>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button>
+              </>
+            ) : 'Aucun utilisateur'}
+          </div>
+        )}
+        {filteredProfiles.map(p=>(
           <div key={p.id} style={{ display:'flex',alignItems:'flex-start',gap:12,padding:'14px 16px',borderBottom:'1px solid var(--b0)',flexWrap:'wrap' }}>
             {/* Avatar */}
             <div className={`avatar ${p.role==='admin'?'purple':''}`} style={{ width:36,height:36,fontSize:13,flexShrink:0,marginTop:2 }}>

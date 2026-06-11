@@ -311,9 +311,9 @@ export default function FacturesPage() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
-            <button className="btn btn-secondary btn-sm hide-mobile" onClick={handleExportCSV} disabled={filtered.length === 0}>📥 CSV</button>
+            <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}>📥 CSV</button>
             {isAdmin && !selectionMode && filtered.length > 0 && (
-              <button className="btn btn-secondary btn-sm hide-mobile" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
             )}
             {isAdmin && factures.length > 0 && (
               <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={handleVider} disabled={delAll.isPending}>

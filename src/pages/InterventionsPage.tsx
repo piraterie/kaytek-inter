@@ -245,7 +245,7 @@ export default function InterventionsPage() {
           <p className="page-subtitle">{items.length} résultat{items.length>1?'s':''}</p>
         </div>
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-          <button className="btn btn-secondary hide-mobile" onClick={handleExport} disabled={items.length===0}>📥 CSV</button>
+          <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={items.length===0}>📥 CSV</button>
           {isAdmin && (
             <button
               className={`btn btn-sm ${showArchived ? 'btn-primary' : 'btn-secondary'}`}
@@ -291,7 +291,10 @@ export default function InterventionsPage() {
       <div className="filter-bar">
         <div className="search-bar" style={{ flex:1, minWidth:160, maxWidth:280 }}>
           <span style={{ color:'var(--t3)', fontSize:17 }}>🔍</span>
-          <input placeholder="Rechercher…" value={search} onChange={e => setSearch(e.target.value)} />
+          <input placeholder="Client, adresse, intervenant…" value={search} onChange={e => setSearch(e.target.value)} />
+          {search && (
+            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',fontSize:16,lineHeight:1,flexShrink:0 }}>✕</button>
+          )}
         </div>
         {!showArchived && STATUTS_FILTER.map(s => (
           <button key={s} onClick={() => setStatut(s)} className={`btn btn-sm ${statut===s?'btn-primary':'btn-secondary'}`}>{s==='tous'?'Tous':s.replace('_',' ')}</button>

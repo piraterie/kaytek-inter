@@ -351,7 +351,7 @@ export default function CommissionsPage() {
           <h1 className="page-title">Commissions</h1>
           <p className="page-subtitle">Calculées sur les factures payées · {items.length} entrée{items.length !== 1 ? 's' : ''}</p>
         </div>
-        <button className="btn btn-secondary hide-mobile" onClick={handleExportCSV} disabled={items.length === 0}>📥 CSV</button>
+        <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={items.length === 0}>📥 CSV</button>
       </div>
 
       {isAdmin && unattributedCount > 0 && (

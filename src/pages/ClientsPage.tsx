@@ -149,7 +149,7 @@ export default function ClientsPage() {
           <p className="page-subtitle">{clients.length} client{clients.length>1?'s':''}</p>
         </div>
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-          <button className="btn btn-secondary hide-mobile" onClick={handleExport} disabled={clients.length===0}>📥 CSV</button>
+          <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={clients.length===0}>📥 CSV</button>
           {isAdmin && (
             <button
               className={`btn btn-sm ${showArchived ? 'btn-primary' : 'btn-secondary'}`}
@@ -196,13 +196,25 @@ export default function ClientsPage() {
         <div className="search-bar" style={{ flex:1, minWidth:160, maxWidth:300 }}>
           <span style={{ color:'var(--t3)',fontSize:17 }}>🔍</span>
           <input placeholder="Nom, email, téléphone…" value={search} onChange={e=>setSearch(e.target.value)} />
+          {search && (
+            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',fontSize:16,lineHeight:1,flexShrink:0 }}>✕</button>
+          )}
         </div>
       </div>
 
       {/* MOBILE : cards */}
       <div className="show-mobile">
         {isLoading && <div style={{ textAlign:'center',padding:32,color:'var(--t3)' }}>Chargement…</div>}
-        {!isLoading && clients.length === 0 && <div style={{ textAlign:'center',padding:40,color:'var(--t3)' }}>Aucun client</div>}
+        {!isLoading && clients.length === 0 && (
+          <div style={{ textAlign:'center',padding:40,color:'var(--t3)' }}>
+            {search.trim() ? (
+              <>
+                <p style={{ marginBottom:12 }}>Aucun résultat pour « {search} »</p>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button>
+              </>
+            ) : 'Aucun client'}
+          </div>
+        )}
         {clients.map(c => (
           <div key={c.id}
             style={{
@@ -259,7 +271,9 @@ export default function ClientsPage() {
           </thead>
           <tbody>
             {isLoading&&<tr><td colSpan={selectionMode ? 6 : 5} style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>Chargement…</td></tr>}
-            {!isLoading&&clients.length===0&&<tr><td colSpan={selectionMode ? 6 : 5} style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>Aucun client</td></tr>}
+            {!isLoading&&clients.length===0&&<tr><td colSpan={selectionMode ? 6 : 5} style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>
+              {search.trim() ? <><span>Aucun résultat — </span><button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button></> : 'Aucun client'}
+            </td></tr>}
             {clients.map(c=>(
               <tr key={c.id} style={{ opacity: c.archive ? 0.55 : 1, cursor: 'pointer', ...(selected.has(c.id) ? { background: 'var(--blBg)' } : {}) }}
                 onClick={selectionMode ? () => toggleSelect(c.id) : () => nav(`/clients/${c.id}`)}>

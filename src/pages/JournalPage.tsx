@@ -5,6 +5,8 @@ import { useToastStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
 import type { JournalEntry } from '@/types'
 
+const ns = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
 const ACTION_CLS: Record<string, string> = {
   creation: 'pill-blue', modification: 'pill-amber', suppression: 'pill-red', paiement: 'pill-green'
 }
@@ -111,7 +113,7 @@ export default function JournalPage() {
     if (periodStart && new Date(j.created_at) < periodStart) return false
     if (filterAction !== 'tous' && j.action !== filterAction) return false
     if (filterTable !== 'tous' && j.table_name !== filterTable) return false
-    if (search && !JSON.stringify(j).toLowerCase().includes(search.toLowerCase())) return false
+    if (search && !ns(JSON.stringify(j)).includes(ns(search))) return false
     return true
   })
 
@@ -351,14 +353,14 @@ export default function JournalPage() {
           <p className="page-subtitle">{journal.length} entrées · Qui a fait quoi, quand</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary hide-mobile" onClick={handleExport} disabled={filtered.length === 0}>
-            📥 Export journal ({filtered.length})
+          <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={filtered.length === 0}>
+            📥 Export ({filtered.length})
           </button>
-          <button className="btn btn-secondary hide-mobile" onClick={handleExportRapport} disabled={isExporting}>
-            {isExporting ? '⏳ Export…' : '📊 Rapport mensuel'}
+          <button className="btn btn-secondary btn-sm" onClick={handleExportRapport} disabled={isExporting}>
+            {isExporting ? '⏳ Export…' : '📊 Rapport'}
           </button>
-          <button className="btn btn-secondary" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
-            onClick={handleDeleteAll} disabled={filtered.length === 0 || delAll.isPending}>
+          <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
+            onClick={handleDeleteAll} disabled={journal.length === 0 || delAll.isPending}>
             🗑 Vider
           </button>
         </div>
@@ -401,6 +403,9 @@ export default function JournalPage() {
         <div className="search-bar" style={{ flex: 1, minWidth: 150, maxWidth: 260 }}>
           <span style={{ color: 'var(--t3)', fontSize: 15 }}>🔍</span>
           <input placeholder="Rechercher…" value={search} onChange={e => setSearch(e.target.value)} />
+          {search && (
+            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',fontSize:16,lineHeight:1,flexShrink:0 }}>✕</button>
+          )}
         </div>
         <select className="btn btn-secondary btn-sm" style={{ padding: '5px 10px', width: 'auto' }} value={filterAction} onChange={e => setFilterAction(e.target.value)}>
           <option value="tous">Toutes actions</option>
@@ -415,7 +420,16 @@ export default function JournalPage() {
       {/* MOBILE : cards */}
       <div className="show-mobile">
         {isLoading && <div style={{ textAlign: 'center', padding: 32, color: 'var(--t3)' }}>Chargement…</div>}
-        {!isLoading && filtered.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: 'var(--t3)' }}>Aucune entrée</div>}
+        {!isLoading && filtered.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--t3)' }}>
+            {search.trim() ? (
+              <>
+                <p style={{ marginBottom: 12 }}>Aucun résultat pour « {search} »</p>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button>
+              </>
+            ) : 'Aucune entrée'}
+          </div>
+        )}
         {filtered.map(j => {
           const resume = summarize(j.new_value as any) || summarize(j.old_value as any)
           return (
@@ -454,7 +468,11 @@ export default function JournalPage() {
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Chargement…</td></tr>}
-            {filtered.length === 0 && !isLoading && <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Aucune entrée</td></tr>}
+            {filtered.length === 0 && !isLoading && (
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>
+                {search.trim() ? <><span>Aucun résultat — </span><button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button></> : 'Aucune entrée'}
+              </td></tr>
+            )}
             {filtered.map(j => (
               <tr key={j.id}>
                 <td style={{ fontSize: 11, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{fmtDate(j.created_at)}</td>

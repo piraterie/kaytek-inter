@@ -21,6 +21,8 @@ const ACT_PILLS: Record<string, string> = {
   electricite: 'pill-amber', vitrerie: 'pill-purple',
 }
 
+const ns = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
 const emptyForm = { nom: '', categorie: 'serrurerie' as Categorie, prix_conseille: 0, tva_pct: 10, actif: true, ordre: 99 }
 
 export default function CataloguePage() {
@@ -30,13 +32,18 @@ export default function CataloguePage() {
   const upd = useUpdatePrestation()
 
   const [filterAct, setFilterAct] = useState<Categorie | 'tous'>('tous')
+  const [search, setSearch] = useState('')
   const [modal, setModal] = useState(false)
   const [editing, setEditing] = useState<Prestation | null>(null)
   const [form, setForm] = useState({ ...emptyForm })
 
-  const filtered = filterAct === 'tous'
-    ? prestations
-    : prestations.filter(p => p.categorie === filterAct)
+  const filtered = prestations
+    .filter(p => filterAct === 'tous' || p.categorie === filterAct)
+    .filter(p => {
+      if (!search.trim()) return true
+      const q = ns(search)
+      return ns(p.nom).includes(q) || ns(ACT_LABELS[p.categorie] || p.categorie).includes(q)
+    })
 
   function openCreate() {
     setEditing(null)
@@ -88,20 +95,42 @@ export default function CataloguePage() {
         <button className="btn btn-primary" onClick={openCreate}>+ Ajouter</button>
       </div>
 
-      {/* Filtres activité */}
-      <div className="filter-bar" style={{ marginBottom: 16 }}>
-        {ACTIVITES.map(a => (
-          <button key={a.value} onClick={() => setFilterAct(a.value)}
-            className={`btn btn-sm ${filterAct === a.value ? 'btn-primary' : 'btn-secondary'}`}>
-            {a.label}
-          </button>
-        ))}
+      {/* Recherche + Filtres activité */}
+      <div style={{ marginBottom: 16 }}>
+        <div className="search-bar" style={{ marginBottom: 10 }}>
+          <span style={{ color: 'var(--t3)', fontSize: 15, flexShrink: 0 }}>🔍</span>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher une prestation…"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',fontSize:16,lineHeight:1,flexShrink:0 }}>✕</button>
+          )}
+        </div>
+        <div className="filter-bar">
+          {ACTIVITES.map(a => (
+            <button key={a.value} onClick={() => setFilterAct(a.value)}
+              className={`btn btn-sm ${filterAct === a.value ? 'btn-primary' : 'btn-secondary'}`}>
+              {a.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* MOBILE : cards */}
       <div className="show-mobile">
         {isLoading && <div style={{ textAlign: 'center', padding: 32, color: 'var(--t3)' }}>Chargement…</div>}
-        {!isLoading && filtered.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: 'var(--t3)' }}>Aucune prestation</div>}
+        {!isLoading && filtered.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 40, color: 'var(--t3)' }}>
+            {search.trim() ? (
+              <>
+                <p style={{ marginBottom: 12 }}>Aucun résultat pour « {search} »</p>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button>
+              </>
+            ) : 'Aucune prestation'}
+          </div>
+        )}
         {filtered.map(p => (
           <div key={p.id} className="mobile-card" style={{ opacity: p.actif ? 1 : 0.55 }}>
             <div className="mobile-card-row">
@@ -142,7 +171,11 @@ export default function CataloguePage() {
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Chargement…</td></tr>}
-            {!isLoading && filtered.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Aucune prestation</td></tr>}
+            {!isLoading && filtered.length === 0 && (
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>
+                {search.trim() ? <><span>Aucun résultat — </span><button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button></> : 'Aucune prestation'}
+              </td></tr>
+            )}
             {filtered.map(p => (
               <tr key={p.id} style={{ opacity: p.actif ? 1 : 0.5 }}>
                 <td className="td-bold">{p.nom}</td>
