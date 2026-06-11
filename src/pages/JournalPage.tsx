@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react'
 import { useJournal, useDeleteJournalEntry, useDeleteAllJournal, useUpdateJournalEntry, useInterventions, useDevis, useFactures, useCommissionsData } from '@/lib/hooks'
 import { useToastStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
+import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 import type { JournalEntry } from '@/types'
 
 const ns = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -103,6 +104,7 @@ export default function JournalPage() {
   const [editDesc, setEditDesc] = useState('')
   const [isExporting, setIsExporting] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; action: () => void } | null>(null)
+  const [showMobileActions, setShowMobileActions] = useState(false)
 
   const periodStart = useMemo(() => getPeriodStart(filterPeriod), [filterPeriod])
 
@@ -352,7 +354,8 @@ export default function JournalPage() {
           <h1 className="page-title">Journal d'activité</h1>
           <p className="page-subtitle">{journal.length} entrées · Qui a fait quoi, quand</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {/* Desktop : inchangé */}
+        <div className="hide-mobile" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={filtered.length === 0}>
             📥 Export ({filtered.length})
           </button>
@@ -363,6 +366,18 @@ export default function JournalPage() {
             onClick={handleDeleteAll} disabled={journal.length === 0 || delAll.isPending}>
             🗑 Vider
           </button>
+        </div>
+        {/* Mobile : ligne compacte sous le titre */}
+        <div className="show-mobile" style={{ width: '100%' }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="btn btn-secondary"
+              style={{ flex: 1, justifyContent: 'center' }}
+              onClick={() => setShowMobileActions(true)}
+            >
+              ··· Actions
+            </button>
+          </div>
         </div>
       </div>
 
@@ -388,7 +403,7 @@ export default function JournalPage() {
 
       {/* Filtres */}
       <div className="filter-bar" style={{ flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {(['today', 'week', 'month', 'all'] as const).map(p => (
             <button
               key={p}
@@ -496,6 +511,39 @@ export default function JournalPage() {
           </tbody>
         </table>
       </div>
+
+      {/* ── Actions globales mobile ─────────────────────── */}
+      {showMobileActions && (
+        <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
+          <SheetRow
+            icon="📥"
+            label={`Exporter CSV (${filtered.length})`}
+            sublabel={filtered.length === 0 ? 'Aucune entrée' : `${filtered.length} entrée${filtered.length > 1 ? 's' : ''}`}
+            onClick={() => { setShowMobileActions(false); handleExport() }}
+            disabled={filtered.length === 0}
+          />
+          <SheetRow
+            icon="📊"
+            label="Exporter rapport Excel"
+            sublabel="Synthèse mensuelle multi-onglets"
+            onClick={() => { setShowMobileActions(false); handleExportRapport() }}
+            disabled={isExporting}
+          />
+          {journal.length > 0 && (
+            <>
+              <SheetSection label="Zone dangereuse" />
+              <SheetRow
+                icon="🗑️"
+                label="Vider le journal"
+                sublabel={`Supprimer les ${journal.length} entrée${journal.length > 1 ? 's' : ''}`}
+                danger
+                onClick={() => { setShowMobileActions(false); handleDeleteAll() }}
+                disabled={delAll.isPending}
+              />
+            </>
+          )}
+        </DocSheet>
+      )}
 
       {confirmDialog && (
         <ConfirmModal

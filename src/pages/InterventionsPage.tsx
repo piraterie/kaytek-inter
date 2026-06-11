@@ -42,6 +42,7 @@ export default function InterventionsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectionMode, setSelectionMode] = useState(false)
   const [activeSheet, setActiveSheet] = useState<Intervention | null>(null)
+  const [showMobileActions, setShowMobileActions] = useState(false)
 
   const { data: rawItems = [], isLoading, isError, error } = useInterventions({ statut, showArchived })
 
@@ -244,7 +245,8 @@ export default function InterventionsPage() {
           <h1 className="page-title">Interventions{showArchived ? ' — Archives' : ''}</h1>
           <p className="page-subtitle">{items.length} résultat{items.length>1?'s':''}</p>
         </div>
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+        {/* Desktop : inchangé */}
+        <div className="hide-mobile" style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={items.length===0}>📥 CSV</button>
           {isAdmin && (
             <button
@@ -264,6 +266,23 @@ export default function InterventionsPage() {
             </button>
           )}
           {isAdmin && !showArchived && <button className="btn btn-primary" onClick={() => setCreateModal(true)}>+ Nouvelle</button>}
+        </div>
+        {/* Mobile : ligne compacte sous le titre */}
+        <div className="show-mobile" style={{ width: '100%' }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {isAdmin && !showArchived && (
+              <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setCreateModal(true)}>
+                + Nouvelle
+              </button>
+            )}
+            <button
+              className="btn btn-secondary"
+              style={{ paddingLeft: 16, paddingRight: 16, justifyContent: 'center' }}
+              onClick={() => setShowMobileActions(true)}
+            >
+              ···
+            </button>
+          </div>
         </div>
       </div>
 
@@ -468,6 +487,47 @@ export default function InterventionsPage() {
                 <SheetRow icon="🗑️" label="Supprimer" danger
                   onClick={() => { setActiveSheet(null); handleDelete(activeSheet) }} />
               )}
+            </>
+          )}
+        </DocSheet>
+      )}
+
+      {/* ── Actions globales mobile ─────────────────────── */}
+      {showMobileActions && (
+        <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
+          <SheetRow
+            icon="📥"
+            label="Exporter CSV"
+            sublabel={items.length === 0 ? 'Aucune intervention' : `${items.length} intervention${items.length > 1 ? 's' : ''}`}
+            onClick={() => { setShowMobileActions(false); handleExport() }}
+            disabled={items.length === 0}
+          />
+          {isAdmin && (
+            <SheetRow
+              icon="📦"
+              label={showArchived ? 'Masquer les archives' : 'Voir les archives'}
+              onClick={() => { setShowMobileActions(false); setShowArchived(v => !v); setStatut('tous'); exitSelection() }}
+            />
+          )}
+          {isAdmin && !selectionMode && items.length > 0 && (
+            <SheetRow
+              icon="☑"
+              label="Mode sélection"
+              sublabel="Sélectionner des interventions"
+              onClick={() => { setShowMobileActions(false); setSelectionMode(true) }}
+            />
+          )}
+          {isAdmin && showArchived && items.length > 0 && (
+            <>
+              <SheetSection label="Zone dangereuse" />
+              <SheetRow
+                icon="🗑️"
+                label="Vider les archives"
+                sublabel={`Supprimer les ${items.length} archive${items.length > 1 ? 's' : ''}`}
+                danger
+                onClick={() => { setShowMobileActions(false); handleViderArchives() }}
+                disabled={delArchived.isPending}
+              />
             </>
           )}
         </DocSheet>

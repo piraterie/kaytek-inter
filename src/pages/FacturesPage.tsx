@@ -53,6 +53,7 @@ export default function FacturesPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectionMode, setSelectionMode] = useState(false)
   const [activeSheet, setActiveSheet] = useState<Facture | null>(null)
+  const [showMobileActions, setShowMobileActions] = useState(false)
 
   const filtered = factures
     .filter(f => filterStatut === 'tous' || f.statut_paiement === filterStatut)
@@ -310,7 +311,8 @@ export default function FacturesPage() {
               {pendingCount > 0 && <span style={{ color: 'var(--amTx)', fontWeight: 600 }}> · {pendingCount} à valider</span>}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
+          {/* Desktop : inchangé */}
+          <div className="hide-mobile" style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}>📥 CSV</button>
             {isAdmin && !selectionMode && filtered.length > 0 && (
               <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
@@ -320,6 +322,18 @@ export default function FacturesPage() {
                 🗑 Tout supprimer
               </button>
             )}
+          </div>
+          {/* Mobile : ligne compacte sous le titre */}
+          <div className="show-mobile" style={{ width: '100%' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn btn-secondary"
+                style={{ flex: 1, justifyContent: 'center' }}
+                onClick={() => setShowMobileActions(true)}
+              >
+                ··· Actions
+              </button>
+            </div>
           </div>
         </div>
 
@@ -639,6 +653,40 @@ export default function FacturesPage() {
                 label="Supprimer cette facture"
                 danger
                 onClick={() => { setActiveSheet(null); handleDel(activeSheet.id) }}
+              />
+            </>
+          )}
+        </DocSheet>
+      )}
+
+      {/* ── Actions globales mobile ─────────────────────── */}
+      {showMobileActions && (
+        <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
+          <SheetRow
+            icon="📥"
+            label="Exporter CSV"
+            sublabel={filtered.length === 0 ? 'Aucune facture' : `${filtered.length} facture${filtered.length > 1 ? 's' : ''}`}
+            onClick={() => { setShowMobileActions(false); handleExportCSV() }}
+            disabled={filtered.length === 0}
+          />
+          {isAdmin && !selectionMode && filtered.length > 0 && (
+            <SheetRow
+              icon="☑"
+              label="Mode sélection"
+              sublabel="Sélectionner des factures"
+              onClick={() => { setShowMobileActions(false); setSelectionMode(true) }}
+            />
+          )}
+          {isAdmin && factures.length > 0 && (
+            <>
+              <SheetSection label="Zone dangereuse" />
+              <SheetRow
+                icon="🗑️"
+                label="Tout supprimer"
+                sublabel={`Supprimer les ${factures.length} facture${factures.length > 1 ? 's' : ''}`}
+                danger
+                onClick={() => { setShowMobileActions(false); handleVider() }}
+                disabled={delAll.isPending}
               />
             </>
           )}
