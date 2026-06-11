@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { generateDevisPDF } from '@/lib/pdf/generator'
+import { pdfCache } from '@/lib/pdf/cache'
+import { supabase } from '@/lib/supabase/client'
 import { envoyerEmail } from '@/lib/supabase/auth'
 import { getTheme } from '@/lib/themes'
-import { useAuthStore } from '@/lib/store'
+import { useAuthStore, useToastStore } from '@/lib/store'
 import { REQUIRED_PARAMS } from '@/lib/hooks'
 import type { Devis, ParametresEntreprise } from '@/types'
 
@@ -24,6 +26,7 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
   const [error, setError] = useState('')
   const [paramsError, setParamsError] = useState(false)
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
+  const { add } = useToastStore()
 
   // Pré-charge le logo en data-URL dès l'ouverture du modal pour éviter
   // le fetch réseau caché dans @react-pdf/renderer pendant la génération PDF
@@ -72,9 +75,36 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
     ;(async () => {
       const t0 = Date.now()
       try {
-        const paramsForPDF = _logo ? { ..._params, logo_url: _logo } : _params
-        const blob = await generateDevisPDF(_devis, paramsForPDF, _devis.modele_id ?? 0)
-        console.log(`[devis-email] PDF ${Date.now() - t0}ms (${(blob.size / 1024).toFixed(0)}KB)`)
+        // Niveau 1 : cache mémoire (instant)
+        let blob: Blob | undefined = pdfCache.get(_devis.id)
+        if (blob) {
+          console.log(`[devis-email] PDF depuis cache mémoire (0ms)`)
+        }
+
+        // Niveau 2 : storage Supabase (~200ms vs 2-3s)
+        if (!blob && _devis.pdf_url) {
+          try {
+            const tS = Date.now()
+            const { data, error } = await supabase.storage.from('pdf-documents').download(_devis.pdf_url)
+            if (!error && data) {
+              blob = data
+              pdfCache.set(_devis.id, data)
+              console.log(`[devis-email] PDF depuis storage ${Date.now() - tS}ms`)
+            }
+          } catch { /* fallback */ }
+        }
+
+        // Niveau 3 : génération fraîche (fallback)
+        if (!blob) {
+          const tG = Date.now()
+          const paramsForPDF = _logo ? { ..._params, logo_url: _logo } : _params
+          blob = await generateDevisPDF(_devis, paramsForPDF, _devis.modele_id ?? 0)
+          pdfCache.set(_devis.id, blob)
+          console.log(`[devis-email] PDF généré ${Date.now() - tG}ms`)
+        }
+
+        if (!blob) throw new Error('Impossible de générer le PDF')
+        console.log(`[devis-email] PDF prêt (${(blob.size / 1024).toFixed(0)}KB) — total ${Date.now() - t0}ms`)
 
         const t1 = Date.now()
         const buf = await blob.arrayBuffer()

@@ -1,28 +1,37 @@
 // src/components/layout/AppLayout.tsx
 import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { useAuthStore, useUIStore, useToastStore } from '@/lib/store'
+import { useQuery } from '@tanstack/react-query'
+import {
+  LayoutDashboard, MessagesSquare, Wrench, CalendarDays, FileText, Receipt,
+  Users, Package, DollarSign, Shield, Settings, ClipboardList,
+  ChevronLeft, ChevronRight, LogOut, Sun, Moon
+} from 'lucide-react'
+import { useAuthStore, useUIStore, useToastStore, useParamsStore } from '@/lib/store'
+import { supabase } from '@/lib/supabase/client'
 import { signOut } from '@/lib/supabase/auth'
 import { useUnreadCount, useUpdateProfile, useIsMobile, useRequestNotificationPermission, usePushSubscription, useMyNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useDeleteNotification, useDeleteAllReadNotifications, useParamsCompletion } from '@/lib/hooks'
 import { getMyDevices, disconnectDevice, disconnectAllOtherDevices, isCurrentDevice, type DeviceRecord } from '@/lib/devices'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
+import OfflineBanner from '@/components/OfflineBanner'
 
-const NAV = [
-  { path: '/dashboard',    label: 'Dashboard',     icon: '🏠', section: 'Accueil' },
-  { path: '/messagerie',   label: 'Messagerie',    icon: '💬', section: 'Accueil', badge: true },
-  { path: '/interventions',label: 'Interventions', icon: '🔧', section: 'Terrain' },
-  { path: '/devis',        label: 'Devis',         icon: '📄', section: 'Terrain' },
-  { path: '/factures',     label: 'Factures',      icon: '🧾', section: 'Terrain' },
-  { path: '/clients',      label: 'Clients',       icon: '👥', section: 'Terrain', adminOnly: true },
-  { path: '/catalogue',    label: 'Catalogue',     icon: '📋', section: 'Terrain', adminOnly: true },
-  { path: '/commissions',  label: 'Commissions',   icon: '💰', section: 'Gestion' },
-  { path: '/utilisateurs', label: 'Utilisateurs',  icon: '🛡', section: 'Gestion', adminOnly: true },
-  { path: '/parametres',   label: 'Paramètres',    icon: '⚙', section: 'Gestion', adminOnly: true },
-  { path: '/journal',      label: 'Journal',       icon: '📋', section: 'Gestion', adminOnly: true },
+type NavIcon = React.ComponentType<{ size?: number; strokeWidth?: number; style?: React.CSSProperties }>
+
+const NAV: { path: string; label: string; icon: NavIcon; section: string; adminOnly?: boolean; badge?: 'messages' | 'pending' }[] = [
+  { path: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard, section: 'Pilotage' },
+  { path: '/messagerie',    label: 'Messagerie',    icon: MessagesSquare,  section: 'Pilotage', badge: 'messages' },
+  { path: '/interventions', label: 'Interventions', icon: Wrench,          section: 'Terrain',  badge: 'pending' },
+  { path: '/planning',      label: 'Planning',      icon: CalendarDays,    section: 'Terrain' },
+  { path: '/devis',         label: 'Devis',         icon: FileText,        section: 'Terrain' },
+  { path: '/factures',      label: 'Factures',      icon: Receipt,         section: 'Terrain' },
+  { path: '/clients',       label: 'Clients',       icon: Users,           section: 'Gestion', adminOnly: true },
+  { path: '/catalogue',     label: 'Catalogue',     icon: Package,         section: 'Gestion', adminOnly: true },
+  { path: '/commissions',   label: 'Commissions',   icon: DollarSign,      section: 'Gestion' },
+  { path: '/utilisateurs',  label: 'Utilisateurs',  icon: Shield,          section: 'Administration', adminOnly: true },
+  { path: '/parametres',    label: 'Paramètres',    icon: Settings,        section: 'Administration', adminOnly: true },
+  { path: '/journal',       label: 'Journal',       icon: ClipboardList,   section: 'Administration', adminOnly: true },
 ]
-const SECTIONS = ['Accueil', 'Terrain', 'Gestion']
-
-const NI_STYLE: React.CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '10px 10px', borderRadius: 10, cursor: 'pointer', border: 'none', background: 'transparent', color: 'rgba(255,255,255,.52)', marginBottom: 2, transition: 'all .15s', whiteSpace: 'nowrap', overflow: 'hidden', fontFamily: 'inherit', minHeight: 44 }
+const SECTIONS = ['Pilotage', 'Terrain', 'Gestion', 'Administration']
 
 export default function AppLayout() {
   const { user, setUser } = useAuthStore()
@@ -31,6 +40,7 @@ export default function AppLayout() {
   const { data: unread = 0 } = useUnreadCount()
   const updProfile = useUpdateProfile()
   const { isComplete: paramsComplete, missingFields: paramsMissing, isLoaded: paramsLoaded } = useParamsCompletion()
+  const orgParams = useParamsStore(s => s.params)
   useRequestNotificationPermission()
   usePushSubscription()
   const nav = useNavigate()
@@ -38,6 +48,33 @@ export default function AppLayout() {
   const isAdmin = user?.role === 'admin'
   const items = NAV.filter(i => !i.adminOnly || isAdmin)
   const isMobile = useIsMobile()
+
+  const [compact, setCompact] = useState(() => {
+    try { return localStorage.getItem('kaytek_nav_compact') === '1' } catch { return false }
+  })
+  const compactDesktop = compact && !isMobile
+
+  function toggleCompact() {
+    setCompact(c => {
+      const next = !c
+      try { localStorage.setItem('kaytek_nav_compact', next ? '1' : '0') } catch {}
+      return next
+    })
+  }
+
+  const { data: pendingInterventions = 0 } = useQuery({
+    queryKey: ['interventions-pending-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('interventions')
+        .select('*', { count: 'exact', head: true })
+        .eq('statut', 'en_attente')
+      return count || 0
+    },
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const sidebarW = isMobile ? (sidebarOpen ? 280 : 0) : (compact ? 72 : 280)
 
   const { data: notifications = [] } = useMyNotifications()
   const markRead = useMarkNotificationRead()
@@ -135,41 +172,82 @@ export default function AppLayout() {
       )}
       {/* SIDEBAR */}
       <aside style={{
-        width: sidebarOpen ? 218 : (isMobile ? 0 : 50),
-        minWidth: sidebarOpen ? 218 : (isMobile ? 0 : 50),
-        background: 'var(--nav)', display: 'flex', flexDirection: 'column',
-        transition: 'width .22s ease', overflow: 'hidden',
+        width: sidebarW,
+        minWidth: sidebarW,
+        background: 'var(--nav)',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'width .22s ease, min-width .22s ease',
+        overflow: 'hidden',
+        borderRight: '1px solid var(--navBd)',
+        flexShrink: 0,
         ...(isMobile && sidebarOpen ? { position: 'fixed', top: 0, left: 0, height: '100dvh', zIndex: 100 } : {})
       }}>
-        {/* Logo */}
-        <div style={{ padding: '18px 14px', display: 'flex', alignItems: 'center', gap: 11, borderBottom: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
-          <div style={{ width: 34, height: 34, background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, boxShadow: '0 2px 8px rgba(37,99,235,.4)' }}>🔐</div>
-          {sidebarOpen && <div style={{ overflow: 'hidden' }}>
-            <div style={{ color: '#fff', fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-.02em' }}>Kaytek Inter</div>
-            <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 10, marginTop: 1, letterSpacing: '.02em' }}>Serrurerie · Plomberie · Vitrerie</div>
-          </div>}
+
+        {/* ── LOGO / BRAND ── */}
+        <div style={{
+          padding: compactDesktop ? '16px 0' : '15px 16px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          borderBottom: '1px solid var(--navBd)', flexShrink: 0,
+          justifyContent: compactDesktop ? 'center' : 'flex-start'
+        }}>
+          <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(37,99,235,.35)', fontSize: 18 }}>
+            🔐
+          </div>
+          {!compactDesktop && (
+            <>
+              <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+                <div style={{ color: 'var(--navTA)', fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-.02em' }}>Kaytek Inter</div>
+                <div style={{ color: 'var(--navSec)', fontSize: 10, marginTop: 1 }}>Serrurerie · Vitrerie</div>
+              </div>
+              {!isMobile && (
+                <button onClick={toggleCompact}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--navSec)', padding: 5, display: 'flex', alignItems: 'center', borderRadius: 6, flexShrink: 0, transition: 'color .2s, background .2s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--navTA)'; (e.currentTarget as HTMLButtonElement).style.background = 'var(--navH)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--navSec)'; (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+                  title="Réduire le menu">
+                  <ChevronLeft size={15} />
+                </button>
+              )}
+            </>
+          )}
         </div>
-        {/* Nav */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 5px', scrollbarWidth: 'none' }}>
+
+        {/* ── NAV ── */}
+        <nav style={{ flex: 1, overflowY: 'auto', padding: compactDesktop ? '8px 6px' : '8px 8px', scrollbarWidth: 'none' }}>
           {SECTIONS.map(section => {
             const sItems = items.filter(i => i.section === section)
             if (!sItems.length) return null
             return (
               <div key={section}>
-                {sidebarOpen && <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase', color: 'rgba(255,255,255,.28)', padding: '10px 8px 3px' }}>{section}</div>}
+                {!compactDesktop && <div className="nav-section-label">{section}</div>}
+                {compactDesktop && <div style={{ height: 10 }} />}
                 {sItems.map(item => {
                   const active = loc.pathname.startsWith(item.path)
-                  const badgeCount = item.badge ? unread : 0
+                  const Icon = item.icon
+                  const badgeCount = item.badge === 'messages' ? unread : item.badge === 'pending' ? pendingInterventions : 0
                   return (
-                    <button key={item.path} onClick={() => navTo(item.path)}
-                      style={{ ...NI_STYLE, background: active ? 'rgba(255,255,255,.13)' : 'transparent', color: active ? '#fff' : 'rgba(255,255,255,.52)' }}
-                      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,.07)'; (e.currentTarget as HTMLButtonElement).style.color = '#fff' }}
-                      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.52)' }}>
-                      <span style={{ fontSize: 17, width: 20, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
-                      {sidebarOpen && <>
-                        <span style={{ fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
-                        {badgeCount > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: '#2563eb', color: '#fff', padding: '1px 6px', borderRadius: 20, flexShrink: 0 }}>{badgeCount}</span>}
-                      </>}
+                    <button
+                      key={item.path}
+                      onClick={() => navTo(item.path)}
+                      className={`nav-item${active ? ' nav-active' : ''}`}
+                      title={compactDesktop ? item.label : undefined}
+                      style={compactDesktop ? { justifyContent: 'center', padding: '10px 0' } : undefined}
+                    >
+                      <Icon size={17} strokeWidth={active ? 2.2 : 1.6} style={{ flexShrink: 0 }} />
+                      {!compactDesktop && (
+                        <>
+                          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>
+                          {badgeCount > 0 && (
+                            <span style={{ fontSize: 10, fontWeight: 700, background: active ? 'var(--bl)' : '#dc2626', color: '#fff', padding: '1px 7px', borderRadius: 20, flexShrink: 0, lineHeight: 1.6 }}>
+                              {badgeCount > 99 ? '99+' : badgeCount}
+                            </span>
+                          )}
+                        </>
+                      )}
+                      {compactDesktop && badgeCount > 0 && (
+                        <span style={{ position: 'absolute', top: 7, right: 7, width: 7, height: 7, background: '#dc2626', borderRadius: '50%', border: '1.5px solid var(--nav)' }} />
+                      )}
                     </button>
                   )
                 })}
@@ -177,23 +255,73 @@ export default function AppLayout() {
             )
           })}
         </nav>
-        {/* User */}
-        <div style={{ padding: '10px 5px', borderTop: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 8px', borderRadius: 7, overflow: 'hidden' }}>
-            <button onClick={openProfil} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0 }} title="Modifier mon profil">
-              <div className="avatar" style={{ width: 28, height: 28, fontSize: 9 }}>
-                {(user?.prenom?.[0] || '') + (user?.nom?.[0] || '')}
+
+        {/* ── USER AREA ── */}
+        <div style={{ padding: compactDesktop ? '10px 6px' : '10px 10px', borderTop: '1px solid var(--navBd)', flexShrink: 0 }}>
+          {!compactDesktop ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {/* Profile row */}
+              <button onClick={openProfil} style={{ background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', padding: 0, textAlign: 'left', borderRadius: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 8px', borderRadius: 8, transition: 'background .2s' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--navH)'}
+                  onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}>
+                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0, letterSpacing: '.5px', boxShadow: '0 2px 6px rgba(37,99,235,.3)' }}>
+                    {(user?.prenom?.[0] || '').toUpperCase()}{(user?.nom?.[0] || '').toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: 'var(--navTA)', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.prenom} {user?.nom}</div>
+                    <div style={{ color: 'var(--navSec)', fontSize: 11, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user?.role === 'admin' ? 'Administrateur' : 'Intervenant'} · {orgParams?.raison_sociale || 'Kaytek Inter'}
+                    </div>
+                  </div>
+                </div>
+              </button>
+              {/* Action buttons */}
+              <div style={{ display: 'flex', gap: 5 }}>
+                <button onClick={toggleTheme}
+                  style={{ flex: 1, background: 'transparent', border: '1px solid var(--navBd)', borderRadius: 7, padding: '6px 0', cursor: 'pointer', color: 'var(--navT)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontSize: 11.5, fontWeight: 500, fontFamily: 'inherit', transition: 'all .2s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--navH)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--navTA)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--navT)' }}>
+                  {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+                  {theme === 'dark' ? 'Clair' : 'Sombre'}
+                </button>
+                <button onClick={handleSignOut}
+                  style={{ flex: 1, background: 'transparent', border: '1px solid var(--navBd)', borderRadius: 7, padding: '6px 0', cursor: 'pointer', color: 'var(--rdTx)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontSize: 11.5, fontWeight: 500, fontFamily: 'inherit', transition: 'all .2s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--rdBg)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--rdBd)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--navBd)' }}>
+                  <LogOut size={13} />
+                  Quitter
+                </button>
               </div>
-            </button>
-            {sidebarOpen && <>
-              <div style={{ flex: 1, overflow: 'hidden' }}>
-                <div style={{ color: '#fff', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.prenom} {user?.nom}</div>
-                <div style={{ color: 'rgba(255,255,255,.45)', fontSize: 11 }}>{user?.role}</div>
-              </div>
-              <button onClick={openProfil} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,.4)', cursor: 'pointer', fontSize: 14, flexShrink: 0, padding: 4 }} title="Modifier mon profil">✏</button>
-              <button onClick={handleSignOut} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,.4)', cursor: 'pointer', fontSize: 17, flexShrink: 0, padding: 4 }} title="Déconnexion">⏻</button>
-            </>}
-          </div>
+            </div>
+          ) : (
+            /* Compact: stacked icon buttons */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+              <button onClick={openProfil}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 5, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s' }}
+                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = 'var(--navH)'}
+                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = 'transparent'}
+                title={`${user?.prenom} ${user?.nom} — Modifier profil`}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#2563eb,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
+                  {(user?.prenom?.[0] || '').toUpperCase()}{(user?.nom?.[0] || '').toUpperCase()}
+                </div>
+              </button>
+              <button onClick={handleSignOut}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 7, borderRadius: 8, color: 'var(--navT)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--rdBg)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--rdTx)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--navT)' }}
+                title="Déconnexion">
+                <LogOut size={15} />
+              </button>
+              <button onClick={toggleCompact}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 7, borderRadius: 8, color: 'var(--navSec)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .2s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--navH)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--navTA)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--navSec)' }}
+                title="Élargir le menu">
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* MODAL PROFIL */}
@@ -277,7 +405,7 @@ export default function AppLayout() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', background: 'var(--bg)' }}>
         {/* Topbar */}
         <header className="app-topbar" style={{ height: 56, background: 'var(--s0)', borderBottom: '1px solid var(--b0)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 8, flexShrink: 0, overflow: 'hidden' }}>
-          <button className="btn-icon" onClick={toggleSidebar} aria-label="Menu" style={{ fontSize: 18, flexShrink: 0 }}>☰</button>
+          <button className="btn-icon" onClick={isMobile ? toggleSidebar : toggleCompact} aria-label="Menu" style={{ fontSize: 18, flexShrink: 0 }}>☰</button>
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--t0)', letterSpacing: '-.02em', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentPage}</span>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
             <button onClick={() => nav('/messagerie')} className="btn-icon" style={{ position: 'relative', fontSize: 17 }}>
@@ -390,6 +518,8 @@ export default function AppLayout() {
             <button onClick={toggleTheme} className="btn-icon" style={{ fontSize: 17 }}>{theme === 'dark' ? '☀' : '🌙'}</button>
           </div>
         </header>
+        {/* Bannière hors ligne / sync en attente */}
+        <OfflineBanner />
         {/* Bannière paramètres incomplets — admin seulement */}
         {isAdmin && paramsLoaded && !paramsComplete && (
           <div style={{ background: 'var(--amBg)', borderBottom: '1px solid var(--amBd)', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>

@@ -22,6 +22,7 @@ import JournalPage from '@/pages/JournalPage'
 import ResetPasswordPage from '@/pages/ResetPasswordPage'
 import DevisApercuPage from '@/pages/DevisApercuPage'
 import CataloguePage from '@/pages/CataloguePage'
+import PlanningPage from '@/pages/PlanningPage'
 
 function Guard({ children, adminOnly = false, requireCanCreateDocs = false }: { children: React.ReactNode; adminOnly?: boolean; requireCanCreateDocs?: boolean }) {
   const { user, loading, error } = useAuthStore()
@@ -226,6 +227,7 @@ export default function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="interventions" element={<InterventionsPage />} />
+        <Route path="planning" element={<PlanningPage />} />
         <Route path="interventions/:id" element={<InterventionDetailPage />} />
         <Route path="devis" element={<Guard><DevisPage /></Guard>} />
         <Route path="devis/nouveau" element={<Guard requireCanCreateDocs><DevisFormPage /></Guard>} />

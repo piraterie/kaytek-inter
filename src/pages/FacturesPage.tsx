@@ -5,6 +5,8 @@ import { useFactures, useUpdateFacture, useDeleteFacture, useDeleteAllFactures, 
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
 import { generateFacturePDF, downloadBlob } from '@/lib/pdf/generator'
+import { pdfCache } from '@/lib/pdf/cache'
+import { supabase } from '@/lib/supabase/client'
 import { envoyerEmail } from '@/lib/supabase/auth'
 import { getTheme } from '@/lib/themes'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
@@ -96,6 +98,20 @@ export default function FacturesPage() {
     return true
   }
 
+  function openSheet(f: Facture) {
+    setActiveSheet(f)
+    // Pré-génération opportuniste — si l'utilisateur ouvre le sheet, il va probablement envoyer
+    if (!pdfCache.get(f.id) && params) {
+      ;(async () => {
+        try {
+          const blob = await generateFacturePDF(f, f.devis || null, params)
+          pdfCache.set(f.id, blob)
+          console.log('[pdf-cache] facture pré-générée', f.numero)
+        } catch { /* silencieux */ }
+      })()
+    }
+  }
+
   async function dlPDF(f: Facture) {
     if (!checkParams()) return
     try {
@@ -120,8 +136,35 @@ export default function FacturesPage() {
     ;(async () => {
       const t0 = Date.now()
       try {
-        const blob = await generateFacturePDF(f, f.devis || null, params)
-        console.log(`[facture-email] PDF ${Date.now() - t0}ms (${(blob.size / 1024).toFixed(0)}KB)`)
+        // Niveau 1 : cache mémoire (instant)
+        let blob: Blob | undefined = pdfCache.get(f.id)
+        if (blob) {
+          console.log(`[facture-email] PDF depuis cache mémoire (0ms)`)
+        }
+
+        // Niveau 2 : storage Supabase (~200ms vs 2-3s)
+        if (!blob && f.pdf_url) {
+          try {
+            const tS = Date.now()
+            const { data, error } = await supabase.storage.from('pdf-documents').download(f.pdf_url)
+            if (!error && data) {
+              blob = data
+              pdfCache.set(f.id, data)
+              console.log(`[facture-email] PDF depuis storage ${Date.now() - tS}ms`)
+            }
+          } catch { /* fallback */ }
+        }
+
+        // Niveau 3 : génération fraîche (fallback)
+        if (!blob) {
+          const tG = Date.now()
+          blob = await generateFacturePDF(f, f.devis || null, params)
+          pdfCache.set(f.id, blob)
+          console.log(`[facture-email] PDF généré ${Date.now() - tG}ms`)
+        }
+
+        if (!blob) throw new Error('Impossible de générer le PDF')
+        console.log(`[facture-email] PDF prêt (${(blob.size / 1024).toFixed(0)}KB) — total ${Date.now() - t0}ms`)
 
         const t1 = Date.now()
         const buf = await blob.arrayBuffer()
@@ -354,7 +397,7 @@ export default function FacturesPage() {
           return (
             <div
               key={f.id}
-              onClick={() => selectionMode ? toggleSelect(f.id) : setActiveSheet(f)}
+              onClick={() => selectionMode ? toggleSelect(f.id) : openSheet(f)}
               style={{
                 background: selected.has(f.id) ? 'var(--blBg)' : 'var(--s0)',
                 borderRadius: 20,
@@ -451,7 +494,7 @@ export default function FacturesPage() {
                       )}
                       <button
                         className="btn-icon sm"
-                        onClick={() => setActiveSheet(f)}
+                        onClick={() => openSheet(f)}
                         title="Actions"
                         style={{ fontSize: 18, letterSpacing: 1 }}
                       >

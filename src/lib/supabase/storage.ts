@@ -82,10 +82,16 @@ export async function uploadChatMedia(file: File | Blob, type: 'photo' | 'audio'
   return { url: data?.signedUrl || '', path, error: null }
 }
 
-export async function uploadPdf(pdfBlob: Blob, fileName: string) {
-  const path = `${Date.now()}-${fileName}`
-  const { error } = await supabase.storage.from('pdf-documents').upload(path, pdfBlob, { contentType: 'application/pdf' })
-  if (error) return { url: '', path: '', error: error.message }
-  const { data } = await supabase.storage.from('pdf-documents').createSignedUrl(path, 300)
-  return { url: data?.signedUrl || '', path, error: null }
+export async function uploadPdf(
+  pdfBlob: Blob,
+  docId: string,
+  docType: 'devis' | 'factures',
+  orgId: string
+): Promise<{ path: string; error: string | null }> {
+  const path = `${orgId}/${docType}/${docId}.pdf`
+  const { error } = await supabase.storage.from('pdf-documents').upload(
+    path, pdfBlob, { contentType: 'application/pdf', upsert: true }
+  )
+  if (error) return { path: '', error: error.message }
+  return { path, error: null }
 }

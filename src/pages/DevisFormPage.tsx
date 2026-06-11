@@ -6,6 +6,8 @@ import { useCreateDevis, useUpdateDevis, useDevisById, useClients, useProfiles, 
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
 import { generateDevisPDF, downloadBlob } from '@/lib/pdf/generator'
+import { pdfCache } from '@/lib/pdf/cache'
+import { uploadPdf } from '@/lib/supabase/storage'
 import { THEMES } from '@/lib/themes'
 import { CustomSelect } from '@/components/CustomSelect'
 import type { Categorie, LigneDevis } from '@/types'
@@ -205,9 +207,46 @@ export default function DevisFormPage() {
     if (form.intervenant_id) payload.intervenant_id = form.intervenant_id
     if (form.intervention_id) payload.intervention_id = form.intervention_id
     try {
-      if (isEdit) { await update.mutateAsync({ id: id!, ...payload }); add('Devis mis à jour') }
-      else { await create.mutateAsync(payload); add(canBypass ? 'Devis créé' : 'Devis envoyé à l\'admin pour validation') }
+      let savedId: string
+      let savedNumero: string
+
+      if (isEdit) {
+        await update.mutateAsync({ id: id!, ...payload })
+        savedId = id!
+        savedNumero = existing?.numero || ''
+        add('Devis mis à jour')
+      } else {
+        const result: any = await create.mutateAsync(payload)
+        savedId = result?.id || ''
+        savedNumero = result?.numero || 'DEV-APERCU'
+        add(canBypass ? 'Devis créé' : 'Devis envoyé à l\'admin pour validation')
+      }
+
+      // Capturer les valeurs avant nav() — elles seront utilisées dans l'IIFE en arrière-plan
+      const _savedId = savedId
+      const _params = params
+      const _modeleId = form.modele_id
+      const _orgId = user?.organisation_id
+      const _devisForPdf = { ...buildMockDevis(), id: _savedId, numero: savedNumero }
+
       nav(form.intervention_id ? `/interventions/${form.intervention_id}` : '/devis')
+
+      // Pré-générer le PDF en arrière-plan — met à jour le cache mémoire + storage
+      if (_savedId && _params) {
+        ;(async () => {
+          try {
+            const blob = await generateDevisPDF(_devisForPdf as any, _params, _modeleId)
+            pdfCache.set(_savedId, blob)
+            if (_orgId) {
+              const { path, error } = await uploadPdf(blob, _savedId, 'devis', _orgId)
+              if (!error && path) {
+                await supabase.from('devis').update({ pdf_url: path }).eq('id', _savedId)
+              }
+            }
+            console.log('[pdf-cache] devis pré-généré', _savedId)
+          } catch (e) { console.warn('[pdf-cache] échec pré-génération devis:', e) }
+        })()
+      }
     } catch (e: any) { add('Erreur: ' + e.message, 'error') }
   }
 
