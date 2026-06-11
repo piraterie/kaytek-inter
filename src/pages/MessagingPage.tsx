@@ -88,30 +88,33 @@ function AudioMessage({ src, isMe }: { src: string; isMe: boolean }) {
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', minWidth: 148, padding: '2px 0' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minWidth: 170, padding: '4px 0' }}>
       <audio ref={audioRef} src={src} preload="metadata"
         onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
         onEnded={() => { setPlaying(false); setCurrentTime(0) }}
         onTimeUpdate={e => setCurrentTime((e.target as HTMLAudioElement).currentTime)}
         onLoadedMetadata={e => setDuration((e.target as HTMLAudioElement).duration)}
         style={{ display: 'none' }} />
+      {/* Bouton play/pause */}
       <button onClick={e => { e.stopPropagation(); togglePlay() }}
-        style={{ width: 30, height: 30, borderRadius: '50%', background: isMe ? 'rgba(255,255,255,0.2)' : 'var(--blBg)', border: `1px solid ${isMe ? 'rgba(255,255,255,0.28)' : 'var(--blBd)'}`, color: isMe ? '#fff' : 'var(--blTx)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit', WebkitTapHighlightColor: 'transparent' } as React.CSSProperties}>
+        style={{ width: 34, height: 34, borderRadius: '50%', background: isMe ? 'rgba(255,255,255,0.2)' : 'var(--blBg)', border: `1.5px solid ${isMe ? 'rgba(255,255,255,0.3)' : 'var(--blBd)'}`, color: isMe ? '#fff' : 'var(--blTx)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit', WebkitTapHighlightColor: 'transparent' } as React.CSSProperties}>
         {playing
-          ? <svg width="9" height="9" viewBox="0 0 9 9"><rect x=".5" y=".5" width="2.5" height="8" rx=".5" fill="currentColor"/><rect x="6" y=".5" width="2.5" height="8" rx=".5" fill="currentColor"/></svg>
-          : <svg width="9" height="9" viewBox="0 0 9 9"><polygon points="1.5,0.5 8.5,4.5 1.5,8.5" fill="currentColor"/></svg>
+          ? <svg width="10" height="10" viewBox="0 0 10 10"><rect x=".5" y=".5" width="3" height="9" rx=".8" fill="currentColor"/><rect x="6.5" y=".5" width="3" height="9" rx=".8" fill="currentColor"/></svg>
+          : <svg width="10" height="10" viewBox="0 0 10 10"><polygon points="2,0.5 9.5,5 2,9.5" fill="currentColor"/></svg>
         }
       </button>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+      {/* Piste + durée */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
         <div onClick={seek}
-          style={{ height: 3, borderRadius: 2, background: isMe ? 'rgba(255,255,255,0.22)' : 'var(--b1)', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', borderRadius: 2, background: isMe ? 'rgba(255,255,255,0.85)' : 'var(--bl)', width: `${progress * 100}%`, transition: 'width .08s linear' }} />
+          style={{ height: 4, borderRadius: 3, background: isMe ? 'rgba(255,255,255,0.22)' : 'var(--b1)', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', borderRadius: 3, background: isMe ? 'rgba(255,255,255,0.85)' : 'var(--bl)', width: `${progress * 100}%`, transition: 'width .08s linear' }} />
         </div>
-        <span style={{ fontSize: 10, color: isMe ? 'rgba(255,255,255,0.6)' : 'var(--t3)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+        <span style={{ fontSize: 11, color: isMe ? 'rgba(255,255,255,0.65)' : 'var(--t3)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
           {fmtTime(playing ? currentTime : duration)}
         </span>
       </div>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={isMe ? 'rgba(255,255,255,0.4)' : 'var(--t3)'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      {/* Icône micro */}
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isMe ? 'rgba(255,255,255,0.45)' : 'var(--t3)'} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
         <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
       </svg>
@@ -414,8 +417,16 @@ export default function MessagingPage() {
   const audioSupported = typeof MediaRecorder !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
   const isCancelActive = cancelProgress > 0.55
 
+  // Mobile: topbar est position:fixed (56px+safe-area), main-content a padding-top correspondant.
+  // marginTop:0 = le composant commence pile en bas de la topbar.
+  // height:100% = remplit exactement la zone contenu (100dvh - padding-top - padding-bottom).
+  // Desktop: topbar in-flow 56px, padding 18px → height = 100dvh - 56 - 18 = 74px soustraits.
+  const outerStyle: React.CSSProperties = isMobile
+    ? { display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%', marginTop: 0, marginLeft: -16, marginRight: -16 }
+    : { display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 74px)', marginTop: -18, marginLeft: -18, marginRight: -18 }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 52px)', marginTop: -16, marginLeft: -16, marginRight: -16 }}>
+    <div style={outerStyle}>
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
         {/* ── LISTE CONVERSATIONS ── */}
@@ -561,7 +572,7 @@ export default function MessagingPage() {
                               border: isMe ? 'none' : '1px solid var(--b1)',
                               boxShadow: '0 1px 2px rgba(0,0,0,.07)',
                               wordBreak: 'break-word', maxWidth: '100%',
-                              minWidth: isAudio ? 160 : 'auto',
+                              minWidth: isAudio ? 190 : 'auto',
                             }}>
                               {renderMessage(m.contenu, m.type, isMe)}
                             </div>
