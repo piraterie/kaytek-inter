@@ -1198,6 +1198,23 @@ export function useSendMessage() {
   })
 }
 
+export function useDeleteMessage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, mediaPath }: { id: string; mediaPath?: string }) => {
+      const { error } = await supabase.from('messages').delete().eq('id', id)
+      if (error) throw new Error(error.message)
+      if (mediaPath && !mediaPath.startsWith('http')) {
+        await supabase.storage.from('chat-media').remove([mediaPath]).catch(() => {})
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['messages'] })
+      qc.invalidateQueries({ queryKey: ['conversations'] })
+    },
+  })
+}
+
 export function useConversations() {
   const user = useAuthStore(s => s.user)
   const qc = useQueryClient()
