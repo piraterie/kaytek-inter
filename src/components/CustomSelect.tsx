@@ -1,6 +1,9 @@
 // src/components/CustomSelect.tsx
 // Remplace <select> natif Android qui ignore le CSS des options
-import { useState, useRef, useEffect } from 'react'
+// Dropdown rendu via portal (position: fixed) pour éviter le clipping
+// causé par overflow:hidden et transform sur .card
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 
 export interface SelectOption {
   value: string
@@ -18,15 +21,26 @@ interface Props {
 
 export function CustomSelect({ value, options, onChange, placeholder = 'Sélectionner…', disabled, style }: Props) {
   const [open, setOpen] = useState(false)
+  const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const selected = options.find(o => o.value === value)
+
+  const updatePos = useCallback(() => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    setDropPos({ top: rect.bottom + 4, left: rect.left, width: rect.width })
+  }, [])
 
   // Fermer si clic à l'extérieur
   useEffect(() => {
     if (!open) return
     function onDown(e: MouseEvent | TouchEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (
+        containerRef.current && !containerRef.current.contains(target) &&
+        listRef.current && !listRef.current.contains(target)
+      ) {
         setOpen(false)
       }
     }
@@ -37,6 +51,18 @@ export function CustomSelect({ value, options, onChange, placeholder = 'Sélecti
       document.removeEventListener('touchstart', onDown)
     }
   }, [open])
+
+  // Recalculer la position à l'ouverture et sur scroll/resize
+  useEffect(() => {
+    if (!open) return
+    updatePos()
+    window.addEventListener('scroll', updatePos, true)
+    window.addEventListener('resize', updatePos)
+    return () => {
+      window.removeEventListener('scroll', updatePos, true)
+      window.removeEventListener('resize', updatePos)
+    }
+  }, [open, updatePos])
 
   // Scroll vers l'option sélectionnée à l'ouverture
   useEffect(() => {
@@ -92,23 +118,22 @@ export function CustomSelect({ value, options, onChange, placeholder = 'Sélecti
         }}>▼</span>
       </button>
 
-      {/* Liste déroulante — rendu en CSS pur, pas de portal */}
-      {open && (
+      {/* Liste déroulante — portal dans document.body pour éviter overflow:hidden + transform stacking context */}
+      {open && dropPos && createPortal(
         <div
           ref={listRef}
           style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            zIndex: 999,
+            position: 'fixed',
+            top: dropPos.top,
+            left: dropPos.left,
+            width: dropPos.width,
+            zIndex: 9999,
             background: 'var(--s0)',
             border: '1px solid var(--b1)',
             borderRadius: 'var(--r)',
             boxShadow: '0 8px 32px rgba(0,0,0,.2)',
             maxHeight: 280,
             overflowY: 'auto',
-            marginTop: 4,
           }}
         >
           {options.length === 0 && (
@@ -147,7 +172,8 @@ export function CustomSelect({ value, options, onChange, placeholder = 'Sélecti
               </div>
             )
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
