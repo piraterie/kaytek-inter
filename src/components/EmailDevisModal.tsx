@@ -73,14 +73,13 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
 
     // Envoi en arrière-plan — fire & forget
     ;(async () => {
-      const t0 = Date.now()
       try {
         let blob: Blob | undefined
 
         // Devis signé : récupérer les données fraîches depuis la DB pour garantir
         // que signature_client est présente dans le PDF — le cache mémoire et le
         // storage peuvent contenir un PDF pré-généré AVANT la signature
-        const isSigned = !!(_devis.signature_url || (_devis as any).signature_client || _devis.statut === 'accepte')
+        const isSigned = !!(_devis.signature_url || _devis.signature_client || _devis.statut === 'accepte')
         if (isSigned) {
           const { data: freshData } = await supabase
             .from('devis')
@@ -91,45 +90,34 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
           const paramsForPDF = _logo ? { ..._params, logo_url: _logo } : _params
           blob = await generateDevisPDF(devisForPdf, paramsForPDF, devisForPdf.modele_id ?? _devis.modele_id ?? 0)
           pdfCache.set(_devis.id, blob)
-          console.log(`[devis-email] PDF signé régénéré depuis DB (${Date.now() - t0}ms)`)
         } else {
           // Niveau 1 : cache mémoire (instant)
           blob = pdfCache.get(_devis.id)
-          if (blob) {
-            console.log(`[devis-email] PDF depuis cache mémoire (0ms)`)
-          }
 
           // Niveau 2 : storage Supabase (~200ms vs 2-3s)
           if (!blob && _devis.pdf_url) {
             try {
-              const tS = Date.now()
               const { data, error } = await supabase.storage.from('pdf-documents').download(_devis.pdf_url)
               if (!error && data) {
                 blob = data
                 pdfCache.set(_devis.id, data)
-                console.log(`[devis-email] PDF depuis storage ${Date.now() - tS}ms`)
               }
             } catch { /* fallback */ }
           }
 
           // Niveau 3 : génération fraîche (fallback)
           if (!blob) {
-            const tG = Date.now()
             const paramsForPDF = _logo ? { ..._params, logo_url: _logo } : _params
             blob = await generateDevisPDF(_devis, paramsForPDF, _devis.modele_id ?? 0)
             pdfCache.set(_devis.id, blob)
-            console.log(`[devis-email] PDF généré ${Date.now() - tG}ms`)
           }
         }
 
         if (!blob) throw new Error('Impossible de générer le PDF')
-        console.log(`[devis-email] PDF prêt (${(blob.size / 1024).toFixed(0)}KB) — total ${Date.now() - t0}ms`)
 
-        const t1 = Date.now()
         const buf = await blob.arrayBuffer()
         const bytes = new Uint8Array(buf)
         const pdfBase64 = btoa(Array.from(bytes, b => String.fromCharCode(b)).join(''))
-        console.log(`[devis-email] encode ${Date.now() - t1}ms`)
 
         const modeleId = _devis.modele_id ?? 0
         const theme = getTheme(modeleId)
@@ -175,7 +163,6 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
           </div>
         </div>`
 
-        const t2 = Date.now()
         const response = await envoyerEmail({
           to: _to,
           subject: `Devis ${_devis.numero} — ${_params.raison_sociale}`,
@@ -183,7 +170,6 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
           pdfBase64,
           pdfFilename: `${_devis.numero}.pdf`
         })
-        console.log(`[devis-email] edge fn ${Date.now() - t2}ms — total ${Date.now() - t0}ms`)
 
         if (response.error) {
           add(response.error, 'error')

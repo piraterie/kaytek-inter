@@ -65,7 +65,8 @@ export interface Devis {
   intervention_id?: string; activite?: Categorie; statut: StatutDevis
   lignes: LigneDevis[]; remise_pct: number; remise_montant?: number
   total_ht: number; tva_montant: number; total_ttc: number; modele_id: number
-  signature_url?: string; signe_le?: string; signe_par?: string
+  signature_url?: string; signature_client?: string; signature_date?: string
+  signe_le?: string; signe_par?: string
   valide_jusqu_au?: string; envoye_le?: string; notes?: string; pdf_url?: string
   created_by?: string; created_at: string; updated_at: string
   client?: Client; intervenant?: Profile

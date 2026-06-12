@@ -162,7 +162,7 @@ export default function DevisFormPage() {
   function buildMockDevis() {
     const client = clients.find(c => c.id === form.client_id)
     const intervenant = profiles.find(p => p.id === form.intervenant_id)
-    return { id: id || 'preview', numero: existing?.numero || 'DEV-APERCU', ...form, lignes, total_ht: tot.ht, tva_montant: tva, total_ttc: totalFinal, remise_montant: remise, statut: 'brouillon' as const, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), signature_url: existing?.signature_url, signe_le: existing?.signe_le, client, intervenant }
+    return { id: id || 'preview', numero: existing?.numero || 'DEV-APERCU', ...form, lignes, total_ht: tot.ht, tva_montant: tva, total_ttc: totalFinal, remise_montant: remise, statut: 'brouillon' as const, created_at: existing?.created_at || new Date().toISOString(), updated_at: new Date().toISOString(), signature_url: existing?.signature_url, signe_le: existing?.signe_le, client, intervenant }
   }
 
   async function handlePreview() {
@@ -222,8 +222,7 @@ export default function DevisFormPage() {
                 await supabase.from('devis').update({ pdf_url: path }).eq('id', _savedId)
               }
             }
-            console.log('[pdf-cache] devis pré-généré', _savedId)
-          } catch (e) { console.warn('[pdf-cache] échec pré-génération devis:', e) }
+          } catch { /* pré-génération non bloquante */ }
         })()
       }
     } catch (e: any) { add('Erreur: ' + e.message, 'error') }
@@ -247,13 +246,13 @@ export default function DevisFormPage() {
               const { path, error } = await uploadPdf(blob, id, 'devis', user.organisation_id)
               if (!error && path) await supabase.from('devis').update({ pdf_url: path }).eq('id', id)
             }
-          } catch (e) { console.warn('[pdf-cache] échec régénération PDF signé:', e) }
+          } catch { /* régénération non bloquante */ }
         })()
       }
     } catch (e: any) { add('Erreur : ' + e.message, 'error') } finally { setSigSaving(false) }
   }
 
-  const isSigned = !!(existing?.signature_url || (existing as any)?.signature_client)
+  const isSigned = !!(existing?.signature_url || existing?.signature_client)
 
   return (
     <div className="devis-form-wrapper" style={{ maxWidth: 680, margin: '0 auto', paddingBottom: 8 }}>

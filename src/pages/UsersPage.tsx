@@ -5,6 +5,7 @@ import { useToastStore } from '@/lib/store'
 import { inviterIntervenant, supprimerUtilisateur } from '@/lib/supabase/auth'
 import { supabase } from '@/lib/supabase/client'
 import { getUserDevices, revokeDevice, isCurrentDevice, type DeviceRecord } from '@/lib/devices'
+import ConfirmModal from '@/components/ConfirmModal'
 import type { Profile } from '@/types'
 
 const ns = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -28,6 +29,7 @@ export default function UsersPage() {
   const [devicesLoading, setDevicesLoading] = useState(false)
   const [tgTestLoading, setTgTestLoading] = useState(false)
   const [tgTestResult, setTgTestResult] = useState<'idle'|'ok'|'error'>('idle')
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; action: () => void } | null>(null)
   const [tgTestError, setTgTestError] = useState('')
 
   const filteredProfiles = useMemo(() => {
@@ -92,13 +94,17 @@ export default function UsersPage() {
     setEditLoading(false)
   }
 
-  async function handleDelete(p: Profile) {
-    if (!confirm(`Supprimer définitivement ${p.prenom} ${p.nom} ? Cette action est irréversible.`)) return
-    setDelLoading(p.id)
-    const { error } = await supprimerUtilisateur(p.id)
-    setDelLoading(null)
-    if (error) add(error,'error')
-    else { add(`${p.prenom} ${p.nom} supprimé`); refetch() }
+  function handleDelete(p: Profile) {
+    setConfirmDialog({
+      message: `Supprimer définitivement ${p.prenom} ${p.nom} ? Cette action est irréversible.`,
+      action: async () => {
+        setDelLoading(p.id)
+        const { error } = await supprimerUtilisateur(p.id)
+        setDelLoading(null)
+        if (error) add(error, 'error')
+        else { add(`${p.prenom} ${p.nom} supprimé`); refetch() }
+      }
+    })
   }
 
   async function toggleActive(id: string, actif: boolean) {
@@ -402,6 +408,15 @@ export default function UsersPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {confirmDialog && (
+        <ConfirmModal
+          message={confirmDialog.message}
+          onConfirm={confirmDialog.action}
+          onCancel={() => setConfirmDialog(null)}
+          danger
+        />
       )}
     </div>
   )

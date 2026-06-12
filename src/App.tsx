@@ -35,7 +35,6 @@ function Guard({ children, adminOnly = false, requireCanCreateDocs = false }: { 
     const target = location.pathname + location.search
     if (target && target !== '/' && !target.startsWith('/login')) {
       sessionStorage.setItem('kaytek-push-redirect', target)
-      console.log('[Guard] non authentifié — redirect sauvegardé:', target)
     }
     return <Navigate to="/login" replace />
   }
@@ -82,7 +81,6 @@ export default function App() {
     if (!('serviceWorker' in navigator)) return
     const handler = (event: MessageEvent) => {
       if (event.data?.type === 'NAVIGATE' && event.data.url) {
-        console.log('[App] SW NAVIGATE →', event.data.url)
         nav(event.data.url)
       }
     }
@@ -110,7 +108,6 @@ export default function App() {
         sessionStorage.setItem('kaytek-active', '1')
         const cleanUrl = window.location.pathname + window.location.hash
         window.history.replaceState({}, '', cleanUrl)
-        console.log('[App] push_open détecté — kaytek-active activé, URL nettoyée:', cleanUrl)
       }
 
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -152,9 +149,7 @@ export default function App() {
             .select('*')
             .single()
 
-          if (paramsError) {
-            console.warn('Paramètres entreprise non chargés:', paramsError)
-          } else if (params && isMounted) {
+          if (!paramsError && params && isMounted) {
             setParams(params)
           }
         }

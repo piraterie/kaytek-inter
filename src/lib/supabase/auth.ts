@@ -46,28 +46,18 @@ export async function signIn(email: string, password: string) {
 
 export async function resetPassword(email: string) {
   const redirectTo = `${window.location.origin}/reset-password`
-  console.log('[reset-password] redirectTo:', redirectTo)
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
 
     if (error) {
-      console.error('[reset-password] error', {
-        message: error.message,
-        status: (error as any).status,
-        code: (error as any).code,
-        full: error,
-      })
-      // "Error sending recovery email" → SMTP Supabase non configuré ou URL non whitelistée
       if (error.message?.toLowerCase().includes('sending recovery email') || error.message?.toLowerCase().includes('sending')) {
         return { error: 'Envoi impossible — vérifiez la configuration SMTP dans Supabase Auth (Authentication → Settings → SMTP)' }
       }
       return { error: error.message }
     }
 
-    console.log('[reset-password] email envoyé à', email)
     return { error: null }
   } catch (err: any) {
-    console.error('[reset-password] exception:', err)
     return { error: err.message || 'Erreur lors de l\'envoi de l\'email' }
   }
 }

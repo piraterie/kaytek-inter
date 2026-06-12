@@ -455,7 +455,7 @@ export default function DevisPage() {
                         {d.activite}
                       </span>
                     )}
-                    {d.signature_url && (
+                    {(d.signature_url || d.signature_client) && (
                       <span style={{ fontSize: 10, color: 'var(--gnTx)', fontWeight: 700 }}>✓ Signé</span>
                     )}
                   </div>
@@ -533,7 +533,7 @@ export default function DevisPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <div style={{ width: 3, height: 18, borderRadius: 2, background: STATUS_BORDER[d.statut] || 'var(--s3)', flexShrink: 0 }} />
                       <span style={{ fontWeight: 700, color: 'var(--t0)' }}>{d.numero}</span>
-                      {d.signature_url && <span style={{ fontSize: 10, color: 'var(--gnTx)', fontWeight: 700 }} title="Devis signé">✓</span>}
+                      {(d.signature_url || d.signature_client) && <span style={{ fontSize: 10, color: 'var(--gnTx)', fontWeight: 700 }} title="Devis signé">✓</span>}
                     </div>
                   </td>
                   <td>
