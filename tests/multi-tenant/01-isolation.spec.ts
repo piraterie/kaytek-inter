@@ -14,6 +14,16 @@ async function getListItems(page: any, url: string, selector: string): Promise<s
   return page.locator(selector).allInnerTexts().catch(() => [])
 }
 
+// ── Helper : injecter kaytek-active dans un contexte browser ─────────────────
+// Playwright storageState ne capture pas sessionStorage.
+// kaytek-active est requis par initAuth() (App.tsx:131) pour charger le profil
+// depuis le cache Supabase en localStorage. Sans lui, user reste null → /login.
+async function addKaytekActive(ctx: any) {
+  await ctx.addInitScript(() => {
+    sessionStorage.setItem('kaytek-active', '1')
+  })
+}
+
 // ── Tests isolation ──────────────────────────────────────────────────────────
 
 test.describe('Multi-tenant — isolation des données', () => {
@@ -22,16 +32,20 @@ test.describe('Multi-tenant — isolation des données', () => {
   test('clients org A non visibles par org B', async ({ browser }) => {
     // Contexte A
     const ctxA = await browser.newContext({ storageState: ADMIN_A_AUTH })
+    await addKaytekActive(ctxA)
     const pageA = await ctxA.newPage()
     const clientsA = await getListItems(pageA, '/clients', '[class*="nom"], td:first-child, [class*="client-name"]')
 
     // Contexte B
     const ctxB = await browser.newContext({ storageState: ADMIN_B_AUTH })
+    await addKaytekActive(ctxB)
     const pageB = await ctxB.newPage()
     const clientsB = await getListItems(pageB, '/clients', '[class*="nom"], td:first-child, [class*="client-name"]')
 
-    // Aucun client de A ne doit apparaître dans B
-    const intersection = clientsA.filter(c => clientsB.includes(c) && c.trim().length > 2)
+    // Exclure les textes d'état vide ("Aucun client", "Aucun résultat"…)
+    // qui apparaissent identiquement sur toute page sans données et créent des faux positifs.
+    const isRealData = (s: string) => s.trim().length > 2 && !/^aucun/i.test(s.trim())
+    const intersection = clientsA.filter(c => clientsB.includes(c) && isRealData(c))
     expect(intersection, `Fuite de données clients entre orgs : ${intersection.join(', ')}`).toHaveLength(0)
 
     await ctxA.close()
@@ -40,10 +54,12 @@ test.describe('Multi-tenant — isolation des données', () => {
 
   test('devis org A non visibles par org B', async ({ browser }) => {
     const ctxA = await browser.newContext({ storageState: ADMIN_A_AUTH })
+    await addKaytekActive(ctxA)
     const pageA = await ctxA.newPage()
     const devisA = await getListItems(pageA, '/devis', '[class*="numero"], td:nth-child(2), text=/DEV-/')
 
     const ctxB = await browser.newContext({ storageState: ADMIN_B_AUTH })
+    await addKaytekActive(ctxB)
     const pageB = await ctxB.newPage()
     const devisB = await getListItems(pageB, '/devis', '[class*="numero"], td:nth-child(2), text=/DEV-/')
 
@@ -56,10 +72,12 @@ test.describe('Multi-tenant — isolation des données', () => {
 
   test('factures org A non visibles par org B', async ({ browser }) => {
     const ctxA = await browser.newContext({ storageState: ADMIN_A_AUTH })
+    await addKaytekActive(ctxA)
     const pageA = await ctxA.newPage()
     const facturesA = await getListItems(pageA, '/factures', '[class*="numero"], text=/FAC-/')
 
     const ctxB = await browser.newContext({ storageState: ADMIN_B_AUTH })
+    await addKaytekActive(ctxB)
     const pageB = await ctxB.newPage()
     const facturesB = await getListItems(pageB, '/factures', '[class*="numero"], text=/FAC-/')
 
@@ -72,10 +90,12 @@ test.describe('Multi-tenant — isolation des données', () => {
 
   test('interventions org A non visibles par org B', async ({ browser }) => {
     const ctxA = await browser.newContext({ storageState: ADMIN_A_AUTH })
+    await addKaytekActive(ctxA)
     const pageA = await ctxA.newPage()
     const interA = await getListItems(pageA, '/interventions', '[class*="numero"], text=/INT-/')
 
     const ctxB = await browser.newContext({ storageState: ADMIN_B_AUTH })
+    await addKaytekActive(ctxB)
     const pageB = await ctxB.newPage()
     const interB = await getListItems(pageB, '/interventions', '[class*="numero"], text=/INT-/')
 
@@ -88,10 +108,12 @@ test.describe('Multi-tenant — isolation des données', () => {
 
   test('utilisateurs org A non visibles par org B', async ({ browser }) => {
     const ctxA = await browser.newContext({ storageState: ADMIN_A_AUTH })
+    await addKaytekActive(ctxA)
     const pageA = await ctxA.newPage()
     const usersA = await getListItems(pageA, '/utilisateurs', '[class*="email"], input[type="email"]')
 
     const ctxB = await browser.newContext({ storageState: ADMIN_B_AUTH })
+    await addKaytekActive(ctxB)
     const pageB = await ctxB.newPage()
     const usersB = await getListItems(pageB, '/utilisateurs', '[class*="email"], input[type="email"]')
 
@@ -108,6 +130,15 @@ test.describe('Multi-tenant — isolation des données', () => {
 test.describe('Intervenant — accès restreint', () => {
   test.skip(!process.env.TEST_INTERVENANT_EMAIL, 'TEST_INTERVENANT_EMAIL non défini')
   test.use({ storageState: 'tests/.auth/intervenant.json' })
+
+  // Playwright storageState ne capture pas sessionStorage.
+  // kaytek-active est requis par initAuth() (App.tsx:131) pour charger le profil.
+  // Sans lui, user reste null → Guard redirige vers /login au lieu de /dashboard.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem('kaytek-active', '1')
+    })
+  })
 
   test('intervenant ne voit pas /clients (admin only)', async ({ page }) => {
     await page.goto('/clients')
