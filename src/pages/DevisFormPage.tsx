@@ -452,7 +452,27 @@ export default function DevisFormPage() {
           {cataloguePrestations.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto', paddingRight: 2, marginBottom: 14 }}>
               {cataloguePrestations.map(p => (
-                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 13px', borderRadius: 14, background: 'var(--s1)', border: '1px solid var(--b0)', gap: 10 }}>
+                <div
+                  key={p.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { addFromCat(p.id); add(`${p.nom} ajouté`) }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addFromCat(p.id); add(`${p.nom} ajouté`) } }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--blBg)'; (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--blBd)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'var(--s1)'; (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--b0)' }}
+                  onPointerDown={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(0.982)' }}
+                  onPointerUp={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)' }}
+                  onPointerLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)'; (e.currentTarget as HTMLDivElement).style.background = 'var(--s1)'; (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--b0)' }}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '11px 13px', borderRadius: 14, background: 'var(--s1)',
+                    border: '1px solid var(--b0)', gap: 10,
+                    cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none',
+                    WebkitTapHighlightColor: 'transparent',
+                    transition: 'background .1s, border-color .1s, transform .1s',
+                    outline: 'none',
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--s0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0, border: '1px solid var(--b0)' }}>
                       {CAT_ICON[form.activite] || '🔧'}
@@ -464,8 +484,10 @@ export default function DevisFormPage() {
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div style={{ fontWeight: 700, color: 'var(--blTx)', fontSize: 13, marginBottom: 4 }}>{p.prix_conseille}€ HT</div>
+                    {/* stopPropagation : la carte gère déjà le clic, le bouton évite le double-ajout */}
                     <button
-                      onClick={() => { addFromCat(p.id); add(`${p.nom} ajouté`) }}
+                      tabIndex={-1}
+                      onClick={e => { e.stopPropagation(); addFromCat(p.id); add(`${p.nom} ajouté`) }}
                       style={{ padding: '5px 12px', borderRadius: 100, background: 'var(--bl)', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
                     >+ Ajouter</button>
                   </div>
