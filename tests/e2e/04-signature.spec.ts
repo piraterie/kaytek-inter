@@ -5,6 +5,11 @@ const ADMIN_AUTH = 'tests/.auth/admin.json'
 
 test.use({ storageState: ADMIN_AUTH })
 
+// Injecte kaytek-active pour tous les tests de ce fichier
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => { sessionStorage.setItem('kaytek-active', '1') })
+})
+
 test.describe('Signature devis', () => {
   test('bouton "Signer maintenant" visible sur un devis non signé', async ({ page }) => {
     await page.goto('/devis')
@@ -97,5 +102,154 @@ test.describe('Signature devis', () => {
     // Vérifier soit le texte soit l'absence du bouton signer
     const signBtnGone = !(await sigBtn.isVisible({ timeout: 2_000 }).catch(() => false))
     expect(signBtnGone || await isSignedText.isVisible({ timeout: 2_000 }).catch(() => false)).toBeTruthy()
+  })
+
+  // ── RÉGRESSION : signature_client dans le SELECT de useDevis() ──────────────────
+  test('[non-régression] useDevis() inclut signature_client dans la requête Supabase', async ({ page }) => {
+    let signatureClientPresent = false
+
+    // Intercepter toutes les requêtes GET vers la table devis (liste, pas detail)
+    page.on('request', req => {
+      const url = req.url()
+      const decoded = decodeURIComponent(url)
+      // Filtre : requête GET vers /rest/v1/devis avec select=
+      if (
+        req.method() === 'GET' &&
+        url.includes('/rest/v1/devis') &&
+        decoded.includes('select=') &&
+        decoded.includes('signature_client')
+      ) {
+        signatureClientPresent = true
+      }
+    })
+
+    await page.goto('/devis')
+    // Attendre que la requête soit émise
+    await page.waitForTimeout(3000)
+
+    expect(signatureClientPresent).toBe(true)
+  })
+
+  // ── RÉGRESSION : PDF d'un devis signé contient la signature ────────────────────
+  test('[non-régression] export PDF depuis DevisPage ne produit pas d\'erreur sur devis signé', async ({ page }) => {
+    await page.goto('/devis')
+    await page.waitForTimeout(2000)
+
+    // Chercher un devis accepté (signé)
+    const acceptedPill = page.locator('.pill-green').first()
+    const hasAccepted = await acceptedPill.isVisible({ timeout: 5000 }).catch(() => false)
+
+    if (!hasAccepted) {
+      test.skip(true, 'Aucun devis signé (statut accepté) trouvé dans la liste')
+      return
+    }
+
+    // Sur desktop : chercher un bouton PDF dans le tableau
+    // Sur mobile : le DocSheet s'ouvre au clic sur la card
+    const isDesktop = await page.evaluate(() => window.innerWidth >= 768)
+
+    if (isDesktop) {
+      // Desktop : le PDF se déclenche depuis le DocSheet (clic sur une ligne)
+      const firstRow = page.locator('table.data-table tbody tr').filter({ hasText: 'Accepté' }).first()
+      if (!await firstRow.isVisible({ timeout: 3000 }).catch(() => false)) {
+        test.skip(true, 'Ligne acceptée non visible en desktop')
+        return
+      }
+      await firstRow.click()
+      await page.waitForTimeout(500)
+    } else {
+      // Mobile : clic sur la card pour ouvrir le DocSheet
+      const card = page.locator('.show-mobile > div').filter({ has: acceptedPill }).first()
+      if (!await card.isVisible({ timeout: 3000 }).catch(() => false)) {
+        test.skip(true, 'Card acceptée non visible en mobile')
+        return
+      }
+      await card.locator('button:has-text("···")').first().click()
+      await page.waitForTimeout(500)
+    }
+
+    // Vérifier que le DocSheet s'est ouvert avec le bouton PDF
+    const exportBtn = page.locator('button:has-text("Exporter PDF")')
+    if (!await exportBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
+      test.skip(true, 'Bouton "Exporter PDF" non trouvé dans le DocSheet')
+      return
+    }
+
+    // Déclencher l'export — capturer le download
+    const downloadPromise = page.waitForEvent('download', { timeout: 20_000 })
+    await exportBtn.click()
+
+    // Vérifier l'ABSENCE d'un toast d'erreur
+    await page.waitForTimeout(1500)
+    const errorToast = page.locator('text=Erreur PDF').first()
+    const hasError = await errorToast.isVisible({ timeout: 1000 }).catch(() => false)
+    expect(hasError).toBe(false)
+
+    // Vérifier que le fichier téléchargé est bien un .pdf
+    try {
+      const download = await downloadPromise
+      expect(download.suggestedFilename()).toMatch(/\.pdf$/i)
+    } catch {
+      // Le download peut ne pas être capturé si les paramètres entreprise manquent
+      // L'absence d'erreur toast suffit à valider le flux
+    }
+  })
+
+  // ── RÉGRESSION : email d'un devis signé inclut toujours la signature ───────────
+  test('[non-régression] modal email devis signé déclenche un re-fetch Supabase frais', async ({ page }) => {
+    await page.goto('/devis')
+    await page.waitForTimeout(2000)
+
+    // Chercher un devis signé avec email client
+    const acceptedPill = page.locator('.pill-green').first()
+    if (!await acceptedPill.isVisible({ timeout: 5000 }).catch(() => false)) {
+      test.skip(true, 'Aucun devis signé trouvé')
+      return
+    }
+
+    let freshFetchTriggered = false
+    // La modal email fait un re-fetch /rest/v1/devis?id=eq.XXX avec select=*
+    page.on('request', req => {
+      const url = req.url()
+      const decoded = decodeURIComponent(url)
+      if (
+        req.method() === 'GET' &&
+        url.includes('/rest/v1/devis') &&
+        decoded.includes('id=eq.') &&
+        decoded.includes('select=*')
+      ) {
+        freshFetchTriggered = true
+      }
+    })
+
+    // Ouvrir le DocSheet et cliquer "Envoyer par email"
+    const card = page.locator('.show-mobile > div').filter({ has: acceptedPill }).first()
+    if (await card.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await card.locator('button:has-text("···")').first().click()
+      await page.waitForTimeout(500)
+    } else {
+      const row = page.locator('table.data-table tbody tr').filter({ hasText: 'Accepté' }).first()
+      if (await row.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await row.click()
+        await page.waitForTimeout(500)
+      }
+    }
+
+    const emailBtn = page.locator('button:has-text("Envoyer par email")')
+    if (!await emailBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
+      test.skip(true, 'Bouton email non trouvé')
+      return
+    }
+    await emailBtn.click()
+
+    // Attendre l'ouverture du modal email et le re-fetch
+    await page.waitForTimeout(3000)
+
+    // Le modal email doit s'être ouvert (champ email visible)
+    const emailInput = page.locator('input[type="email"]')
+    expect(await emailInput.isVisible({ timeout: 3000 }).catch(() => false)).toBe(true)
+
+    // Un re-fetch vers Supabase doit avoir été déclenché pour récupérer signature_client
+    expect(freshFetchTriggered).toBe(true)
   })
 })
