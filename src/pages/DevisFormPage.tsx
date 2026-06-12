@@ -1,7 +1,7 @@
 // src/pages/DevisFormPage.tsx
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import SignaturePad from 'signature_pad'
+import SignatureModal from '@/components/SignatureModal'
 import { useCreateDevis, useUpdateDevis, useDevisById, useClients, useProfiles, usePrestations, useCreatePrestation, useParametres } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
@@ -44,9 +44,6 @@ export default function DevisFormPage() {
   const { data: dbParams } = useParametres()
   const params = storeParams || dbParams
   const { add } = useToastStore()
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const sigPadRef = useRef<SignaturePad | null>(null)
-
   // UI state
   const [showSig, setShowSig] = useState(false)
   const [sigSaving, setSigSaving] = useState(false)
@@ -113,24 +110,6 @@ export default function DevisFormPage() {
       setForm(f => f.modele_id === 0 ? { ...f, modele_id: params.modele_pdf_defaut! } : f)
     }
   }, [params?.modele_pdf_defaut, isEdit])
-
-  useEffect(() => {
-    if (!showSig) return
-    let sp: SignaturePad | null = null
-    const init = () => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const w = canvas.offsetWidth; const h = canvas.offsetHeight
-      if (!w || !h) { requestAnimationFrame(init); return }
-      const ratio = Math.max(window.devicePixelRatio || 1, 1)
-      canvas.width = w * ratio; canvas.height = h * ratio
-      canvas.getContext('2d')?.scale(ratio, ratio)
-      sp = new SignaturePad(canvas, { backgroundColor: 'rgba(255,255,255,0)', penColor: '#1e3a5f', minWidth: 1.5, maxWidth: 3 })
-      sigPadRef.current = sp
-    }
-    requestAnimationFrame(init)
-    return () => { sigPadRef.current?.off(); sigPadRef.current = null }
-  }, [showSig])
 
   // Totals
   const tot = lignes.reduce((a, l) => ({ ht: a.ht + l.total_ht, ttc: a.ttc + l.total_ttc }), { ht: 0, ttc: 0 })
@@ -250,14 +229,27 @@ export default function DevisFormPage() {
     } catch (e: any) { add('Erreur: ' + e.message, 'error') }
   }
 
-  async function handleSign() {
-    if (!sigPadRef.current || sigPadRef.current.isEmpty()) { add('Veuillez signer avant de valider', 'warning'); return }
+  async function handleSign(base64: string) {
     setSigSaving(true)
     try {
-      const dataUrl = sigPadRef.current.toDataURL('image/png')
-      await (update.mutateAsync as any)({ id: id!, signature_client: dataUrl, signature_date: new Date().toISOString(), signe_le: new Date().toISOString(), statut: 'accepte', signe_par: `${user?.prenom || ''} ${user?.nom || ''}`.trim() || 'Admin' })
+      const sigDate = new Date().toISOString()
+      const sigPar = `${user?.prenom || ''} ${user?.nom || ''}`.trim() || 'Admin'
+      await (update.mutateAsync as any)({ id: id!, signature_client: base64, signature_date: sigDate, signe_le: sigDate, statut: 'accepte', signe_par: sigPar })
       add('Signature enregistrée ✓')
       setShowSig(false)
+      if (id && params) {
+        ;(async () => {
+          try {
+            const devisWithSig = { ...buildMockDevis(), signature_client: base64, signature_date: sigDate, signe_par: sigPar, statut: 'accepte' as const }
+            const blob = await generateDevisPDF(devisWithSig as any, params, form.modele_id)
+            pdfCache.set(id, blob)
+            if (user?.organisation_id) {
+              const { path, error } = await uploadPdf(blob, id, 'devis', user.organisation_id)
+              if (!error && path) await supabase.from('devis').update({ pdf_url: path }).eq('id', id)
+            }
+          } catch (e) { console.warn('[pdf-cache] échec régénération PDF signé:', e) }
+        })()
+      }
     } catch (e: any) { add('Erreur : ' + e.message, 'error') } finally { setSigSaving(false) }
   }
 
@@ -657,21 +649,7 @@ export default function DevisFormPage() {
               )}
             </div>
             {showSig && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ border: '2px dashed var(--blBd)', borderRadius: 16, overflow: 'hidden', position: 'relative', background: '#fafafa', minHeight: 220, marginBottom: 12 }}>
-                  <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%', minHeight: 220, touchAction: 'none', cursor: 'crosshair' }} />
-                  <div style={{ position: 'absolute', bottom: 12, left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
-                    <span style={{ fontSize: 12, color: '#c8c8ce', fontStyle: 'italic' }}>Signez avec votre doigt</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => { setShowSig(false); sigPadRef.current?.clear() }}>Annuler</button>
-                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => sigPadRef.current?.clear()}>🗑 Effacer</button>
-                  <button className="btn btn-primary" style={{ flex: 2 }} onClick={handleSign} disabled={sigSaving}>
-                    {sigSaving ? 'Enregistrement…' : '✓ Valider la signature'}
-                  </button>
-                </div>
-              </div>
+              <SignatureModal onConfirm={handleSign} onCancel={() => setShowSig(false)} loading={sigSaving} />
             )}
           </div>
         ) : (
