@@ -6,6 +6,15 @@ const ADMIN_AUTH = 'tests/.auth/admin.json'
 
 test.use({ storageState: ADMIN_AUTH })
 
+// Playwright storageState ne capture pas sessionStorage.
+// kaytek-active est requis par initAuth() (App.tsx:131) pour charger le profil
+// depuis le cache Supabase en localStorage. Sans lui, user reste null → /login.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem('kaytek-active', '1')
+  })
+})
+
 // Pages à tester sur tous les viewports
 const PAGES_TO_CHECK = [
   { name: 'Dashboard',      url: '/dashboard' },
