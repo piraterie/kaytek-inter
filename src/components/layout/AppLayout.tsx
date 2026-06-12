@@ -348,82 +348,155 @@ export default function AppLayout() {
           )}
         </div>
 
-        {/* MODAL PROFIL */}
-        {profilModal && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 16 }} onClick={() => setProfilModal(false)}>
-            <div className="card" style={{ width: isMobile ? '100%' : 420, padding: 0, borderRadius: isMobile ? '12px 12px 0 0' : undefined, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-              {/* Tabs */}
-              <div style={{ display: 'flex', borderBottom: '1px solid var(--b0)' }}>
-                {(['profil', 'appareils'] as const).map(t => (
-                  <button key={t} onClick={() => setProfilTab(t)} style={{ flex: 1, padding: '14px 0', fontSize: 13, fontWeight: profilTab === t ? 600 : 400, background: 'none', border: 'none', borderBottom: profilTab === t ? '2px solid var(--bl)' : '2px solid transparent', color: profilTab === t ? 'var(--blTx)' : 'var(--t2)', cursor: 'pointer', marginBottom: -1 }}>
-                    {t === 'profil' ? '👤 Profil' : '📱 Appareils'}
-                  </button>
-                ))}
+      </aside>
+
+      {/* MODAL PROFIL — hors de <aside> pour éviter que will-change:transform piège le position:fixed */}
+      {profilModal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.55)',
+            backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+            display: 'flex',
+            alignItems: isMobile ? 'flex-end' : 'center',
+            justifyContent: 'center',
+          }}
+          onClick={() => setProfilModal(false)}
+        >
+          <div
+            className="card"
+            style={{
+              width: isMobile ? '100%' : 420,
+              maxWidth: '100vw',
+              padding: 0,
+              borderRadius: isMobile ? '20px 20px 0 0' : 'var(--r3)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: isMobile
+                ? 'calc(90dvh - env(safe-area-inset-bottom))'
+                : 'calc(90dvh - 32px)',
+              boxShadow: 'var(--sh3)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Handle bar mobile */}
+            {isMobile && (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px', flexShrink: 0 }}>
+                <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--b1)' }} />
               </div>
-              <div style={{ padding: 24 }}>
-                {profilTab === 'profil' && (
-                  <form onSubmit={handleSaveProfil}>
-                    <div className="form-group">
-                      <label>Prénom</label>
-                      <input value={profilForm.prenom} onChange={e => setProfilForm(f => ({ ...f, prenom: e.target.value }))} required />
-                    </div>
-                    <div className="form-group">
-                      <label>Nom</label>
-                      <input value={profilForm.nom} onChange={e => setProfilForm(f => ({ ...f, nom: e.target.value }))} required />
-                    </div>
-                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-                      <button type="button" className="btn btn-secondary" onClick={() => setProfilModal(false)}>Annuler</button>
-                      <button type="submit" className="btn btn-primary" disabled={updProfile.isPending}>Enregistrer</button>
-                    </div>
-                  </form>
-                )}
-                {profilTab === 'appareils' && (
-                  <div>
-                    <p style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 14 }}>
-                      Maximum 2 appareils actifs. Les appareils inactifs ne peuvent plus se connecter.
-                    </p>
-                    {devicesLoading ? (
-                      <div style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Chargement…</div>
-                    ) : devices.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Aucun appareil enregistré</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {devices.map(d => {
-                          const isCurrent = isCurrentDevice(d.device_id)
-                          return (
-                            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--b1)', background: isCurrent ? 'var(--blBg)' : 'transparent' }}>
-                              <span style={{ fontSize: 22, flexShrink: 0 }}>{d.systeme_exploitation === 'iOS' || d.systeme_exploitation === 'Android' ? '📱' : '💻'}</span>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {d.nom_appareil || 'Appareil inconnu'}
-                                  {isCurrent && <span style={{ marginLeft: 6, fontSize: 10, padding: '1px 6px', background: 'var(--bl)', color: '#fff', borderRadius: 10 }}>Actuel</span>}
-                                </div>
-                                <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 1 }}>
-                                  Dernière activité : {new Date(d.date_derniere_connexion).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                </div>
+            )}
+
+            {/* Onglets */}
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--b0)', flexShrink: 0 }}>
+              {(['profil', 'appareils'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setProfilTab(t)}
+                  style={{
+                    flex: 1, padding: '13px 0', fontSize: 13,
+                    fontWeight: profilTab === t ? 600 : 400,
+                    background: 'none', border: 'none',
+                    borderBottom: profilTab === t ? '2px solid var(--bl)' : '2px solid transparent',
+                    color: profilTab === t ? 'var(--blTx)' : 'var(--t2)',
+                    cursor: 'pointer', marginBottom: -1, fontFamily: 'inherit',
+                  }}
+                >
+                  {t === 'profil' ? '👤 Profil' : '📱 Appareils'}
+                </button>
+              ))}
+            </div>
+
+            {/* Contenu scrollable */}
+            <div style={{
+              overflowY: 'auto', flex: 1,
+              padding: isMobile ? 16 : 24,
+              paddingBottom: isMobile ? 'max(20px, env(safe-area-inset-bottom))' : 24,
+            }}>
+              {profilTab === 'profil' && (
+                <form onSubmit={handleSaveProfil}>
+                  <div className="form-group">
+                    <label>Prénom</label>
+                    <input value={profilForm.prenom} onChange={e => setProfilForm(f => ({ ...f, prenom: e.target.value }))} required />
+                  </div>
+                  <div className="form-group">
+                    <label>Nom</label>
+                    <input value={profilForm.nom} onChange={e => setProfilForm(f => ({ ...f, nom: e.target.value }))} required />
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                    <button type="button" className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setProfilModal(false)}>Annuler</button>
+                    <button type="submit" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} disabled={updProfile.isPending}>
+                      {updProfile.isPending ? '…' : 'Enregistrer'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {profilTab === 'appareils' && (
+                <div>
+                  <p style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 14 }}>
+                    Maximum 2 appareils actifs. Les appareils inactifs ne peuvent plus se connecter.
+                  </p>
+                  {devicesLoading ? (
+                    <div style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Chargement…</div>
+                  ) : devices.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Aucun appareil enregistré</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {devices.map(d => {
+                        const isCurrent = isCurrentDevice(d.device_id)
+                        return (
+                          <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, border: '1px solid var(--b1)', background: isCurrent ? 'var(--blBg)' : 'transparent', minWidth: 0 }}>
+                            <span style={{ fontSize: 20, flexShrink: 0 }}>
+                              {d.systeme_exploitation === 'iOS' || d.systeme_exploitation === 'Android' ? '📱' : '💻'}
+                            </span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {d.nom_appareil || 'Appareil inconnu'}
+                                {isCurrent && <span style={{ marginLeft: 6, fontSize: 10, padding: '1px 6px', background: 'var(--bl)', color: '#fff', borderRadius: 10 }}>Actuel</span>}
                               </div>
-                              <span className={`pill ${d.actif ? 'pill-green' : 'pill-gray'}`} style={{ fontSize: 10 }}>{d.actif ? 'Actif' : 'Inactif'}</span>
+                              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {new Date(d.date_derniere_connexion).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                              <span className={`pill ${d.actif ? 'pill-green' : 'pill-gray'}`} style={{ fontSize: 10 }}>
+                                {d.actif ? 'Actif' : 'Inactif'}
+                              </span>
                               {!isCurrent && d.actif && (
-                                <button onClick={() => handleDisconnectDevice(d.id)} className="btn-icon sm" style={{ color: 'var(--rdTx)', flexShrink: 0 }} title="Déconnecter">✕</button>
+                                <button
+                                  onClick={() => handleDisconnectDevice(d.id)}
+                                  className="btn-icon sm"
+                                  style={{ color: 'var(--rdTx)' }}
+                                  title="Déconnecter"
+                                >✕</button>
                               )}
                             </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                    {devices.filter(d => d.actif && !isCurrentDevice(d.device_id)).length > 0 && (
-                      <button onClick={handleDisconnectAll} className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', marginTop: 14 }}>
-                        Déconnecter tous les autres appareils
-                      </button>
-                    )}
-                    <button onClick={() => setProfilModal(false)} className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', marginTop: 10 }}>Fermer</button>
-                  </div>
-                )}
-              </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {devices.filter(d => d.actif && !isCurrentDevice(d.device_id)).length > 0 && (
+                    <button
+                      onClick={handleDisconnectAll}
+                      className="btn btn-secondary"
+                      style={{ width: '100%', justifyContent: 'center', marginTop: 14, fontSize: 13 }}
+                    >
+                      Déconnecter tous les autres
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setProfilModal(false)}
+                    className="btn btn-secondary"
+                    style={{ width: '100%', justifyContent: 'center', marginTop: 10 }}
+                  >Fermer</button>
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </aside>
+        </div>
+      )}
 
       {/* MAIN */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', background: 'var(--bg)' }}>
