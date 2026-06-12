@@ -229,9 +229,9 @@ export default function UsersPage() {
             <form onSubmit={handleInvite}>
               <div className="modal-body">
                 <p style={{ fontSize:13,color:'var(--t2)',marginBottom:14 }}>Un email d'invitation sera envoyé. L'intervenant pourra définir son mot de passe.</p>
-                <div className="form-group"><label>Prénom *</label><input value={invForm.prenom} onChange={e=>setInvForm(f=>({...f,prenom:e.target.value}))} required /></div>
-                <div className="form-group"><label>Nom *</label><input value={invForm.nom} onChange={e=>setInvForm(f=>({...f,nom:e.target.value}))} required /></div>
-                <div className="form-group"><label>Email *</label><input type="email" value={invForm.email} onChange={e=>setInvForm(f=>({...f,email:e.target.value}))} required /></div>
+                <div className="form-group"><label>Prénom <span className="req">*</span></label><input value={invForm.prenom} onChange={e=>setInvForm(f=>({...f,prenom:e.target.value}))} required /></div>
+                <div className="form-group"><label>Nom <span className="req">*</span></label><input value={invForm.nom} onChange={e=>setInvForm(f=>({...f,nom:e.target.value}))} required /></div>
+                <div className="form-group"><label>Email <span className="req">*</span></label><input type="email" value={invForm.email} onChange={e=>setInvForm(f=>({...f,email:e.target.value}))} required /></div>
                 <div className="form-group"><label>Commission (%)</label><input type="number" min={0} max={100} value={invForm.commission_pct} onChange={e=>setInvForm(f=>({...f,commission_pct:+e.target.value}))} /></div>
                 <div className="form-group">
                   <label>Type d'intervenant</label>

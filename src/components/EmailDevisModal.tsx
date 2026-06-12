@@ -22,11 +22,18 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
   const user = useAuthStore(s => s.user)
   const isAdmin = user?.role === 'admin'
   const [sending, setSending] = useState(false)
+  const [closing, setClosing] = useState(false)
   const [emailTo, setEmailTo] = useState(devis.client?.email || '')
   const [error, setError] = useState('')
   const [paramsError, setParamsError] = useState(false)
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
   const { add } = useToastStore()
+
+  function handleClose() {
+    if (closing || sending) return
+    setClosing(true)
+    setTimeout(onClose, 150)
+  }
 
   // Pré-charge le logo en data-URL dès l'ouverture du modal pour éviter
   // le fetch réseau caché dans @react-pdf/renderer pendant la génération PDF
@@ -172,30 +179,40 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
         })
 
         if (response.error) {
-          add(response.error, 'error')
+          add(`❌ Impossible d'envoyer le devis`, 'error')
         } else {
+          add(`✅ Email envoyé à ${_to}`, 'success')
           _onSent() // marque le devis comme envoyé + notifie l'intervenant
         }
       } catch (e: any) {
         console.error('[devis-email] erreur', e)
-        add('Erreur envoi : ' + (e.message || 'Erreur inconnue'), 'error')
+        add(`❌ Impossible d'envoyer le devis`, 'error')
       }
     })()
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 9999,
-      background: 'rgba(0,0,0,0.6)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 16
-    }}>
-      <div style={{
-        background: 'var(--s0)', borderRadius: 'var(--r3)',
-        width: '100%', maxWidth: 480,
-        padding: 24, boxShadow: '0 8px 40px rgba(0,0,0,0.35)',
-        display: 'flex', flexDirection: 'column', gap: 16
-      }}>
+    <div
+      className={closing ? 'is-closing' : ''}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16,
+        animation: closing ? undefined : 'fadeIn .2s ease',
+      }}
+      onClick={handleClose}
+    >
+      <div
+        style={{
+          background: 'var(--s0)', borderRadius: 'var(--r3)',
+          width: '100%', maxWidth: 480,
+          padding: 24, boxShadow: '0 8px 40px rgba(0,0,0,0.35)',
+          display: 'flex', flexDirection: 'column', gap: 16,
+          animation: closing ? 'scaleOut .15s cubic-bezier(.32,.72,0,1) forwards' : 'scaleIn .22s cubic-bezier(.32,.72,0,1)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
         <div>
           <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--t0)' }}>✉ Envoyer le devis par email</div>
           <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 4 }}>Le PDF sera joint automatiquement</div>
@@ -243,7 +260,7 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
         )}
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button className="btn btn-secondary" onClick={onClose} disabled={sending}>
+          <button className="btn btn-secondary" onClick={handleClose} disabled={sending}>
             Annuler
           </button>
           <button

@@ -40,6 +40,13 @@ export default function ClientsPage() {
   const delArchived = useDeleteArchivedClients()
 
   const [form, setForm] = useState({ type:'particulier', nom:'', prenom:'', telephone:'', email:'', adresse_intervention:'', notes_internes:'' })
+  const [modalClosing, setModalClosing] = useState(false)
+
+  function closeModal() {
+    if (modalClosing) return
+    setModalClosing(true)
+    setTimeout(() => { setModal(false); setModalClosing(false) }, 150)
+  }
 
   function toggleSelect(id: string) {
     setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -223,7 +230,17 @@ export default function ClientsPage() {
 
       {/* MOBILE : cards */}
       <div className="show-mobile">
-        {isLoading && <div style={{ textAlign:'center',padding:32,color:'var(--t3)' }}>Chargement…</div>}
+        {isLoading && [0,1,2,3].map(i => (
+          <div key={i} style={{ background:'var(--s0)',borderRadius:20,padding:'16px 18px',marginBottom:10,boxShadow:'var(--sh0)' }}>
+            <div style={{ display:'flex',gap:12,alignItems:'center' }}>
+              <div style={{ flex:1,display:'flex',flexDirection:'column',gap:8 }}>
+                <div className="skeleton-row" style={{ height:16,width:'55%' }} />
+                <div className="skeleton-row" style={{ height:12,width:'40%' }} />
+              </div>
+              <div className="skeleton-row" style={{ height:20,width:50,borderRadius:999 }} />
+            </div>
+          </div>
+        ))}
         {!isLoading && clients.length === 0 && (
           <div style={{ textAlign:'center',padding:40,color:'var(--t3)' }}>
             {search.trim() ? (
@@ -289,7 +306,16 @@ export default function ClientsPage() {
             </tr>
           </thead>
           <tbody>
-            {isLoading&&<tr><td colSpan={selectionMode ? 6 : 5} style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>Chargement…</td></tr>}
+            {isLoading&&[0,1,2,3].map(i=>(
+              <tr key={i}>
+                {selectionMode&&<td />}
+                <td><div className="skeleton-row" style={{ height:14,width:'70%',marginBottom:4 }} /><div className="skeleton-row" style={{ height:11,width:'40%' }} /></td>
+                <td><div className="skeleton-row" style={{ height:13,width:'80%',marginBottom:4 }} /><div className="skeleton-row" style={{ height:11,width:'60%' }} /></td>
+                <td><div className="skeleton-row" style={{ height:13,width:'90%' }} /></td>
+                <td><div className="skeleton-row" style={{ height:20,width:60,borderRadius:999 }} /></td>
+                {isAdmin&&<td />}
+              </tr>
+            ))}
             {!isLoading&&clients.length===0&&<tr><td colSpan={selectionMode ? 6 : 5} style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>
               {search.trim() ? <><span>Aucun résultat — </span><button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button></> : 'Aucun client'}
             </td></tr>}
@@ -411,9 +437,9 @@ export default function ClientsPage() {
 
       {/* MODAL créer/modifier */}
       {modal&&(
-        <div className="modal-overlay" onClick={()=>setModal(false)}>
+        <div className={`modal-overlay${modalClosing?' is-closing':''}`} onClick={closeModal}>
           <div className="modal" onClick={e=>e.stopPropagation()}>
-            <div className="modal-header"><span className="modal-title">{editing?'Modifier client':'Nouveau client'}</span><button className="btn-icon sm" onClick={()=>setModal(false)}>✕</button></div>
+            <div className="modal-header"><span className="modal-title">{editing?'Modifier client':'Nouveau client'}</span><button className="btn-icon sm" onClick={closeModal}>✕</button></div>
             <form onSubmit={submit}>
               <div className="modal-body">
                 <div className="form-group"><label>Type</label>
@@ -424,7 +450,7 @@ export default function ClientsPage() {
                     <option value="autre">Autre</option>
                   </select>
                 </div>
-                <div className="form-group"><label>Nom *</label><input value={form.nom} onChange={e=>setForm(f=>({...f,nom:e.target.value}))} required /></div>
+                <div className="form-group"><label>Nom <span className="req">*</span></label><input value={form.nom} onChange={e=>setForm(f=>({...f,nom:e.target.value}))} required /></div>
                 <div className="form-group"><label>Prénom</label><input value={form.prenom} onChange={e=>setForm(f=>({...f,prenom:e.target.value}))} /></div>
                 <div className="form-group"><label>Téléphone</label><input value={form.telephone} onChange={e=>setForm(f=>({...f,telephone:e.target.value}))} type="tel" /></div>
                 <div className="form-group"><label>Email</label><input type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} /></div>
@@ -432,7 +458,7 @@ export default function ClientsPage() {
                 <div className="form-group"><label>Notes internes</label><textarea value={form.notes_internes} onChange={e=>setForm(f=>({...f,notes_internes:e.target.value}))} /></div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={()=>setModal(false)}>Annuler</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal}>Annuler</button>
                 <button type="submit" className="btn btn-primary" disabled={create.isPending||upd.isPending}>Enregistrer</button>
               </div>
             </form>

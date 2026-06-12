@@ -72,6 +72,19 @@ export default function InterventionsPage() {
   const [createForm, setCreateForm] = useState({ client_id:'', intervenant_id:'', type:'serrurerie' as Categorie, urgence:false, adresse:'', description:'', date_prevue:'', notes_admin:'' })
   const [editForm, setEditForm] = useState({ statut:'en_attente' as any, montant_ttc:'', intervenant_id:'', date_prevue:'', notes_admin:'' })
   const [msgModal, setMsgModal] = useState<{ inter: Intervention; text: string; destinataire_id: string } | null>(null)
+  const [createModalClosing, setCreateModalClosing] = useState(false)
+  const [editModalClosing, setEditModalClosing] = useState(false)
+
+  function closeCreateModal() {
+    if (createModalClosing) return
+    setCreateModalClosing(true)
+    setTimeout(() => { setCreateModal(false); setCreateModalClosing(false) }, 150)
+  }
+  function closeEditModal() {
+    if (editModalClosing) return
+    setEditModalClosing(true)
+    setTimeout(() => { setEditModal(false); setEditModalClosing(false) }, 150)
+  }
   const sendMsg = useSendMessage()
 
   function toggleSelect(id: string) {
@@ -328,7 +341,21 @@ export default function InterventionsPage() {
 
       {/* MOBILE : cards */}
       <div className="show-mobile">
-        {isLoading && <div style={{ textAlign:'center',padding:32,color:'var(--t3)' }}>Chargement…</div>}
+        {isLoading && [0,1,2,3].map(i => (
+          <div key={i} style={{ background:'var(--s0)',borderRadius:20,padding:'16px 18px',marginBottom:10,boxShadow:'var(--sh0)' }}>
+            <div style={{ display:'flex',gap:12,alignItems:'flex-start' }}>
+              <div style={{ flex:1,display:'flex',flexDirection:'column',gap:8 }}>
+                <div className="skeleton-row" style={{ height:15,width:'40%' }} />
+                <div className="skeleton-row" style={{ height:13,width:'55%' }} />
+                <div className="skeleton-row" style={{ height:11,width:'35%' }} />
+              </div>
+              <div style={{ display:'flex',flexDirection:'column',gap:6,alignItems:'flex-end' }}>
+                <div className="skeleton-row" style={{ height:15,width:70 }} />
+                <div className="skeleton-row" style={{ height:20,width:60,borderRadius:999 }} />
+              </div>
+            </div>
+          </div>
+        ))}
         {!isLoading && items.length === 0 && (
           <div style={{ textAlign:'center',padding:40,color:'var(--t3)' }}>
             {search.trim() ? (
@@ -400,7 +427,19 @@ export default function InterventionsPage() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={selectionMode ? 9 : 8} style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>Chargement…</td></tr>}
+            {isLoading && [0,1,2,3].map(i=>(
+              <tr key={i}>
+                {selectionMode&&<td />}
+                <td><div className="skeleton-row" style={{ height:14,width:'80%' }} /></td>
+                <td><div className="skeleton-row" style={{ height:14,width:'70%',marginBottom:4 }} /><div className="skeleton-row" style={{ height:11,width:'45%' }} /></td>
+                {isAdmin&&<td><div className="skeleton-row" style={{ height:13,width:'65%' }} /></td>}
+                <td><div className="skeleton-row" style={{ height:20,width:70,borderRadius:999 }} /></td>
+                <td><div className="skeleton-row" style={{ height:13,width:'80%' }} /></td>
+                <td><div className="skeleton-row" style={{ height:14,width:60 }} /></td>
+                <td><div className="skeleton-row" style={{ height:20,width:70,borderRadius:999 }} /></td>
+                <td />
+              </tr>
+            ))}
             {!isLoading&&items.length===0 && (
               <tr><td colSpan={selectionMode ? 9 : 8} style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>
                 {search.trim()
@@ -543,12 +582,12 @@ export default function InterventionsPage() {
 
       {/* MODAL CRÉER */}
       {createModal && (
-        <div className="modal-overlay" onClick={() => setCreateModal(false)}>
+        <div className={`modal-overlay${createModalClosing?' is-closing':''}`} onClick={closeCreateModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header"><span className="modal-title">Nouvelle intervention</span><button className="btn-icon sm" onClick={() => setCreateModal(false)}>✕</button></div>
+            <div className="modal-header"><span className="modal-title">Nouvelle intervention</span><button className="btn-icon sm" onClick={closeCreateModal}>✕</button></div>
             <form onSubmit={submitCreate}>
               <div className="modal-body">
-                <div className="form-group"><label>Client *</label>
+                <div className="form-group"><label>Client <span className="req">*</span></label>
                   <CustomSelect
                     value={createForm.client_id}
                     placeholder="Sélectionner un client…"
@@ -596,7 +635,7 @@ export default function InterventionsPage() {
                 </label>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setCreateModal(false)}>Annuler</button>
+                <button type="button" className="btn btn-secondary" onClick={closeCreateModal}>Annuler</button>
                 <button type="submit" className="btn btn-primary" disabled={create.isPending}>{create.isPending?'Création…':'Créer'}</button>
               </div>
             </form>
@@ -606,11 +645,11 @@ export default function InterventionsPage() {
 
       {/* MODAL MODIFIER */}
       {editModal && editTarget && (
-        <div className="modal-overlay" onClick={() => setEditModal(false)}>
+        <div className={`modal-overlay${editModalClosing?' is-closing':''}`} onClick={closeEditModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">Modifier {editTarget.numero}</span>
-              <button className="btn-icon sm" onClick={() => setEditModal(false)}>✕</button>
+              <button className="btn-icon sm" onClick={closeEditModal}>✕</button>
             </div>
             <form onSubmit={submitEdit}>
               <div className="modal-body">
@@ -650,7 +689,7 @@ export default function InterventionsPage() {
                 {isAdmin && <div className="form-group"><label>Notes admin (privées)</label><textarea value={editForm.notes_admin} onChange={e => setEditForm(f=>({...f,notes_admin:e.target.value}))} /></div>}
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setEditModal(false)}>Annuler</button>
+                <button type="button" className="btn btn-secondary" onClick={closeEditModal}>Annuler</button>
                 <button type="submit" className="btn btn-primary" disabled={update.isPending}>{update.isPending?'Sauvegarde…':'Enregistrer'}</button>
               </div>
             </form>

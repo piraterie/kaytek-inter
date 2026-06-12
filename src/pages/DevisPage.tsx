@@ -387,7 +387,21 @@ export default function DevisPage() {
 
       {/* ── MOBILE : cartes ─────────────────────────────── */}
       <div className="show-mobile">
-        {isLoading && <div style={{ textAlign: 'center', padding: 32, color: 'var(--t3)' }}>Chargement…</div>}
+        {isLoading && [0,1,2,3].map(i => (
+          <div key={i} style={{ background:'var(--s0)',borderRadius:20,padding:'15px 16px',marginBottom:10,boxShadow:'var(--sh0)',borderLeft:'4px solid var(--s3)' }}>
+            <div style={{ display:'flex',alignItems:'center',gap:6,marginBottom:8 }}>
+              <div className="skeleton-row" style={{ height:14,width:80 }} />
+              <div className="skeleton-row" style={{ height:20,width:70,borderRadius:999 }} />
+            </div>
+            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12 }}>
+              <div style={{ flex:1,display:'flex',flexDirection:'column',gap:6 }}>
+                <div className="skeleton-row" style={{ height:14,width:'60%' }} />
+                <div className="skeleton-row" style={{ height:11,width:'45%' }} />
+              </div>
+              <div className="skeleton-row" style={{ height:17,width:70,flexShrink:0 }} />
+            </div>
+          </div>
+        ))}
         {!isLoading && filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: 48, color: 'var(--t3)' }}>
             {search.trim() ? (
@@ -504,9 +518,20 @@ export default function DevisPage() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
-              <tr><td colSpan={colCount} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Chargement…</td></tr>
-            )}
+            {isLoading && [0,1,2,3].map(i=>(
+              <tr key={i}>
+                {selectionMode&&<td />}
+                <td><div className="skeleton-row" style={{ height:14,width:70 }} /></td>
+                <td><div className="skeleton-row" style={{ height:14,width:'75%',marginBottom:4 }} /><div className="skeleton-row" style={{ height:11,width:'50%' }} /></td>
+                <td><div className="skeleton-row" style={{ height:20,width:70,borderRadius:999 }} /></td>
+                <td><div className="skeleton-row" style={{ height:14,width:65 }} /></td>
+                <td><div className="skeleton-row" style={{ height:20,width:80,borderRadius:999 }} /></td>
+                {isAdmin&&<td><div className="skeleton-row" style={{ height:13,width:'70%' }} /></td>}
+                <td><div className="skeleton-row" style={{ height:13,width:65 }} /></td>
+                <td><div className="skeleton-row" style={{ height:13,width:75 }} /></td>
+                <td />
+              </tr>
+            ))}
             {!isLoading && filtered.length === 0 && (
               <tr><td colSpan={colCount} style={{ textAlign: 'center', padding: 32, color: 'var(--t3)' }}>
                 {search.trim()

@@ -357,7 +357,7 @@ export default function DevisFormPage() {
             </div>
           ) : (
             <div className="form-group" style={{ margin: 0 }}>
-              <label>Client *</label>
+              <label>Client <span className="req">*</span></label>
               <CustomSelect
                 value={form.client_id}
                 placeholder="Sélectionner un client…"
