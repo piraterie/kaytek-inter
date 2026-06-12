@@ -75,32 +75,51 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
     ;(async () => {
       const t0 = Date.now()
       try {
-        // Niveau 1 : cache mémoire (instant)
-        let blob: Blob | undefined = pdfCache.get(_devis.id)
-        if (blob) {
-          console.log(`[devis-email] PDF depuis cache mémoire (0ms)`)
-        }
+        let blob: Blob | undefined
 
-        // Niveau 2 : storage Supabase (~200ms vs 2-3s)
-        if (!blob && _devis.pdf_url) {
-          try {
-            const tS = Date.now()
-            const { data, error } = await supabase.storage.from('pdf-documents').download(_devis.pdf_url)
-            if (!error && data) {
-              blob = data
-              pdfCache.set(_devis.id, data)
-              console.log(`[devis-email] PDF depuis storage ${Date.now() - tS}ms`)
-            }
-          } catch { /* fallback */ }
-        }
-
-        // Niveau 3 : génération fraîche (fallback)
-        if (!blob) {
-          const tG = Date.now()
+        // Devis signé : récupérer les données fraîches depuis la DB pour garantir
+        // que signature_client est présente dans le PDF — le cache mémoire et le
+        // storage peuvent contenir un PDF pré-généré AVANT la signature
+        const isSigned = !!(_devis.signature_url || (_devis as any).signature_client || _devis.statut === 'accepte')
+        if (isSigned) {
+          const { data: freshData } = await supabase
+            .from('devis')
+            .select('*, client:clients(*), intervenant:profiles!intervenant_id(*)')
+            .eq('id', _devis.id)
+            .single()
+          const devisForPdf: any = (freshData && (freshData as any).signature_client) ? freshData : _devis
           const paramsForPDF = _logo ? { ..._params, logo_url: _logo } : _params
-          blob = await generateDevisPDF(_devis, paramsForPDF, _devis.modele_id ?? 0)
+          blob = await generateDevisPDF(devisForPdf, paramsForPDF, devisForPdf.modele_id ?? _devis.modele_id ?? 0)
           pdfCache.set(_devis.id, blob)
-          console.log(`[devis-email] PDF généré ${Date.now() - tG}ms`)
+          console.log(`[devis-email] PDF signé régénéré depuis DB (${Date.now() - t0}ms)`)
+        } else {
+          // Niveau 1 : cache mémoire (instant)
+          blob = pdfCache.get(_devis.id)
+          if (blob) {
+            console.log(`[devis-email] PDF depuis cache mémoire (0ms)`)
+          }
+
+          // Niveau 2 : storage Supabase (~200ms vs 2-3s)
+          if (!blob && _devis.pdf_url) {
+            try {
+              const tS = Date.now()
+              const { data, error } = await supabase.storage.from('pdf-documents').download(_devis.pdf_url)
+              if (!error && data) {
+                blob = data
+                pdfCache.set(_devis.id, data)
+                console.log(`[devis-email] PDF depuis storage ${Date.now() - tS}ms`)
+              }
+            } catch { /* fallback */ }
+          }
+
+          // Niveau 3 : génération fraîche (fallback)
+          if (!blob) {
+            const tG = Date.now()
+            const paramsForPDF = _logo ? { ..._params, logo_url: _logo } : _params
+            blob = await generateDevisPDF(_devis, paramsForPDF, _devis.modele_id ?? 0)
+            pdfCache.set(_devis.id, blob)
+            console.log(`[devis-email] PDF généré ${Date.now() - tG}ms`)
+          }
         }
 
         if (!blob) throw new Error('Impossible de générer le PDF')
