@@ -1,5 +1,5 @@
 // src/components/layout/AppLayout.tsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -162,6 +162,15 @@ export default function AppLayout() {
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
   }, [notifOpen])
+
+  const mainRef = useRef<HTMLElement>(null)
+
+  // Remettre le scroll en haut à chaque changement de route
+  // Messagerie exclue : la conversation doit rester sur le dernier message
+  useEffect(() => {
+    if (loc.pathname.startsWith('/messagerie')) return
+    if (mainRef.current) mainRef.current.scrollTop = 0
+  }, [loc.pathname])
 
   const currentPage = items.find(i => loc.pathname.startsWith(i.path))?.label || 'Kaytek'
 
@@ -635,7 +644,7 @@ export default function AppLayout() {
           </div>
         )}
         {/* Content */}
-        <main className="main-content" style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 18, scrollbarWidth: 'thin', scrollbarColor: 'var(--s3) transparent' }}>
+        <main ref={mainRef} className="main-content" style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 18, scrollbarWidth: 'thin', scrollbarColor: 'var(--s3) transparent' }}>
           <Outlet />
         </main>
       </div>
@@ -678,13 +687,16 @@ export default function AppLayout() {
         </DocSheet>
       )}
 
-      {/* TOASTS */}
+      {/* TOASTS — max 2 mobile / 3 desktop, dédupliqués */}
       <div className="toast-container">
-        {toasts.map(t => (
+        {toasts.slice(isMobile ? -2 : -3).map(t => (
           <div key={t.id} className={`toast ${t.type}`} onClick={() => remove(t.id)}
             style={t.actionLabel ? { display: 'flex', alignItems: 'center', gap: 6 } : undefined}>
             <span>{t.type === 'success' ? '✓' : t.type === 'error' ? '✗' : t.type === 'warning' ? '⚠' : 'ℹ'}</span>
-            {t.actionLabel ? <span style={{ flex: 1 }}>{t.message}</span> : t.message}
+            {t.actionLabel
+              ? <span style={{ flex: 1 }}>{t.message}{t.count > 1 ? ` ×${t.count}` : ''}</span>
+              : <>{t.message}{t.count > 1 ? ` ×${t.count}` : ''}</>
+            }
             {t.actionLabel && t.onAction && (
               <button
                 onClick={e => { e.stopPropagation(); t.onAction!(); remove(t.id) }}

@@ -32,21 +32,84 @@ export const useParamsStore = create<{
 export type ToastType = 'success'|'error'|'info'|'warning'
 export interface Toast {
   id: string; message: string; type: ToastType
+  count: number; dedupeKey: string
   actionLabel?: string; onAction?: () => void
 }
+
+// Registry de timers hors state Zustand pour annulation propre lors de la déduplication
+const toastTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
 export const useToastStore = create<{
   toasts: Toast[]
   add: (message: string, type?: ToastType, action?: { label: string; fn: () => void }) => void
   remove: (id: string) => void
-}>((set) => ({
+}>((set, get) => ({
   toasts: [],
   add: (message, type = 'success', action) => {
+    const duration = type === 'error' ? 3500 : type === 'warning' ? 2500 : 1800
+    const dedupeKey = `${type}:${message}`
+    const existing = get().toasts.find(t => t.dedupeKey === dedupeKey)
+
+    if (existing) {
+      // Même message déjà visible : incrémenter le compteur + réinitialiser le timer
+      set(s => ({
+        toasts: s.toasts.map(t =>
+          t.dedupeKey === dedupeKey ? { ...t, count: t.count + 1 } : t
+        )
+      }))
+      const old = toastTimers.get(existing.id)
+      if (old) clearTimeout(old)
+      const timer = setTimeout(() => {
+        set(s => ({ toasts: s.toasts.filter(t => t.id !== existing.id) }))
+        toastTimers.delete(existing.id)
+      }, duration)
+      toastTimers.set(existing.id, timer)
+      return
+    }
+
     const id = crypto.randomUUID()
-    const toast: Toast = { id, message, type }
+    const toast: Toast = { id, message, type, dedupeKey, count: 1 }
     if (action) { toast.actionLabel = action.label; toast.onAction = action.fn }
-    set(s => ({ toasts: [...s.toasts, toast] }))
-    const duration = type === 'error' ? 7000 : 3500
-    setTimeout(() => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) })), duration)
+
+    set(s => {
+      const next = [...s.toasts, toast]
+      if (next.length <= 3) return { toasts: next }
+
+      // Éviction par priorité : error/warning évinces d'abord les success/info,
+      // success/info s'évincent entre eux — les erreurs restent toujours visibles
+      const evictOrder: ToastType[][] =
+        (type === 'error')    ? [['success','info'], ['warning']] :
+        (type === 'warning')  ? [['success','info']] :
+                                [['success','info']]
+
+      for (const candidates of evictOrder) {
+        const idx = next.findIndex(t => candidates.includes(t.type))
+        if (idx !== -1) {
+          const evicted = next[idx]
+          const old = toastTimers.get(evicted.id)
+          if (old) clearTimeout(old)
+          toastTimers.delete(evicted.id)
+          return { toasts: next.filter((_, i) => i !== idx) }
+        }
+      }
+      // Fallback : supprimer le plus ancien (cas 3 erreurs empilées)
+      const evicted = next[0]
+      const old = toastTimers.get(evicted.id)
+      if (old) clearTimeout(old)
+      toastTimers.delete(evicted.id)
+      return { toasts: next.slice(1) }
+    })
+
+    const timer = setTimeout(() => {
+      set(s => ({ toasts: s.toasts.filter(t => t.id !== id) }))
+      toastTimers.delete(id)
+    }, duration)
+    toastTimers.set(id, timer)
   },
-  remove: id => set(s => ({ toasts: s.toasts.filter(t => t.id !== id) }))
+  remove: id => {
+    const old = toastTimers.get(id)
+    if (old) clearTimeout(old)
+    toastTimers.delete(id)
+    set(s => ({ toasts: s.toasts.filter(t => t.id !== id) }))
+  }
 }))
