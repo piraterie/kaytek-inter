@@ -508,7 +508,7 @@ export default function AppLayout() {
       )}
 
       {/* MAIN */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', background: 'var(--bg)' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', background: 'var(--bg)', paddingTop: isMobile ? 'calc(56px + env(safe-area-inset-top))' : undefined }}>
         {/* Topbar */}
         <header className="app-topbar" style={{ height: 56, background: 'var(--s0)', borderBottom: '1px solid var(--b0)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 8, flexShrink: 0, overflow: 'hidden' }}>
           <button className="btn-icon" onClick={isMobile ? toggleSidebar : toggleCompact} aria-label="Menu" style={{ fontSize: 18, flexShrink: 0 }}>☰</button>
