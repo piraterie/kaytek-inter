@@ -1,9 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 import { existsSync, readFileSync } from 'fs'
 
-// Charge .env.test si présent (credentials de test isolés du .env de prod)
-if (existsSync('.env.test')) {
-  readFileSync('.env.test', 'utf-8')
+// Charge un fichier .env spécifié si présent
+function loadEnvFile(file: string) {
+  if (!existsSync(file)) return
+  readFileSync(file, 'utf-8')
     .split('\n')
     .filter(l => l.trim() && !l.startsWith('#'))
     .forEach(l => {
@@ -14,6 +15,9 @@ if (existsSync('.env.test')) {
       if (k && !process.env[k]) process.env[k] = v
     })
 }
+
+loadEnvFile('.env.test')       // credentials tests E2E standards
+loadEnvFile('.env.beta-test')  // credentials comptes bêta
 
 const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:5173'
 
@@ -112,6 +116,15 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],
       testMatch: /multi-tenant\/.*\.spec\.ts/,
+    },
+
+    // ── 9. Beta accounts — validation des 5 comptes bêta serruriers ────
+    {
+      name: 'beta',
+      use: { ...devices['Desktop Chrome'] },
+      // Pas de dépendance sur 'setup' : la suite gère son propre auth
+      testMatch: /beta\/.*\.spec\.ts/,
+      timeout: 90_000, // Plus de temps : 5 comptes × 4 phases
     },
   ],
 

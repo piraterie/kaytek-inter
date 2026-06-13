@@ -14,7 +14,8 @@
     "test:chromium": "playwright test --project=chromium",
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report",
-    "test:setup": "playwright test tests/auth.setup.ts --project=setup"
+    "test:setup": "playwright test tests/auth.setup.ts --project=setup",
+    "test:beta": "playwright test tests/beta --project=beta"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",
