@@ -23,6 +23,11 @@ import ResetPasswordPage from '@/pages/ResetPasswordPage'
 import DevisApercuPage from '@/pages/DevisApercuPage'
 import CataloguePage from '@/pages/CataloguePage'
 import PlanningPage from '@/pages/PlanningPage'
+import GuidePage from '@/pages/guide/GuidePage'
+import GuideAdminPage from '@/pages/guide/GuideAdminPage'
+import GuideIntervenantPage from '@/pages/guide/GuideIntervenantPage'
+import GuideFAQPage from '@/pages/guide/GuideFAQPage'
+import GuideAdminVideosPage from '@/pages/guide/GuideAdminVideosPage'
 
 function Guard({ children, adminOnly = false, requireCanCreateDocs = false }: { children: React.ReactNode; adminOnly?: boolean; requireCanCreateDocs?: boolean }) {
   const { user, loading, error } = useAuthStore()
@@ -238,6 +243,12 @@ export default function App() {
         <Route path="utilisateurs" element={<Guard adminOnly><UsersPage /></Guard>} />
         <Route path="parametres" element={<Guard adminOnly><ParamsPage /></Guard>} />
         <Route path="journal" element={<Guard adminOnly><JournalPage /></Guard>} />
+        {/* ── Guide d'utilisation ─────────────────────────────────────── */}
+        <Route path="guide" element={<Guard><GuidePage /></Guard>} />
+        <Route path="guide/admin/videos" element={<Guard adminOnly><GuideAdminVideosPage /></Guard>} />
+        <Route path="guide/admin/:section?" element={<Guard adminOnly><GuideAdminPage /></Guard>} />
+        <Route path="guide/intervenant/:section?" element={<Guard><GuideIntervenantPage /></Guard>} />
+        <Route path="guide/faq" element={<Guard><GuideFAQPage /></Guard>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

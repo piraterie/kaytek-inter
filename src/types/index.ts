@@ -16,6 +16,26 @@ export interface Profile {
   telegram_notifications_enabled?: boolean
   avatar_url?: string; created_at: string; updated_at: string
   organisation_id: string
+  welcome_dismissed?: boolean
+}
+
+// ── Guide ──────────────────────────────────────────────────────────────────
+export interface GuideVideo {
+  id: string; organisation_id: string; slug: string; role: Role
+  section_slug: string; titre: string; description?: string
+  duree_secondes?: number; storage_path: string; ordre: number
+  actif: boolean; created_at: string; updated_at: string
+}
+
+export interface GuideProgress {
+  id: string; user_id: string; organisation_id: string
+  section_slug: string; role: Role; completed_at: string
+}
+
+export interface GuideNews {
+  id: string; organisation_id: string; titre: string; description: string
+  date_publication: string; visible_admin: boolean; visible_intervenant: boolean
+  actif: boolean; created_at: string; updated_at: string
 }
 
 export interface ParametresEntreprise {

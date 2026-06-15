@@ -5,8 +5,10 @@ import { useQuery } from '@tanstack/react-query'
 import {
   LayoutDashboard, MessagesSquare, Wrench, CalendarDays, FileText, Receipt,
   Users, Package, DollarSign, Shield, Settings, ClipboardList,
-  ChevronLeft, ChevronRight, LogOut, Sun, Moon
+  ChevronLeft, ChevronRight, LogOut, Sun, Moon, BookOpen
 } from 'lucide-react'
+import HelpButton from '@/components/HelpButton'
+import WelcomeModal from '@/components/WelcomeModal'
 import { useAuthStore, useUIStore, useToastStore, useParamsStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
 import { signOut } from '@/lib/supabase/auth'
@@ -27,6 +29,7 @@ const NAV: { path: string; label: string; icon: NavIcon; section: string; adminO
   { path: '/clients',       label: 'Clients',       icon: Users,           section: 'Gestion', adminOnly: true },
   { path: '/catalogue',     label: 'Catalogue',     icon: Package,         section: 'Gestion', adminOnly: true },
   { path: '/commissions',   label: 'Commissions',   icon: DollarSign,      section: 'Gestion' },
+  { path: '/guide',         label: 'Guide',         icon: BookOpen,        section: 'Gestion' },
   { path: '/utilisateurs',  label: 'Utilisateurs',  icon: Shield,          section: 'Administration', adminOnly: true },
   { path: '/parametres',    label: 'Paramètres',    icon: Settings,        section: 'Administration', adminOnly: true },
   { path: '/journal',       label: 'Journal',       icon: ClipboardList,   section: 'Administration', adminOnly: true },
@@ -87,6 +90,20 @@ export default function AppLayout() {
   const [notifOpen, setNotifOpen] = useState(false)
   const [showReadNotifs, setShowReadNotifs] = useState(false)
   const [newMenuOpen, setNewMenuOpen] = useState(false)
+
+  const [showWelcome, setShowWelcome] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    if (user.welcome_dismissed) return
+    if (sessionStorage.getItem('kaytek-welcome-dismissed')) return
+    setShowWelcome(true)
+  }, [user?.id, user?.welcome_dismissed])
+
+  function handleCloseWelcome() {
+    sessionStorage.setItem('kaytek-welcome-dismissed', '1')
+    setShowWelcome(false)
+  }
 
   const [profilModal, setProfilModal] = useState(false)
   const [profilForm, setProfilForm] = useState({ prenom: '', nom: '' })
@@ -686,6 +703,10 @@ export default function AppLayout() {
           )}
         </DocSheet>
       )}
+
+      {/* AIDE — bouton flottant + modale de bienvenue */}
+      <HelpButton />
+      {showWelcome && <WelcomeModal onClose={handleCloseWelcome} />}
 
       {/* TOASTS — max 2 mobile / 3 desktop, dédupliqués */}
       <div className="toast-container">
