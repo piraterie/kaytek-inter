@@ -7,7 +7,6 @@ import {
   Users, Package, DollarSign, Shield, Settings, ClipboardList,
   ChevronLeft, ChevronRight, LogOut, Sun, Moon, BookOpen
 } from 'lucide-react'
-import HelpButton from '@/components/HelpButton'
 import WelcomeModal from '@/components/WelcomeModal'
 import { useAuthStore, useUIStore, useToastStore, useParamsStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
@@ -704,8 +703,7 @@ export default function AppLayout() {
         </DocSheet>
       )}
 
-      {/* AIDE — bouton flottant + modale de bienvenue */}
-      <HelpButton />
+      {/* Modale de bienvenue */}
       {showWelcome && <WelcomeModal onClose={handleCloseWelcome} />}
 
       {/* TOASTS — max 2 mobile / 3 desktop, dédupliqués */}
