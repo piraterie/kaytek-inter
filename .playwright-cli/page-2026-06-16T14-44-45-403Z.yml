@@ -1,0 +1,107 @@
+- generic [ref=e6]:
+  - complementary [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]: 🔐
+      - generic [ref=e11]:
+        - generic [ref=e12]: Kaytek Inter
+        - generic [ref=e13]: Serrurerie · Vitrerie
+    - navigation [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e16]: Pilotage
+        - button "Dashboard" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+          - generic [ref=e23]: Dashboard
+        - button "Messagerie" [ref=e24] [cursor=pointer]:
+          - img [ref=e25]
+          - generic [ref=e28]: Messagerie
+      - generic [ref=e29]:
+        - generic [ref=e30]: Terrain
+        - button "Interventions 3" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+          - generic [ref=e34]: Interventions
+          - generic [ref=e35]: "3"
+        - button "Planning" [ref=e36] [cursor=pointer]:
+          - img [ref=e37]
+          - generic [ref=e39]: Planning
+        - button "Devis" [ref=e40] [cursor=pointer]:
+          - img [ref=e41]
+          - generic [ref=e44]: Devis
+        - button "Factures" [ref=e45] [cursor=pointer]:
+          - img [ref=e46]
+          - generic [ref=e49]: Factures
+      - generic [ref=e50]:
+        - generic [ref=e51]: Gestion
+        - button "Commissions" [ref=e52] [cursor=pointer]:
+          - img [ref=e53]
+          - generic [ref=e55]: Commissions
+        - button "Guide" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - generic [ref=e59]: Guide
+    - generic [ref=e61]:
+      - button "T Intervenant A Test Intervenant · Kaytek Inter" [ref=e62] [cursor=pointer]:
+        - generic [ref=e63]:
+          - generic [ref=e64]: T
+          - generic [ref=e65]:
+            - generic [ref=e66]: Intervenant A Test
+            - generic [ref=e67]: Intervenant · Kaytek Inter
+      - generic [ref=e68]:
+        - button "Clair" [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - text: Clair
+        - button "Quitter" [ref=e76] [cursor=pointer]:
+          - img [ref=e77]
+          - text: Quitter
+  - generic [ref=e80]:
+    - banner [ref=e81]:
+      - button "Menu" [ref=e82] [cursor=pointer]: ☰
+      - generic [ref=e83]: Interventions
+      - generic [ref=e84]:
+        - button "💬" [ref=e85] [cursor=pointer]
+        - button "🔔" [ref=e87] [cursor=pointer]
+        - button "☀" [ref=e88] [cursor=pointer]
+    - main [ref=e89]:
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - button "←" [ref=e92] [cursor=pointer]
+          - generic [ref=e93]:
+            - heading "INT-2026-039" [level=1] [ref=e94]
+            - paragraph [ref=e95]: TEST-WORKFLOW PW-1781301130756 · 10 Rue du Test, Paris 75001
+          - generic [ref=e97]: en cours
+        - button "⚡ Actions" [ref=e99] [cursor=pointer]
+        - generic [ref=e100]:
+          - button "📋 Détail" [ref=e101] [cursor=pointer]
+          - button "📷 Photos (0)" [ref=e102] [cursor=pointer]
+          - button "📝 Compte-rendu" [ref=e103] [cursor=pointer]
+          - button "💰 Commission" [ref=e104] [cursor=pointer]
+          - button "📄 Devis / Facture" [ref=e105] [cursor=pointer]
+        - generic [ref=e106]:
+          - generic [ref=e107]:
+            - generic [ref=e108]:
+              - generic [ref=e109]: Client
+              - generic [ref=e110]: TEST-WORKFLOW PW-1781301130756
+            - generic [ref=e111]:
+              - generic [ref=e112]: Tél.
+              - generic [ref=e113]: —
+            - generic [ref=e114]:
+              - generic [ref=e115]: Adresse
+              - generic [ref=e116]: 10 Rue du Test, Paris 75001
+            - generic [ref=e117]:
+              - generic [ref=e118]: Code accès
+              - generic [ref=e119]: —
+            - generic [ref=e120]:
+              - generic [ref=e121]: Type
+              - generic [ref=e122]: serrurerie
+            - generic [ref=e123]:
+              - generic [ref=e124]: Intervenant
+              - generic [ref=e125]: Intervenant A Test
+            - generic [ref=e126]:
+              - generic [ref=e127]: Date
+              - generic [ref=e128]: —
+            - generic [ref=e129]:
+              - generic [ref=e130]: Montant TTC
+              - generic [ref=e131]: 180 €
+          - generic [ref=e132]:
+            - paragraph [ref=e133]: Avancement
+            - button "✅ Marquer terminée" [ref=e135] [cursor=pointer]
+  - navigation [ref=e136]:
+    - button "☰ Menu" [ref=e137] [cursor=pointer]

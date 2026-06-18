@@ -1,7 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#2563eb"/>
-  <path d="M11 14.5v-3.2a5 5 0 0 1 10 0v3.2" stroke="white" stroke-width="2.4" stroke-linecap="round" fill="none"/>
-  <rect x="8.5" y="14" width="15" height="11" rx="2.5" fill="white"/>
-  <circle cx="16" cy="19.5" r="2" fill="#2563eb"/>
-  <rect x="15.1" y="19.5" width="1.8" height="2.8" rx="0.9" fill="#2563eb"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <rect width="100" height="100" fill="white"/>
+  <defs>
+    <clipPath id="fl">
+      <rect x="0" y="0" width="52" height="100"/>
+    </clipPath>
+  </defs>
+  <polygon points="72,12 93,50 72,88 28,88 7,50 28,12" fill="none" stroke="#1A2F5C" stroke-width="9" stroke-linejoin="round"/>
+  <polygon points="72,12 93,50 72,88 28,88 7,50 28,12" fill="none" stroke="#3B82F6" stroke-width="9" stroke-linejoin="round" clip-path="url(#fl)"/>
+  <line x1="35" y1="22" x2="35" y2="78" stroke="#3B82F6" stroke-width="9" stroke-linecap="round"/>
+  <line x1="35" y1="22" x2="54" y2="22" stroke="#3B82F6" stroke-width="9" stroke-linecap="round"/>
+  <line x1="35" y1="78" x2="54" y2="78" stroke="#3B82F6" stroke-width="9" stroke-linecap="round"/>
+  <line x1="40" y1="50" x2="67" y2="22" stroke="#3B82F6" stroke-width="9" stroke-linecap="round"/>
+  <line x1="40" y1="50" x2="67" y2="78" stroke="#3B82F6" stroke-width="9" stroke-linecap="round"/>
 </svg>

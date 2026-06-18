@@ -5,7 +5,6 @@ import SignatureModal from '@/components/SignatureModal'
 import { useCreateDevis, useUpdateDevis, useDevisById, useClients, useProfiles, usePrestations, useCreatePrestation, useParametres } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
-import { generateDevisPDF, downloadBlob } from '@/lib/pdf/generator'
 import { pdfCache } from '@/lib/pdf/cache'
 import { uploadPdf } from '@/lib/supabase/storage'
 import { THEMES } from '@/lib/themes'
@@ -169,6 +168,7 @@ export default function DevisFormPage() {
     if (!params) { add('Remplissez les parametres entreprise d abord', 'warning'); return }
     setPdfLoading(true)
     try {
+      const { generateDevisPDF, downloadBlob } = await import('@/lib/pdf/generator')
       const blob = await generateDevisPDF(buildMockDevis() as any, params, form.modele_id)
       downloadBlob(blob, `apercu-devis.pdf`)
       add('PDF ouvert')
@@ -208,12 +208,13 @@ export default function DevisFormPage() {
       const _orgId = user?.organisation_id
       const _devisForPdf = { ...buildMockDevis(), id: _savedId, numero: savedNumero }
 
-      nav(form.intervention_id ? `/interventions/${form.intervention_id}` : '/devis')
+      nav(form.intervention_id ? `/interventions/${form.intervention_id}` : `/devis/${savedId}/apercu`)
 
       // Pré-générer le PDF en arrière-plan — met à jour le cache mémoire + storage
       if (_savedId && _params) {
         ;(async () => {
           try {
+            const { generateDevisPDF } = await import('@/lib/pdf/generator')
             const blob = await generateDevisPDF(_devisForPdf as any, _params, _modeleId)
             pdfCache.set(_savedId, blob)
             if (_orgId) {
@@ -239,6 +240,7 @@ export default function DevisFormPage() {
       if (id && params) {
         ;(async () => {
           try {
+            const { generateDevisPDF } = await import('@/lib/pdf/generator')
             const devisWithSig = { ...buildMockDevis(), signature_client: base64, signature_date: sigDate, signe_par: sigPar, statut: 'accepte' as const }
             const blob = await generateDevisPDF(devisWithSig as any, params, form.modele_id)
             pdfCache.set(id, blob)
@@ -776,7 +778,7 @@ export default function DevisFormPage() {
               </div>
               <div style={{ background: 'var(--blBg)', border: '1px solid var(--blBd)', borderRadius: 14, padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 13, color: 'var(--blTx)', fontWeight: 600 }}>Total ligne</span>
-                <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--blTx)' }}>{eur(manuelTtc)} <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.7 }}>HT</span></span>
+                <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--blTx)' }}>{eur(manuelTtc)} <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.7 }}>TTC</span></span>
               </div>
               <button
                 className="btn btn-primary"

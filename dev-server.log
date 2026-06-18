@@ -1,0 +1,32 @@
+
+> kaytek-inter@1.0.0 dev
+> vite
+
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m432[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+[2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[2m20:50:17[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/AppLayout.tsx, /src/pages/DashboardPage.tsx, /src/pages/DevisPage.tsx, /src/components/EmailDevisModal.tsx, /src/pages/ClientsPage.tsx, /src/pages/FacturesPage.tsx, /src/pages/InterventionsPage.tsx[22m
+[2m20:50:25[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/DevisPage.tsx[22m
+[2m20:50:31[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/DevisPage.tsx[22m
+[2m20:50:39[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/DevisPage.tsx[22m
+[2m20:50:54[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/DevisPage.tsx[22m
+[2m21:00:58[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/InterventionsPage.tsx[22m
+[2m21:01:30[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/InterventionsPage.tsx[22m
+[2m21:04:57[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/InterventionsPage.tsx[22m
+[2m21:05:19[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/InterventionsPage.tsx[22m
+[2m21:05:51[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/InterventionsPage.tsx[22m
+[2m21:09:12[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/InterventionsPage.tsx[22m
+[2m21:09:24[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/InterventionsPage.tsx[22m
+[2m21:10:57[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/InterventionsPage.tsx[22m
+[2m21:11:35[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ClientsPage.tsx[22m
+[2m21:11:44[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ClientsPage.tsx[22m
+[2m21:15:44[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/AppLayout.tsx, /src/pages/DashboardPage.tsx, /src/pages/DevisPage.tsx, /src/components/EmailDevisModal.tsx, /src/pages/ClientsPage.tsx, /src/pages/FacturesPage.tsx, /src/pages/InterventionsPage.tsx[22m
+[2m21:17:33[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m21:18:16[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m21:21:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/FacturesPage.tsx[22m
+[2m21:21:41[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/FacturesPage.tsx[22m
+[2m21:21:56[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/FacturesPage.tsx[22m
+[2m21:22:06[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/FacturesPage.tsx[22m
+[2m21:22:38[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/FacturesPage.tsx[22m

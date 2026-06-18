@@ -1,0 +1,21 @@
+[     199ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-5PWU34Q3.js?v=35545325:21550
+[     202ms] [ERROR] Variables Supabase manquantes dans .env.local @ http://localhost:5173/src/lib/supabase/client.ts:3
+[     203ms] Error: supabaseUrl is required.
+    at validateSupabaseUrl (http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=35545325:20621:26)
+    at new SupabaseClient (http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=35545325:20850:21)
+    at createClient (http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=35545325:21063:10)
+    at http://localhost:5173/src/lib/supabase/client.ts:5:25
+[  174165ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:559
+[  176535ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/:0
+[  179909ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/:0
+[  183289ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5173/:0
+[  185691ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-5PWU34Q3.js?v=35545325:21550
+[  185839ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4426
+[  185839ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4426
+[  192280ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-5PWU34Q3.js?v=35545325:21550
+[  192333ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4426
+[  192333ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4426
+[  215383ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/devices?select=id&user_id=eq.64f430a8-be31-4dee-9088-22588b50ca25&device_id=eq.1bed0b95-f588-4db0-8e05-e3ff7ce29fbc:0
+[  226413ms] [LOG] [Login] redirect post-push → /dashboard @ http://localhost:5173/src/pages/LoginPage.tsx:93
+[  226807ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[  227900ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0

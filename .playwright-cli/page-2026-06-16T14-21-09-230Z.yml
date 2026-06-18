@@ -1,0 +1,117 @@
+- generic [ref=e24]:
+  - complementary [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e27]: 🔐
+      - generic [ref=e28]:
+        - generic [ref=e29]: Kaytek Inter
+        - generic [ref=e30]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+    - navigation [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]: Pilotage
+        - button "Dashboard" [ref=e37] [cursor=pointer]:
+          - img [ref=e38]
+          - generic [ref=e43]: Dashboard
+        - button "Messagerie" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e48]: Messagerie
+      - generic [ref=e49]:
+        - generic [ref=e50]: Terrain
+        - button "Interventions 4" [ref=e51] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e54]: Interventions
+          - generic [ref=e55]: "4"
+        - button "Planning" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - generic [ref=e59]: Planning
+        - button "Devis" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+          - generic [ref=e64]: Devis
+        - button "Factures" [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+          - generic [ref=e69]: Factures
+      - generic [ref=e70]:
+        - generic [ref=e71]: Gestion
+        - button "Commissions" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+          - generic [ref=e75]: Commissions
+        - button "Guide" [ref=e76] [cursor=pointer]:
+          - img [ref=e77]
+          - generic [ref=e79]: Guide
+    - generic [ref=e81]:
+      - button "T Intervenant A Test Intervenant · Kaytek Inter" [ref=e82] [cursor=pointer]:
+        - generic [ref=e83]:
+          - generic [ref=e84]: T
+          - generic [ref=e85]:
+            - generic [ref=e86]: Intervenant A Test
+            - generic [ref=e87]: Intervenant · Kaytek Inter
+      - generic [ref=e88]:
+        - button "Clair" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - text: Clair
+        - button "Quitter" [ref=e96] [cursor=pointer]:
+          - img [ref=e97]
+          - text: Quitter
+  - generic [ref=e100]:
+    - banner [ref=e101]:
+      - button "Menu" [ref=e102] [cursor=pointer]: ☰
+      - generic [ref=e103]: Interventions
+      - generic [ref=e104]:
+        - button "💬" [ref=e105] [cursor=pointer]
+        - button "🔔" [ref=e107] [cursor=pointer]
+        - button "☀" [ref=e108] [cursor=pointer]
+    - main [ref=e109]:
+      - generic [ref=e280]:
+        - generic [ref=e281]:
+          - button "←" [ref=e282] [cursor=pointer]
+          - generic [ref=e283]:
+            - heading "INT-2026-039" [level=1] [ref=e284]
+            - paragraph [ref=e285]: TEST-WORKFLOW PW-1781301130756 · 10 Rue du Test, Paris 75001
+          - generic [ref=e287]: en attente
+        - generic [ref=e288]:
+          - generic [ref=e289]:
+            - generic [ref=e290]: 📋
+            - generic [ref=e291]:
+              - paragraph [ref=e292]: Nouvelle intervention vous a été assignée
+              - paragraph [ref=e293]: serrurerie · 10 Rue du Test, Paris 75001
+          - generic [ref=e294]:
+            - button "✅ Accepter" [ref=e295] [cursor=pointer]
+            - button "✕ Refuser" [ref=e296] [cursor=pointer]
+            - button "💬 Faire une proposition" [ref=e297] [cursor=pointer]
+        - button "⚡ Actions" [ref=e299] [cursor=pointer]
+        - generic [ref=e300]:
+          - button "📋 Détail" [ref=e301] [cursor=pointer]
+          - button "📷 Photos (0)" [ref=e302] [cursor=pointer]
+          - button "📝 Compte-rendu" [ref=e303] [cursor=pointer]
+          - button "💰 Commission" [ref=e304] [cursor=pointer]
+          - button "📄 Devis / Facture" [ref=e305] [cursor=pointer]
+        - generic [ref=e306]:
+          - generic [ref=e307]:
+            - generic [ref=e308]:
+              - generic [ref=e309]: Client
+              - generic [ref=e310]: TEST-WORKFLOW PW-1781301130756
+            - generic [ref=e311]:
+              - generic [ref=e312]: Tél.
+              - generic [ref=e313]: —
+            - generic [ref=e314]:
+              - generic [ref=e315]: Adresse
+              - generic [ref=e316]: 10 Rue du Test, Paris 75001
+            - generic [ref=e317]:
+              - generic [ref=e318]: Code accès
+              - generic [ref=e319]: —
+            - generic [ref=e320]:
+              - generic [ref=e321]: Type
+              - generic [ref=e322]: serrurerie
+            - generic [ref=e323]:
+              - generic [ref=e324]: Intervenant
+              - generic [ref=e325]: Intervenant A Test
+            - generic [ref=e326]:
+              - generic [ref=e327]: Date
+              - generic [ref=e328]: —
+            - generic [ref=e329]:
+              - generic [ref=e330]: Montant TTC
+              - generic [ref=e331]: —
+          - generic [ref=e332]:
+            - paragraph [ref=e333]: Avancement
+            - generic [ref=e335]: En attente de votre réponse ci-dessus

@@ -1,0 +1,150 @@
+- generic [ref=e24]:
+  - complementary [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e27]: 🔐
+      - generic [ref=e28]:
+        - generic [ref=e29]: Kaytek Inter
+        - generic [ref=e30]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+    - navigation [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]: Pilotage
+        - button "Dashboard" [ref=e37] [cursor=pointer]:
+          - img [ref=e38]
+          - generic [ref=e43]: Dashboard
+        - button "Messagerie" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e48]: Messagerie
+      - generic [ref=e49]:
+        - generic [ref=e50]: Terrain
+        - button "Interventions 9" [ref=e51] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e54]: Interventions
+          - generic [ref=e55]: "9"
+        - button "Planning" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - generic [ref=e59]: Planning
+        - button "Devis" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+          - generic [ref=e64]: Devis
+        - button "Factures" [active] [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+          - generic [ref=e69]: Factures
+      - generic [ref=e70]:
+        - generic [ref=e71]: Gestion
+        - button "Clients" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+          - generic [ref=e78]: Clients
+        - button "Catalogue" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e84]: Catalogue
+        - button "Commissions" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e88]: Commissions
+        - button "Guide" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - generic [ref=e92]: Guide
+      - generic [ref=e93]:
+        - generic [ref=e94]: Administration
+        - button "Utilisateurs" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e98]: Utilisateurs
+        - button "Paramètres" [ref=e99] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e103]: Paramètres
+        - button "Journal" [ref=e104] [cursor=pointer]:
+          - img [ref=e105]
+          - generic [ref=e108]: Journal
+    - generic [ref=e110]:
+      - button "AT Admin B Test Administrateur · Kaytek Inter" [ref=e111] [cursor=pointer]:
+        - generic [ref=e112]:
+          - generic [ref=e113]: AT
+          - generic [ref=e114]:
+            - generic [ref=e115]: Admin B Test
+            - generic [ref=e116]: Administrateur · Kaytek Inter
+      - generic [ref=e117]:
+        - button "Clair" [ref=e118] [cursor=pointer]:
+          - img [ref=e119]
+          - text: Clair
+        - button "Quitter" [ref=e125] [cursor=pointer]:
+          - img [ref=e126]
+          - text: Quitter
+  - generic [ref=e129]:
+    - banner [ref=e130]:
+      - button "Menu" [ref=e131] [cursor=pointer]: ☰
+      - generic [ref=e132]: Factures
+      - generic [ref=e133]:
+        - button "💬" [ref=e134] [cursor=pointer]
+        - button "🔔" [ref=e136] [cursor=pointer]
+        - button "+ Nouveau" [ref=e137] [cursor=pointer]
+        - button "☀" [ref=e138] [cursor=pointer]
+    - main [ref=e144]:
+      - generic [ref=e1755]:
+        - generic [ref=e1756]:
+          - heading "Factures" [level=1] [ref=e1757]
+          - paragraph [ref=e1758]: 2 factures
+        - generic [ref=e1759]:
+          - button "📥 CSV" [ref=e1760] [cursor=pointer]
+          - button "☑ Sélectionner" [ref=e1761] [cursor=pointer]
+          - button "🗑 Tout supprimer" [ref=e1762] [cursor=pointer]
+      - generic [ref=e1763]:
+        - generic [ref=e1764]:
+          - generic [ref=e1765]: 💶
+          - generic [ref=e1766]: 0,00 €
+          - generic [ref=e1767]: Encaissé
+        - generic [ref=e1768]:
+          - generic [ref=e1769]: ⚠
+          - generic [ref=e1770]: 330,00 €
+          - generic [ref=e1771]: Impayé
+        - generic [ref=e1772]:
+          - generic [ref=e1773]: 📄
+          - generic [ref=e1774]: "2"
+          - generic [ref=e1775]: Total factures
+      - generic [ref=e1776]:
+        - generic [ref=e1777]:
+          - generic [ref=e1778]: 🔍
+          - textbox "Rechercher par n°, client, téléphone, montant…" [ref=e1779]
+        - generic [ref=e1780]:
+          - button "Tous" [ref=e1781] [cursor=pointer]
+          - button "En attente" [ref=e1782] [cursor=pointer]
+          - button "Impayée" [ref=e1783] [cursor=pointer]
+          - button "Payée" [ref=e1784] [cursor=pointer]
+          - button "Acompte" [ref=e1785] [cursor=pointer]
+          - button "Partielle" [ref=e1786] [cursor=pointer]
+          - button "Annulée" [ref=e1787] [cursor=pointer]
+      - table [ref=e1789]:
+        - rowgroup [ref=e1790]:
+          - row "N° Client Date Échéance Montant TTC Statut" [ref=e1791]:
+            - columnheader "N°" [ref=e1792]
+            - columnheader "Client" [ref=e1793]
+            - columnheader "Date" [ref=e1794]
+            - columnheader "Échéance" [ref=e1795]
+            - columnheader "Montant TTC" [ref=e1796]
+            - columnheader "Statut" [ref=e1797]
+            - columnheader [ref=e1798]
+        - rowgroup [ref=e1799]:
+          - row "FAC-2026-040 TEST-ISO PW-1781301316309 12/06/2026 12/07/2026 165,00 € Impayée 📧 ···" [ref=e1800]:
+            - cell "FAC-2026-040" [ref=e1801]
+            - cell "TEST-ISO PW-1781301316309" [ref=e1802]
+            - cell "12/06/2026" [ref=e1803]
+            - cell "12/07/2026" [ref=e1804]
+            - cell "165,00 €" [ref=e1805]
+            - cell "Impayée" [ref=e1806]:
+              - generic [ref=e1807]: Impayée
+            - cell "📧 ···" [ref=e1808]:
+              - generic [ref=e1809]:
+                - button "📧" [disabled] [ref=e1810]
+                - button "···" [ref=e1811] [cursor=pointer]
+          - row "FAC-2026-039 TEST-ISO PW-1781296203343 12/06/2026 12/07/2026 165,00 € Impayée 📧 ···" [ref=e1812]:
+            - cell "FAC-2026-039" [ref=e1813]
+            - cell "TEST-ISO PW-1781296203343" [ref=e1814]
+            - cell "12/06/2026" [ref=e1815]
+            - cell "12/07/2026" [ref=e1816]
+            - cell "165,00 €" [ref=e1817]
+            - cell "Impayée" [ref=e1818]:
+              - generic [ref=e1819]: Impayée
+            - cell "📧 ···" [ref=e1820]:
+              - generic [ref=e1821]:
+                - button "📧" [disabled] [ref=e1822]
+                - button "···" [ref=e1823] [cursor=pointer]

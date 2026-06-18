@@ -5,8 +5,10 @@ import { useQuery } from '@tanstack/react-query'
 import {
   LayoutDashboard, MessagesSquare, Wrench, CalendarDays, FileText, Receipt,
   Users, Package, DollarSign, Shield, Settings, ClipboardList,
-  ChevronLeft, ChevronRight, LogOut, Sun, Moon, BookOpen
+  ChevronLeft, ChevronRight, LogOut, Sun, Moon, BookOpen,
+  MessageCircle, Bell, Menu
 } from 'lucide-react'
+import KaytekLogo from '@/components/KaytekLogo'
 import WelcomeModal from '@/components/WelcomeModal'
 import { useAuthStore, useUIStore, useToastStore, useParamsStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
@@ -37,7 +39,7 @@ const SECTIONS = ['Pilotage', 'Terrain', 'Gestion', 'Administration']
 
 export default function AppLayout() {
   const { user, setUser } = useAuthStore()
-  const { theme, sidebarOpen, toggleTheme, toggleSidebar } = useUIStore()
+  const { theme, sidebarOpen, toggleTheme, toggleSidebar, closeSidebar } = useUIStore()
   const { toasts, remove, add } = useToastStore()
   const { data: unread = 0 } = useUnreadCount()
   const updProfile = useUpdateProfile()
@@ -75,6 +77,14 @@ export default function AppLayout() {
     },
     staleTime: 2 * 60 * 1000,
   })
+
+  // Mobile : fermer la sidebar au premier chargement (sidebarOpen vaut true par défaut).
+  // On utilise closeSidebar (idempotent) plutôt que toggleSidebar pour éviter le double-toggle
+  // provoqué par React 18 StrictMode qui exécute les effets deux fois en développement.
+  useEffect(() => {
+    if (isMobile) closeSidebar()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Mobile : sidebar toujours position:fixed (hors flux), translateX gère l'affichage
   const sidebarW = isMobile ? 0 : (compact ? 72 : 280)
@@ -240,9 +250,7 @@ export default function AppLayout() {
           borderBottom: '1px solid var(--navBd)', flexShrink: 0,
           justifyContent: compactDesktop ? 'center' : 'flex-start'
         }}>
-          <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#2563eb,#1d4ed8)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(37,99,235,.35)', fontSize: 18 }}>
-            🔐
-          </div>
+          <KaytekLogo size={36} style={{ filter: 'drop-shadow(0 2px 5px rgba(37,99,235,.35))' }} />
           {!compactDesktop && (
             <>
               <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
@@ -526,18 +534,18 @@ export default function AppLayout() {
       {/* MAIN */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', background: 'var(--bg)', paddingTop: isMobile ? 'calc(56px + env(safe-area-inset-top))' : undefined }}>
         {/* Topbar */}
-        <header className="app-topbar" style={{ height: 56, background: 'var(--s0)', borderBottom: '1px solid var(--b0)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 8, flexShrink: 0, overflow: 'hidden' }}>
-          <button className="btn-icon" onClick={isMobile ? toggleSidebar : toggleCompact} aria-label="Menu" style={{ fontSize: 18, flexShrink: 0 }}>☰</button>
+        <header className="app-topbar" style={{ height: 56, background: 'var(--s0)', borderBottom: '1px solid var(--b1)', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 8, flexShrink: 0, overflow: 'hidden' }}>
+          <button className="btn-icon" onClick={isMobile ? toggleSidebar : toggleCompact} aria-label="Menu" style={{ flexShrink: 0 }}><Menu size={18} strokeWidth={1.8} /></button>
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--t0)', letterSpacing: '-.02em', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentPage}</span>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={() => nav('/messagerie')} className="btn-icon" style={{ position: 'relative', fontSize: 17 }}>
-              💬
+            <button onClick={() => nav('/messagerie')} className="btn-icon" style={{ position: 'relative' }}>
+              <MessageCircle size={18} strokeWidth={1.6} />
               {unread > 0 && <span style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, background: '#dc2626', borderRadius: '50%', border: '1.5px solid var(--s0)' }} />}
             </button>
             {/* Cloche notifications */}
             <div style={{ position: 'relative' }}>
-              <button className="btn-icon" style={{ position: 'relative', fontSize: 17 }} onClick={() => setNotifOpen(o => !o)}>
-                🔔
+              <button className="btn-icon" style={{ position: 'relative' }} onClick={() => setNotifOpen(o => !o)}>
+                <Bell size={18} strokeWidth={1.6} />
                 {unreadNotifs > 0 && (
                   <span style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, background: '#dc2626', color: '#fff', borderRadius: 8, border: '1.5px solid var(--s0)', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
                     {unreadNotifs > 9 ? '9+' : unreadNotifs}
@@ -550,8 +558,9 @@ export default function AppLayout() {
                   onMouseDown={e => e.stopPropagation()}>
                   {/* Header */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px 10px', borderBottom: '1px solid var(--b0)', flexShrink: 0 }}>
-                    <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--t0)' }}>
-                      🔔 Notifications {unreadNotifs > 0 && <span style={{ marginLeft: 6, fontSize: 11, background: '#2563eb', color: '#fff', padding: '1px 7px', borderRadius: 10 }}>{unreadNotifs}</span>}
+                    <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--t0)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Bell size={14} strokeWidth={1.6} />
+                      Notifications {unreadNotifs > 0 && <span style={{ fontSize: 11, background: '#2563eb', color: '#fff', padding: '1px 7px', borderRadius: 10 }}>{unreadNotifs}</span>}
                     </span>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       {unreadNotifs > 0 && (
@@ -637,7 +646,7 @@ export default function AppLayout() {
               )}
             </div>
             {(isAdmin || user?.can_create_documents) && <button className="btn btn-primary btn-sm hide-mobile" onClick={() => setNewMenuOpen(true)} style={{ gap: 4 }}>+ Nouveau</button>}
-            <button onClick={toggleTheme} className="btn-icon" style={{ fontSize: 17 }}>{theme === 'dark' ? '☀' : '🌙'}</button>
+            <button onClick={toggleTheme} className="btn-icon">{theme === 'dark' ? <Sun size={17} strokeWidth={1.6} /> : <Moon size={17} strokeWidth={1.6} />}</button>
           </div>
         </header>
         {/* Bannière hors ligne / sync en attente */}
@@ -676,7 +685,7 @@ export default function AppLayout() {
           </button>
         )}
         <button className="bnm-btn bnm-menu" onClick={toggleSidebar}>
-          ☰ Menu
+          <Menu size={15} strokeWidth={1.8} /> Menu
         </button>
       </nav>
 
@@ -685,11 +694,11 @@ export default function AppLayout() {
         <DocSheet title="Créer" subtitle="Choisissez le type de document" onClose={() => setNewMenuOpen(false)}>
           {isAdmin && (
             <SheetRow icon="🔧" label="Nouvelle intervention" sublabel="Créer un nouveau chantier"
-              onClick={() => { setNewMenuOpen(false); nav('/interventions') }} />
+              onClick={() => { setNewMenuOpen(false); nav('/interventions', { state: { openCreate: true } }) }} />
           )}
           {isAdmin && (
             <SheetRow icon="👥" label="Nouveau client" sublabel="Ajouter un client"
-              onClick={() => { setNewMenuOpen(false); nav('/clients') }} />
+              onClick={() => { setNewMenuOpen(false); nav('/clients', { state: { openCreate: true } }) }} />
           )}
           <SheetSection label="Documents" />
           {(isAdmin || user?.can_create_documents) && (
@@ -698,7 +707,7 @@ export default function AppLayout() {
           )}
           {(isAdmin || user?.can_create_documents) && (
             <SheetRow icon="🧾" label="Nouvelle facture" sublabel="Créer une facture"
-              onClick={() => { setNewMenuOpen(false); nav('/factures') }} />
+              onClick={() => { setNewMenuOpen(false); add('Une facture se crée depuis un devis accepté.', 'info', { label: 'Voir les devis', fn: () => nav('/devis') }) }} />
           )}
         </DocSheet>
       )}

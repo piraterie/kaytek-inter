@@ -1,0 +1,58 @@
+- generic [ref=e23]:
+  - generic [ref=e24]:
+    - banner [ref=e25]:
+      - button "Menu" [ref=e26] [cursor=pointer]: ☰
+      - generic [ref=e27]: Dashboard
+      - generic [ref=e28]:
+        - button "💬" [ref=e29] [cursor=pointer]
+        - button "🔔" [ref=e31] [cursor=pointer]
+        - button "☀" [ref=e32] [cursor=pointer]
+    - generic [ref=e33]:
+      - generic [ref=e34]: ⚠
+      - generic [ref=e35]:
+        - strong [ref=e36]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e37] [cursor=pointer]
+    - main [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - heading "Bonjour, Admin A 👋" [level=1] [ref=e41]
+          - paragraph [ref=e42]: mardi 16 juin 2026
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - generic [ref=e46]: 🔧
+            - generic [ref=e47]: "0"
+            - generic [ref=e48]: Interventions aujourd'hui
+          - generic [ref=e49]:
+            - generic [ref=e51]: 💶
+            - generic [ref=e52]: 0 €
+            - generic [ref=e53]: CA du mois
+          - generic [ref=e54]:
+            - generic [ref=e56]: ⚠
+            - generic [ref=e57]: 0 €
+            - generic [ref=e58]: Impayés
+          - generic [ref=e59]:
+            - generic [ref=e61]: 💰
+            - generic [ref=e62]: 0 €
+            - generic [ref=e63]: Commissions dues
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - generic [ref=e66]:
+              - generic [ref=e67]: Interventions récentes
+              - button "Voir tout →" [ref=e68] [cursor=pointer]
+            - generic [ref=e70]: Aucune intervention
+          - generic [ref=e73]:
+            - button "🔧 Nouvelle intervention" [ref=e74] [cursor=pointer]
+            - button "📄 Créer un devis" [ref=e75] [cursor=pointer]
+            - button "✉ Messagerie" [ref=e76] [cursor=pointer]
+  - navigation [ref=e77]:
+    - button "+ Nouveau" [ref=e78] [cursor=pointer]
+    - button "☰ Menu" [ref=e79] [cursor=pointer]
+  - generic [ref=e81]:
+    - generic [ref=e82]: 📚
+    - heading "Bienvenue sur Kaytek Inter" [level=2] [ref=e83]
+    - paragraph [ref=e84]: Bonjour Admin A ! Souhaitez-vous découvrir le guide d'utilisation ?
+    - generic [ref=e85]:
+      - button "📖 Voir le guide" [ref=e86] [cursor=pointer]
+      - button "Plus tard" [ref=e87] [cursor=pointer]
+      - button "Ne plus afficher" [ref=e88] [cursor=pointer]

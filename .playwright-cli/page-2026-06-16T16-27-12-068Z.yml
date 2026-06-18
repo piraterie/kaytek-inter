@@ -1,0 +1,99 @@
+- generic [ref=e6]:
+  - generic [ref=e7]:
+    - banner [ref=e8]:
+      - button "Menu" [ref=e9] [cursor=pointer]: ☰
+      - generic [ref=e10]: Devis
+      - generic [ref=e11]:
+        - button "💬" [ref=e12] [cursor=pointer]
+        - button "🔔" [ref=e14] [cursor=pointer]
+        - button "☀" [ref=e15] [cursor=pointer]
+    - generic [ref=e16]:
+      - generic [ref=e17]: ⚠
+      - generic [ref=e18]:
+        - strong [ref=e19]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e20] [cursor=pointer]
+    - main [ref=e21]:
+      - generic [ref=e115]:
+        - generic [ref=e116]:
+          - button "←" [ref=e117] [cursor=pointer]
+          - heading "Créer un devis" [level=1] [ref=e119]
+        - generic [ref=e120]:
+          - generic [ref=e122]:
+            - generic [ref=e123]: "1"
+            - generic [ref=e124]: Client
+          - generic [ref=e127]:
+            - generic [ref=e128]: "2"
+            - generic [ref=e129]: Prestations
+          - generic [ref=e132]:
+            - generic [ref=e133]: "3"
+            - generic [ref=e134]: Options
+          - generic [ref=e137]:
+            - generic [ref=e138]: "4"
+            - generic [ref=e139]: Envoi
+        - generic [ref=e141]:
+          - generic [ref=e142]:
+            - generic [ref=e143]: Client *
+            - button "Sélectionner un client… ▼" [ref=e145] [cursor=pointer]:
+              - generic [ref=e146]: Sélectionner un client…
+              - generic: ▼
+          - generic [ref=e147]:
+            - generic [ref=e148]:
+              - generic [ref=e149]: Activité
+              - combobox [ref=e150] [cursor=pointer]:
+                - option "🔒 Serrurerie" [selected]
+                - option "🔧 Plomberie"
+                - option "⚡ Électricité"
+                - option "🪟 Vitrerie"
+            - generic [ref=e151]:
+              - generic [ref=e152]: Valide jusqu'au
+              - textbox [ref=e153]: 2026-07-16
+          - generic [ref=e154]:
+            - generic [ref=e155]: Intervenant
+            - button "Admin B Test ▼" [ref=e157] [cursor=pointer]:
+              - generic [ref=e158]: Admin B Test
+              - generic: ▼
+          - generic [ref=e159]: ℹ Ce devis sera valable jusqu'au 16/07/2026. Date modifiable ci-dessus.
+        - generic [ref=e160]:
+          - generic [ref=e161]:
+            - generic [ref=e162]:
+              - generic [ref=e163]: 🔧
+              - generic [ref=e164]: Prestations
+            - generic [ref=e165]:
+              - generic [ref=e166]: 🔍
+              - textbox "Rechercher dans le catalogue…" [ref=e167]
+            - generic [ref=e168]: Aucune prestation dans le catalogue pour cette activité
+          - button "+ Ajouter une prestation manuelle" [ref=e170] [cursor=pointer]
+        - generic [ref=e171]:
+          - generic [ref=e172]:
+            - generic [ref=e173]: 💰
+            - generic [ref=e174]: Récapitulatif
+          - generic [ref=e175]:
+            - generic [ref=e176]: Total HT
+            - generic [ref=e177]: 0,00 €
+          - generic [ref=e178]:
+            - generic [ref=e179]: TVA
+            - generic [ref=e180]: 0,00 €
+          - generic [ref=e181]:
+            - generic [ref=e182]: Total TTC
+            - generic [ref=e183]: 0,00 €
+        - button "⚙ Options avancées Modèle PDF, conditions, remise… ∨" [ref=e185] [cursor=pointer]:
+          - generic [ref=e186]:
+            - generic [ref=e187]: ⚙
+            - generic [ref=e188]: Options avancées
+            - generic [ref=e189]: Modèle PDF, conditions, remise…
+          - generic [ref=e190]: ∨
+        - generic [ref=e192]:
+          - generic [ref=e193]: ✍
+          - generic [ref=e194]:
+            - generic [ref=e195]: Signature client
+            - generic [ref=e196]: Disponible après enregistrement du devis.
+        - generic [ref=e197]:
+          - generic [ref=e198]:
+            - generic [ref=e199]: Total TTC
+            - generic [ref=e200]: 0,00 €
+          - button "💾 Brouillon" [ref=e201] [cursor=pointer]
+          - button "✉ Envoyer" [ref=e202] [cursor=pointer]
+  - navigation [ref=e84]:
+    - button "+ Nouveau" [ref=e85] [cursor=pointer]
+    - button "☰ Menu" [ref=e86] [cursor=pointer]

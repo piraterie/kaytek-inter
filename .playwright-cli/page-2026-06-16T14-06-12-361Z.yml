@@ -1,0 +1,117 @@
+- generic [ref=e24]:
+  - complementary [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e27]: 🔐
+      - generic [ref=e28]:
+        - generic [ref=e29]: Kaytek Inter
+        - generic [ref=e30]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+    - navigation [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]: Pilotage
+        - button "Dashboard" [ref=e37] [cursor=pointer]:
+          - img [ref=e38]
+          - generic [ref=e43]: Dashboard
+        - button "Messagerie" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e48]: Messagerie
+      - generic [ref=e49]:
+        - generic [ref=e50]: Terrain
+        - button "Interventions 9" [ref=e51] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e54]: Interventions
+          - generic [ref=e55]: "9"
+        - button "Planning" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - generic [ref=e59]: Planning
+        - button "Devis" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+          - generic [ref=e64]: Devis
+        - button "Factures" [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+          - generic [ref=e69]: Factures
+      - generic [ref=e70]:
+        - generic [ref=e71]: Gestion
+        - button "Clients" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+          - generic [ref=e78]: Clients
+        - button "Catalogue" [active] [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e84]: Catalogue
+        - button "Commissions" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e88]: Commissions
+        - button "Guide" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - generic [ref=e92]: Guide
+      - generic [ref=e93]:
+        - generic [ref=e94]: Administration
+        - button "Utilisateurs" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e98]: Utilisateurs
+        - button "Paramètres" [ref=e99] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e103]: Paramètres
+        - button "Journal" [ref=e104] [cursor=pointer]:
+          - img [ref=e105]
+          - generic [ref=e108]: Journal
+    - generic [ref=e110]:
+      - button "AT Admin B Test Administrateur · Kaytek Inter" [ref=e111] [cursor=pointer]:
+        - generic [ref=e112]:
+          - generic [ref=e113]: AT
+          - generic [ref=e114]:
+            - generic [ref=e115]: Admin B Test
+            - generic [ref=e116]: Administrateur · Kaytek Inter
+      - generic [ref=e117]:
+        - button "Clair" [ref=e118] [cursor=pointer]:
+          - img [ref=e119]
+          - text: Clair
+        - button "Quitter" [ref=e125] [cursor=pointer]:
+          - img [ref=e126]
+          - text: Quitter
+  - generic [ref=e129]:
+    - banner [ref=e130]:
+      - button "Menu" [ref=e131] [cursor=pointer]: ☰
+      - generic [ref=e132]: Catalogue
+      - generic [ref=e133]:
+        - button "💬" [ref=e134] [cursor=pointer]
+        - button "🔔" [ref=e136] [cursor=pointer]
+        - button "+ Nouveau" [ref=e137] [cursor=pointer]
+        - button "☀" [ref=e138] [cursor=pointer]
+    - generic [ref=e1824]:
+      - generic [ref=e1825]: ⚠
+      - generic [ref=e1826]:
+        - strong [ref=e1827]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e1828] [cursor=pointer]
+    - main [ref=e144]:
+      - generic [ref=e1829]:
+        - generic [ref=e1830]:
+          - generic [ref=e1831]:
+            - heading "Catalogue des prestations" [level=1] [ref=e1832]
+            - paragraph [ref=e1833]: 0 actives · 0 inactives · 0 total
+          - button "+ Ajouter" [ref=e1834] [cursor=pointer]
+        - generic [ref=e1835]:
+          - generic [ref=e1836]:
+            - generic [ref=e1837]: 🔍
+            - textbox "Rechercher une prestation…" [ref=e1838]
+          - generic [ref=e1839]:
+            - button "Toutes" [ref=e1840] [cursor=pointer]
+            - button "Serrurerie" [ref=e1841] [cursor=pointer]
+            - button "Plomberie" [ref=e1842] [cursor=pointer]
+            - button "Électricité" [ref=e1843] [cursor=pointer]
+            - button "Vitrerie" [ref=e1844] [cursor=pointer]
+        - table [ref=e1846]:
+          - rowgroup [ref=e1847]:
+            - row "Nom Activité Prix HT TVA Statut" [ref=e1848]:
+              - columnheader "Nom" [ref=e1849]
+              - columnheader "Activité" [ref=e1850]
+              - columnheader "Prix HT" [ref=e1851]
+              - columnheader "TVA" [ref=e1852]
+              - columnheader "Statut" [ref=e1853]
+              - columnheader [ref=e1854]
+          - rowgroup [ref=e1855]:
+            - row "Aucune prestation" [ref=e1856]:
+              - cell "Aucune prestation" [ref=e1857]
+        - generic [ref=e1858]: ℹ Les prestations désactivées n'apparaissent plus dans le catalogue rapide des devis, mais restent liées aux devis existants.

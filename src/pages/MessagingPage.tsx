@@ -420,10 +420,11 @@ export default function MessagingPage() {
   // Mobile: topbar est position:fixed (56px+safe-area), main-content a padding-top correspondant.
   // marginTop:0 = le composant commence pile en bas de la topbar.
   // height:100% = remplit exactement la zone contenu (100dvh - padding-top - padding-bottom).
-  // Desktop: topbar in-flow 56px, padding 18px → height = 100dvh - 56 - 18 = 74px soustraits.
+  // Desktop: annuler le padding 18px haut+bas du parent via marges négatives et calc(100% + 36px).
+  // On utilise 100% du parent plutôt que calc(100dvh - 74px) pour s'adapter à la bannière d'alerte.
   const outerStyle: React.CSSProperties = isMobile
     ? { display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%', marginTop: 0, marginLeft: -16, marginRight: -16 }
-    : { display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100dvh - 74px)', marginTop: -18, marginLeft: -18, marginRight: -18 }
+    : { display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100% + 36px)', marginTop: -18, marginLeft: -18, marginRight: -18 }
 
   return (
     <div style={outerStyle}>

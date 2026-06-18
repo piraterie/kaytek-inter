@@ -1,0 +1,214 @@
+- generic [ref=e6]:
+  - generic [ref=e7]:
+    - banner [ref=e8]:
+      - button "Menu" [ref=e9] [cursor=pointer]: ☰
+      - generic [ref=e10]: Devis
+      - generic [ref=e11]:
+        - button "💬" [ref=e12] [cursor=pointer]
+        - button "🔔" [ref=e14] [cursor=pointer]
+        - button "☀" [ref=e15] [cursor=pointer]
+    - generic [ref=e16]:
+      - generic [ref=e17]: ⚠
+      - generic [ref=e18]:
+        - strong [ref=e19]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e20] [cursor=pointer]
+    - main [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Devis" [level=1] [ref=e24]
+          - paragraph [ref=e25]: 9 devis
+        - generic [ref=e27]:
+          - button "+ Nouveau devis" [ref=e28] [cursor=pointer]
+          - button "···" [ref=e29] [cursor=pointer]
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - generic [ref=e32]: 📋
+          - generic [ref=e33]: "9"
+          - generic [ref=e34]: Total devis
+        - generic [ref=e35]:
+          - generic [ref=e36]: ✅
+          - generic [ref=e37]: "2"
+          - generic [ref=e38]: Acceptés
+        - generic [ref=e39]:
+          - generic [ref=e40]: 💶
+          - generic [ref=e41]: 330,00 €
+          - generic [ref=e42]: CA en jeu
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - generic [ref=e45]: 🔍
+          - textbox "Rechercher un devis ou un client…" [ref=e46]
+        - generic [ref=e47]:
+          - button "Tous 9" [ref=e48] [cursor=pointer]:
+            - text: Tous
+            - generic [ref=e49]: "9"
+          - button "À valider" [ref=e50] [cursor=pointer]
+          - button "Brouillon 7" [ref=e51] [cursor=pointer]:
+            - text: Brouillon
+            - generic [ref=e52]: "7"
+          - button "Envoyé" [ref=e53] [cursor=pointer]
+          - button "Accepté 2" [ref=e54] [cursor=pointer]:
+            - text: Accepté
+            - generic [ref=e55]: "2"
+          - button "Refusé" [ref=e56] [cursor=pointer]
+          - button "Expiré" [ref=e57] [cursor=pointer]
+      - generic [ref=e58]:
+        - generic [ref=e59] [cursor=pointer]:
+          - generic [ref=e60]:
+            - generic [ref=e61]: DEV-2026-144
+            - generic [ref=e62]: Brouillon
+          - generic [ref=e63]:
+            - generic [ref=e64]:
+              - generic [ref=e65]: AUDIT-TEST Dupont Jean
+              - generic [ref=e66]: jean.audit@test.fr
+              - generic [ref=e67]:
+                - generic [ref=e68]: 16/06/2026
+                - generic [ref=e69]: serrurerie
+              - generic [ref=e70]: Valide jusqu'au 16/07/2026
+              - generic [ref=e71]: 👤 Admin B Test
+            - generic [ref=e73]: 187,00 €
+          - button "📧 Envoyer par email" [ref=e75]
+        - generic [ref=e76] [cursor=pointer]:
+          - generic [ref=e77]:
+            - generic [ref=e78]: DEV-2026-126
+            - generic [ref=e79]: Accepté
+          - generic [ref=e80]:
+            - generic [ref=e81]:
+              - generic [ref=e82]: TEST-ISO PW-1781301316309
+              - generic [ref=e83]:
+                - generic [ref=e84]: 12/06/2026
+                - generic [ref=e85]: serrurerie
+              - generic [ref=e86]: Valide jusqu'au 12/07/2026
+              - generic [ref=e87]: 👤 Admin B Test
+            - generic [ref=e89]: 165,00 €
+        - generic [ref=e90] [cursor=pointer]:
+          - generic [ref=e91]:
+            - generic [ref=e92]: DEV-2026-125
+            - generic [ref=e93]: Brouillon
+          - generic [ref=e94]:
+            - generic [ref=e95]:
+              - generic [ref=e96]: TEST-WORKFLOW PW-1781301130756
+              - generic [ref=e97]: test-workflow-1781301130756@example.test
+              - generic [ref=e98]:
+                - generic [ref=e99]: 12/06/2026
+                - generic [ref=e100]: serrurerie
+              - generic [ref=e101]: Valide jusqu'au 12/07/2026
+              - generic [ref=e102]: 👤 Admin B Test
+            - generic [ref=e104]: 220,00 €
+          - button "📧 Envoyer par email" [ref=e106]
+        - generic [ref=e107] [cursor=pointer]:
+          - generic [ref=e108]:
+            - generic [ref=e109]: DEV-2026-124
+            - generic [ref=e110]: Brouillon
+          - generic [ref=e111]:
+            - generic [ref=e112]:
+              - generic [ref=e113]: TEST-WORKFLOW PW-1781300962277
+              - generic [ref=e114]: test-workflow-1781300962277@example.test
+              - generic [ref=e115]:
+                - generic [ref=e116]: 12/06/2026
+                - generic [ref=e117]: serrurerie
+              - generic [ref=e118]: Valide jusqu'au 12/07/2026
+              - generic [ref=e119]: 👤 Admin B Test
+            - generic [ref=e121]: 220,00 €
+          - button "📧 Envoyer par email" [ref=e123]
+        - generic [ref=e124] [cursor=pointer]:
+          - generic [ref=e125]:
+            - generic [ref=e126]: DEV-2026-123
+            - generic [ref=e127]: Brouillon
+          - generic [ref=e128]:
+            - generic [ref=e129]:
+              - generic [ref=e130]: TEST-WORKFLOW PW-1781297822070
+              - generic [ref=e131]: test-workflow-1781297822070@example.test
+              - generic [ref=e132]:
+                - generic [ref=e133]: 12/06/2026
+                - generic [ref=e134]: serrurerie
+              - generic [ref=e135]: Valide jusqu'au 12/07/2026
+              - generic [ref=e136]: 👤 Admin B Test
+            - generic [ref=e138]: 220,00 €
+          - button "📧 Envoyer par email" [ref=e140]
+        - generic [ref=e141] [cursor=pointer]:
+          - generic [ref=e142]:
+            - generic [ref=e143]: DEV-2026-122
+            - generic [ref=e144]: Brouillon
+          - generic [ref=e145]:
+            - generic [ref=e146]:
+              - generic [ref=e147]: TEST-WORKFLOW PW-1781297747189
+              - generic [ref=e148]: test-workflow-1781297747189@example.test
+              - generic [ref=e149]:
+                - generic [ref=e150]: 12/06/2026
+                - generic [ref=e151]: serrurerie
+              - generic [ref=e152]: Valide jusqu'au 12/07/2026
+              - generic [ref=e153]: 👤 Admin B Test
+            - generic [ref=e155]: 220,00 €
+          - button "📧 Envoyer par email" [ref=e157]
+        - generic [ref=e158] [cursor=pointer]:
+          - generic [ref=e159]:
+            - generic [ref=e160]: DEV-2026-121
+            - generic [ref=e161]: Accepté
+          - generic [ref=e162]:
+            - generic [ref=e163]:
+              - generic [ref=e164]: TEST-ISO PW-1781296203343
+              - generic [ref=e165]:
+                - generic [ref=e166]: 12/06/2026
+                - generic [ref=e167]: serrurerie
+              - generic [ref=e168]: Valide jusqu'au 12/07/2026
+              - generic [ref=e169]: 👤 Admin B Test
+            - generic [ref=e171]: 165,00 €
+        - generic [ref=e172] [cursor=pointer]:
+          - generic [ref=e173]:
+            - generic [ref=e174]: DEV-2026-120
+            - generic [ref=e175]: Brouillon
+          - generic [ref=e176]:
+            - generic [ref=e177]:
+              - generic [ref=e178]: TEST-ISO PW-1781295531342
+              - generic [ref=e179]:
+                - generic [ref=e180]: 12/06/2026
+                - generic [ref=e181]: serrurerie
+              - generic [ref=e182]: Valide jusqu'au 12/07/2026
+              - generic [ref=e183]: 👤 Admin B Test
+            - generic [ref=e185]: 165,00 €
+        - generic [ref=e186] [cursor=pointer]:
+          - generic [ref=e187]:
+            - generic [ref=e188]: DEV-2026-119
+            - generic [ref=e189]: Brouillon
+          - generic [ref=e190]:
+            - generic [ref=e191]:
+              - generic [ref=e192]: TEST-ISO PW-1781295531342
+              - generic [ref=e193]:
+                - generic [ref=e194]: 12/06/2026
+                - generic [ref=e195]: serrurerie
+              - generic [ref=e196]: Valide jusqu'au 12/07/2026
+              - generic [ref=e197]: 👤 Admin B Test
+            - generic [ref=e199]: 165,00 €
+      - generic [ref=e204]:
+        - generic [ref=e206]:
+          - generic [ref=e207]: DEV-2026-144
+          - generic [ref=e208]: AUDIT-TEST Dupont Jean
+        - generic [ref=e209]:
+          - button "👁 Voir le devis Aperçu et signature client" [ref=e210] [cursor=pointer]:
+            - generic [ref=e211]: 👁
+            - generic [ref=e212]:
+              - generic [ref=e213]: Voir le devis
+              - generic [ref=e214]: Aperçu et signature client
+          - button "✏️ Modifier" [ref=e215] [cursor=pointer]:
+            - generic [ref=e216]: ✏️
+            - generic [ref=e218]: Modifier
+          - button "✉️ Marquer comme envoyé" [ref=e219] [cursor=pointer]:
+            - generic [ref=e220]: ✉️
+            - generic [ref=e222]: Marquer comme envoyé
+          - generic [ref=e223]: Document
+          - button "📄 Exporter PDF" [ref=e224] [cursor=pointer]:
+            - generic [ref=e225]: 📄
+            - generic [ref=e227]: Exporter PDF
+          - button "📧 Envoyer par email jean.audit@test.fr" [ref=e228] [cursor=pointer]:
+            - generic [ref=e229]: 📧
+            - generic [ref=e230]:
+              - generic [ref=e231]: Envoyer par email
+              - generic [ref=e232]: jean.audit@test.fr
+          - generic [ref=e233]: Zone dangereuse
+          - button "🗑️ Supprimer ce devis" [ref=e234] [cursor=pointer]:
+            - generic [ref=e235]: 🗑️
+            - generic [ref=e237]: Supprimer ce devis
+  - navigation [ref=e200]:
+    - button "+ Nouveau" [ref=e201] [cursor=pointer]
+    - button "☰ Menu" [ref=e202] [cursor=pointer]

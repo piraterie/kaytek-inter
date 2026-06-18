@@ -1,33 +1,36 @@
 // src/App.tsx
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore, useUIStore, useParamsStore } from '@/lib/store'
 import AppLayout from '@/components/layout/AppLayout'
-import LoginPage from '@/pages/LoginPage'
-import DashboardPage from '@/pages/DashboardPage'
-import InterventionsPage from '@/pages/InterventionsPage'
-import InterventionDetailPage from '@/pages/InterventionDetailPage'
-import DevisPage from '@/pages/DevisPage'
-import DevisFormPage from '@/pages/DevisFormPage'
-import FacturesPage from '@/pages/FacturesPage'
-import ClientsPage from '@/pages/ClientsPage'
-import ClientDetailPage from '@/pages/ClientDetailPage'
-import MessagingPage from '@/pages/MessagingPage'
-import CommissionsPage from '@/pages/CommissionsPage'
-import UsersPage from '@/pages/UsersPage'
-import ParamsPage from '@/pages/ParamsPage'
-import JournalPage from '@/pages/JournalPage'
-import ResetPasswordPage from '@/pages/ResetPasswordPage'
-import DevisApercuPage from '@/pages/DevisApercuPage'
-import CataloguePage from '@/pages/CataloguePage'
-import PlanningPage from '@/pages/PlanningPage'
-import GuidePage from '@/pages/guide/GuidePage'
-import GuideAdminPage from '@/pages/guide/GuideAdminPage'
-import GuideIntervenantPage from '@/pages/guide/GuideIntervenantPage'
-import GuideFAQPage from '@/pages/guide/GuideFAQPage'
-import GuideAdminVideosPage from '@/pages/guide/GuideAdminVideosPage'
+import KaytekLogo from '@/components/KaytekLogo'
+
+const LoginPage = lazy(() => import('@/pages/LoginPage'))
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'))
+const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
+const InterventionsPage = lazy(() => import('@/pages/InterventionsPage'))
+const InterventionDetailPage = lazy(() => import('@/pages/InterventionDetailPage'))
+const DevisPage = lazy(() => import('@/pages/DevisPage'))
+const DevisFormPage = lazy(() => import('@/pages/DevisFormPage'))
+const FacturesPage = lazy(() => import('@/pages/FacturesPage'))
+const ClientsPage = lazy(() => import('@/pages/ClientsPage'))
+const ClientDetailPage = lazy(() => import('@/pages/ClientDetailPage'))
+const MessagingPage = lazy(() => import('@/pages/MessagingPage'))
+const CommissionsPage = lazy(() => import('@/pages/CommissionsPage'))
+const UsersPage = lazy(() => import('@/pages/UsersPage'))
+const ParamsPage = lazy(() => import('@/pages/ParamsPage'))
+const JournalPage = lazy(() => import('@/pages/JournalPage'))
+const DevisApercuPage = lazy(() => import('@/pages/DevisApercuPage'))
+const CataloguePage = lazy(() => import('@/pages/CataloguePage'))
+const PlanningPage = lazy(() => import('@/pages/PlanningPage'))
+const GuidePage = lazy(() => import('@/pages/guide/GuidePage'))
+const GuideAdminPage = lazy(() => import('@/pages/guide/GuideAdminPage'))
+const GuideIntervenantPage = lazy(() => import('@/pages/guide/GuideIntervenantPage'))
+const GuideFAQPage = lazy(() => import('@/pages/guide/GuideFAQPage'))
+const GuideAdminVideosPage = lazy(() => import('@/pages/guide/GuideAdminVideosPage'))
+const PublicDocumentPage = lazy(() => import('@/pages/PublicDocumentPage'))
 
 function Guard({ children, adminOnly = false, requireCanCreateDocs = false }: { children: React.ReactNode; adminOnly?: boolean; requireCanCreateDocs?: boolean }) {
   const { user, loading, error } = useAuthStore()
@@ -50,8 +53,8 @@ function Guard({ children, adminOnly = false, requireCanCreateDocs = false }: { 
 
 function Loader() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: 'var(--bg)', flexDirection: 'column', gap: 14 }}>
-      <div style={{ width: 40, height: 40, background: 'var(--bl)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🔐</div>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: 'var(--bg)', flexDirection: 'column', gap: 16 }}>
+      <KaytekLogo size={56} style={{ filter: 'drop-shadow(0 3px 8px rgba(37,99,235,.30))' }} />
       <p style={{ color: 'var(--t2)', fontSize: 13 }}>Chargement…</p>
     </div>
   )
@@ -220,9 +223,11 @@ export default function App() {
   }, [initDone, setUser, setLoading, setError, setParams, qc])
 
   return (
+    <Suspense fallback={<Loader />}>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/d/:token" element={<PublicDocumentPage />} />
       <Route path="/" element={<Guard><AppLayout /></Guard>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
@@ -252,5 +257,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
+    </Suspense>
   )
 }

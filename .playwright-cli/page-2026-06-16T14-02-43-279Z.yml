@@ -1,0 +1,288 @@
+- generic [ref=e24]:
+  - complementary [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e27]: 🔐
+      - generic [ref=e28]:
+        - generic [ref=e29]: Kaytek Inter
+        - generic [ref=e30]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+    - navigation [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]: Pilotage
+        - button "Dashboard" [ref=e37] [cursor=pointer]:
+          - img [ref=e38]
+          - generic [ref=e43]: Dashboard
+        - button "Messagerie" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e48]: Messagerie
+      - generic [ref=e49]:
+        - generic [ref=e50]: Terrain
+        - button "Interventions 9" [ref=e51] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e54]: Interventions
+          - generic [ref=e55]: "9"
+        - button "Planning" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - generic [ref=e59]: Planning
+        - button "Devis" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+          - generic [ref=e64]: Devis
+        - button "Factures" [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+          - generic [ref=e69]: Factures
+      - generic [ref=e70]:
+        - generic [ref=e71]: Gestion
+        - button "Clients" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+          - generic [ref=e78]: Clients
+        - button "Catalogue" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e84]: Catalogue
+        - button "Commissions" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e88]: Commissions
+        - button "Guide" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - generic [ref=e92]: Guide
+      - generic [ref=e93]:
+        - generic [ref=e94]: Administration
+        - button "Utilisateurs" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e98]: Utilisateurs
+        - button "Paramètres" [ref=e99] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e103]: Paramètres
+        - button "Journal" [ref=e104] [cursor=pointer]:
+          - img [ref=e105]
+          - generic [ref=e108]: Journal
+    - generic [ref=e110]:
+      - button "AT Admin B Test Administrateur · Kaytek Inter" [ref=e111] [cursor=pointer]:
+        - generic [ref=e112]:
+          - generic [ref=e113]: AT
+          - generic [ref=e114]:
+            - generic [ref=e115]: Admin B Test
+            - generic [ref=e116]: Administrateur · Kaytek Inter
+      - generic [ref=e117]:
+        - button "Clair" [ref=e118] [cursor=pointer]:
+          - img [ref=e119]
+          - text: Clair
+        - button "Quitter" [ref=e125] [cursor=pointer]:
+          - img [ref=e126]
+          - text: Quitter
+  - generic [ref=e129]:
+    - banner [ref=e130]:
+      - button "Menu" [ref=e131] [cursor=pointer]: ☰
+      - generic [ref=e132]: Devis
+      - generic [ref=e133]:
+        - button "💬" [ref=e134] [cursor=pointer]
+        - button "🔔" [ref=e136] [cursor=pointer]
+        - button "+ Nouveau" [ref=e137] [cursor=pointer]
+        - button "☀" [ref=e138] [cursor=pointer]
+    - main [ref=e144]:
+      - generic [ref=e1425]:
+        - generic [ref=e1426]:
+          - heading "Devis" [level=1] [ref=e1427]
+          - paragraph [ref=e1428]: 9 devis
+        - generic [ref=e1429]:
+          - button "📥 CSV" [ref=e1430] [cursor=pointer]
+          - button "☑ Sélectionner" [ref=e1431] [cursor=pointer]
+          - button "🗑 Tout supprimer" [ref=e1432] [cursor=pointer]
+          - button "+ Nouveau" [ref=e1433] [cursor=pointer]
+      - generic [ref=e1434]:
+        - generic [ref=e1435]:
+          - generic [ref=e1436]: 📋
+          - generic [ref=e1437]: "9"
+          - generic [ref=e1438]: Total devis
+        - generic [ref=e1439]:
+          - generic [ref=e1440]: ✅
+          - generic [ref=e1441]: "2"
+          - generic [ref=e1442]: Acceptés
+        - generic [ref=e1443]:
+          - generic [ref=e1444]: 💶
+          - generic [ref=e1445]: 330,00 €
+          - generic [ref=e1446]: CA en jeu
+      - generic [ref=e1447]:
+        - generic [ref=e1448]:
+          - generic [ref=e1449]: 🔍
+          - textbox "Rechercher un devis ou un client…" [ref=e1450]
+        - generic [ref=e1451]:
+          - button "Tous 9" [ref=e1452] [cursor=pointer]:
+            - text: Tous
+            - generic [ref=e1453]: "9"
+          - button "À valider" [ref=e1454] [cursor=pointer]
+          - button "Brouillon 7" [ref=e1455] [cursor=pointer]:
+            - text: Brouillon
+            - generic [ref=e1456]: "7"
+          - button "Envoyé" [ref=e1457] [cursor=pointer]
+          - button "Accepté 2" [ref=e1458] [cursor=pointer]:
+            - text: Accepté
+            - generic [ref=e1459]: "2"
+          - button "Refusé" [ref=e1460] [cursor=pointer]
+          - button "Expiré" [ref=e1461] [cursor=pointer]
+      - table [ref=e1463]:
+        - rowgroup [ref=e1464]:
+          - row "N° Client Activité Total TTC Statut Intervenant Date Validité" [ref=e1465]:
+            - columnheader "N°" [ref=e1466]
+            - columnheader "Client" [ref=e1467]
+            - columnheader "Activité" [ref=e1468]
+            - columnheader "Total TTC" [ref=e1469]
+            - columnheader "Statut" [ref=e1470]
+            - columnheader "Intervenant" [ref=e1471]
+            - columnheader "Date" [ref=e1472]
+            - columnheader "Validité" [ref=e1473]
+            - columnheader [ref=e1474]
+        - rowgroup [ref=e1475]:
+          - row "DEV-2026-144 AUDIT-TEST Dupont Jean jean.audit@test.fr serrurerie 187,00 € Brouillon Admin B Test 16/06/2026 16/07/2026 📧 ···" [ref=e1476]:
+            - cell "DEV-2026-144" [ref=e1477]:
+              - generic [ref=e1480]: DEV-2026-144
+            - cell "AUDIT-TEST Dupont Jean jean.audit@test.fr" [ref=e1481]:
+              - generic [ref=e1482]: AUDIT-TEST Dupont Jean
+              - generic [ref=e1483]: jean.audit@test.fr
+            - cell "serrurerie" [ref=e1484]:
+              - generic [ref=e1485]: serrurerie
+            - cell "187,00 €" [ref=e1486]
+            - cell "Brouillon" [ref=e1487]:
+              - generic [ref=e1488]: Brouillon
+            - cell "Admin B Test" [ref=e1489]
+            - cell "16/06/2026" [ref=e1490]
+            - cell "16/07/2026" [ref=e1491]
+            - cell "📧 ···" [ref=e1492]:
+              - generic [ref=e1493]:
+                - button "📧" [ref=e1494] [cursor=pointer]
+                - button "···" [ref=e1495] [cursor=pointer]
+          - row "DEV-2026-126 TEST-ISO PW-1781301316309 serrurerie 165,00 € Accepté Admin B Test 12/06/2026 12/07/2026 ···" [ref=e1496]:
+            - cell "DEV-2026-126" [ref=e1497]:
+              - generic [ref=e1500]: DEV-2026-126
+            - cell "TEST-ISO PW-1781301316309" [ref=e1501]:
+              - generic [ref=e1502]: TEST-ISO PW-1781301316309
+            - cell "serrurerie" [ref=e1503]:
+              - generic [ref=e1504]: serrurerie
+            - cell "165,00 €" [ref=e1505]
+            - cell "Accepté" [ref=e1506]:
+              - generic [ref=e1507]: Accepté
+            - cell "Admin B Test" [ref=e1508]
+            - cell "12/06/2026" [ref=e1509]
+            - cell "12/07/2026" [ref=e1510]
+            - cell "···" [ref=e1511]:
+              - button "···" [ref=e1513] [cursor=pointer]
+          - row "DEV-2026-125 TEST-WORKFLOW PW-1781301130756 test-workflow-1781301130756@example.test serrurerie 220,00 € Brouillon Admin B Test 12/06/2026 12/07/2026 📧 ···" [ref=e1514]:
+            - cell "DEV-2026-125" [ref=e1515]:
+              - generic [ref=e1518]: DEV-2026-125
+            - cell "TEST-WORKFLOW PW-1781301130756 test-workflow-1781301130756@example.test" [ref=e1519]:
+              - generic [ref=e1520]: TEST-WORKFLOW PW-1781301130756
+              - generic [ref=e1521]: test-workflow-1781301130756@example.test
+            - cell "serrurerie" [ref=e1522]:
+              - generic [ref=e1523]: serrurerie
+            - cell "220,00 €" [ref=e1524]
+            - cell "Brouillon" [ref=e1525]:
+              - generic [ref=e1526]: Brouillon
+            - cell "Admin B Test" [ref=e1527]
+            - cell "12/06/2026" [ref=e1528]
+            - cell "12/07/2026" [ref=e1529]
+            - cell "📧 ···" [ref=e1530]:
+              - generic [ref=e1531]:
+                - button "📧" [ref=e1532] [cursor=pointer]
+                - button "···" [ref=e1533] [cursor=pointer]
+          - row "DEV-2026-124 TEST-WORKFLOW PW-1781300962277 test-workflow-1781300962277@example.test serrurerie 220,00 € Brouillon Admin B Test 12/06/2026 12/07/2026 📧 ···" [ref=e1534]:
+            - cell "DEV-2026-124" [ref=e1535]:
+              - generic [ref=e1538]: DEV-2026-124
+            - cell "TEST-WORKFLOW PW-1781300962277 test-workflow-1781300962277@example.test" [ref=e1539]:
+              - generic [ref=e1540]: TEST-WORKFLOW PW-1781300962277
+              - generic [ref=e1541]: test-workflow-1781300962277@example.test
+            - cell "serrurerie" [ref=e1542]:
+              - generic [ref=e1543]: serrurerie
+            - cell "220,00 €" [ref=e1544]
+            - cell "Brouillon" [ref=e1545]:
+              - generic [ref=e1546]: Brouillon
+            - cell "Admin B Test" [ref=e1547]
+            - cell "12/06/2026" [ref=e1548]
+            - cell "12/07/2026" [ref=e1549]
+            - cell "📧 ···" [ref=e1550]:
+              - generic [ref=e1551]:
+                - button "📧" [ref=e1552] [cursor=pointer]
+                - button "···" [ref=e1553] [cursor=pointer]
+          - row "DEV-2026-123 TEST-WORKFLOW PW-1781297822070 test-workflow-1781297822070@example.test serrurerie 220,00 € Brouillon Admin B Test 12/06/2026 12/07/2026 📧 ···" [ref=e1554]:
+            - cell "DEV-2026-123" [ref=e1555]:
+              - generic [ref=e1558]: DEV-2026-123
+            - cell "TEST-WORKFLOW PW-1781297822070 test-workflow-1781297822070@example.test" [ref=e1559]:
+              - generic [ref=e1560]: TEST-WORKFLOW PW-1781297822070
+              - generic [ref=e1561]: test-workflow-1781297822070@example.test
+            - cell "serrurerie" [ref=e1562]:
+              - generic [ref=e1563]: serrurerie
+            - cell "220,00 €" [ref=e1564]
+            - cell "Brouillon" [ref=e1565]:
+              - generic [ref=e1566]: Brouillon
+            - cell "Admin B Test" [ref=e1567]
+            - cell "12/06/2026" [ref=e1568]
+            - cell "12/07/2026" [ref=e1569]
+            - cell "📧 ···" [ref=e1570]:
+              - generic [ref=e1571]:
+                - button "📧" [ref=e1572] [cursor=pointer]
+                - button "···" [ref=e1573] [cursor=pointer]
+          - row "DEV-2026-122 TEST-WORKFLOW PW-1781297747189 test-workflow-1781297747189@example.test serrurerie 220,00 € Brouillon Admin B Test 12/06/2026 12/07/2026 📧 ···" [ref=e1574]:
+            - cell "DEV-2026-122" [ref=e1575]:
+              - generic [ref=e1578]: DEV-2026-122
+            - cell "TEST-WORKFLOW PW-1781297747189 test-workflow-1781297747189@example.test" [ref=e1579]:
+              - generic [ref=e1580]: TEST-WORKFLOW PW-1781297747189
+              - generic [ref=e1581]: test-workflow-1781297747189@example.test
+            - cell "serrurerie" [ref=e1582]:
+              - generic [ref=e1583]: serrurerie
+            - cell "220,00 €" [ref=e1584]
+            - cell "Brouillon" [ref=e1585]:
+              - generic [ref=e1586]: Brouillon
+            - cell "Admin B Test" [ref=e1587]
+            - cell "12/06/2026" [ref=e1588]
+            - cell "12/07/2026" [ref=e1589]
+            - cell "📧 ···" [ref=e1590]:
+              - generic [ref=e1591]:
+                - button "📧" [ref=e1592] [cursor=pointer]
+                - button "···" [ref=e1593] [cursor=pointer]
+          - row "DEV-2026-121 TEST-ISO PW-1781296203343 serrurerie 165,00 € Accepté Admin B Test 12/06/2026 12/07/2026 ···" [ref=e1594]:
+            - cell "DEV-2026-121" [ref=e1595]:
+              - generic [ref=e1598]: DEV-2026-121
+            - cell "TEST-ISO PW-1781296203343" [ref=e1599]:
+              - generic [ref=e1600]: TEST-ISO PW-1781296203343
+            - cell "serrurerie" [ref=e1601]:
+              - generic [ref=e1602]: serrurerie
+            - cell "165,00 €" [ref=e1603]
+            - cell "Accepté" [ref=e1604]:
+              - generic [ref=e1605]: Accepté
+            - cell "Admin B Test" [ref=e1606]
+            - cell "12/06/2026" [ref=e1607]
+            - cell "12/07/2026" [ref=e1608]
+            - cell "···" [ref=e1609]:
+              - button "···" [ref=e1611] [cursor=pointer]
+          - row "DEV-2026-120 TEST-ISO PW-1781295531342 serrurerie 165,00 € Brouillon Admin B Test 12/06/2026 12/07/2026 ···" [ref=e1612]:
+            - cell "DEV-2026-120" [ref=e1613]:
+              - generic [ref=e1616]: DEV-2026-120
+            - cell "TEST-ISO PW-1781295531342" [ref=e1617]:
+              - generic [ref=e1618]: TEST-ISO PW-1781295531342
+            - cell "serrurerie" [ref=e1619]:
+              - generic [ref=e1620]: serrurerie
+            - cell "165,00 €" [ref=e1621]
+            - cell "Brouillon" [ref=e1622]:
+              - generic [ref=e1623]: Brouillon
+            - cell "Admin B Test" [ref=e1624]
+            - cell "12/06/2026" [ref=e1625]
+            - cell "12/07/2026" [ref=e1626]
+            - cell "···" [ref=e1627]:
+              - button "···" [ref=e1629] [cursor=pointer]
+          - row "DEV-2026-119 TEST-ISO PW-1781295531342 serrurerie 165,00 € Brouillon Admin B Test 12/06/2026 12/07/2026 ···" [ref=e1630]:
+            - cell "DEV-2026-119" [ref=e1631]:
+              - generic [ref=e1634]: DEV-2026-119
+            - cell "TEST-ISO PW-1781295531342" [ref=e1635]:
+              - generic [ref=e1636]: TEST-ISO PW-1781295531342
+            - cell "serrurerie" [ref=e1637]:
+              - generic [ref=e1638]: serrurerie
+            - cell "165,00 €" [ref=e1639]
+            - cell "Brouillon" [ref=e1640]:
+              - generic [ref=e1641]: Brouillon
+            - cell "Admin B Test" [ref=e1642]
+            - cell "12/06/2026" [ref=e1643]
+            - cell "12/07/2026" [ref=e1644]
+            - cell "···" [ref=e1645]:
+              - button "···" [ref=e1647] [cursor=pointer]
+  - generic [ref=e1648]:
+    - generic [ref=e1649]: ✓
+    - text: Devis envoyé à l'admin pour validation

@@ -1,0 +1,17 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - generic [ref=e6]: 🔐
+    - heading "Kaytek Inter" [level=1] [ref=e7]
+    - paragraph [ref=e8]: Gestion serrurerie · vitrerie
+  - generic [ref=e9]:
+    - heading "Connexion" [level=2] [ref=e10]
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e13]: Email
+        - textbox "vous@email.fr" [ref=e14]: kaytek.serrurerie@gmail.com
+      - generic [ref=e15]:
+        - generic [ref=e16]: Mot de passe
+        - textbox "••••••••••••" [active] [ref=e17]: Kaytek2024!
+      - generic [ref=e20]: ⚠ Invalid login credentials
+      - button "Se connecter" [ref=e18] [cursor=pointer]
+    - button "Mot de passe oublié ?" [ref=e19] [cursor=pointer]

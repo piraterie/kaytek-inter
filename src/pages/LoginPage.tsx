@@ -9,6 +9,7 @@ import {
   authenticateWithBiometric, registerBiometric, clearBiometric,
 } from '@/lib/biometric'
 import type { Profile } from '@/types'
+import KaytekLogo from '@/components/KaytekLogo'
 
 // Brute-force protection — 5 tentatives → blocage 15 minutes
 const BF_KEY = 'kaytek-login-bf'
@@ -225,10 +226,16 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 16 }}>
       <div style={{ width: '100%', maxWidth: 380 }}>
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ width: 52, height: 52, background: '#2563eb', borderRadius: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 12px' }}>🔐</div>
-          <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--t0)', letterSpacing: '-.025em', marginBottom: 4 }}>Kaytek Inter</h1>
-          <p style={{ fontSize: 12, color: 'var(--t2)' }}>Gestion serrurerie · vitrerie</p>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+            <KaytekLogo size={80} style={{ filter: 'drop-shadow(0 4px 12px rgba(37,99,235,.30))' }} />
+          </div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--t0)', letterSpacing: '-.03em', marginBottom: 6 }}>
+            <span style={{ color: '#3B82F6' }}>Kay</span><span style={{ color: '#1A2F5C' }}>tek</span>
+            {' '}
+            <span style={{ color: 'var(--t0)' }}>Inter</span>
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.4 }}>Devis · Factures · Interventions · Messagerie</p>
         </div>
 
         <div className="card" style={{ padding: 24 }}>

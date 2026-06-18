@@ -1,0 +1,20 @@
+- generic [ref=e6]:
+  - generic [ref=e7]:
+    - banner [ref=e8]:
+      - button "Menu" [ref=e9] [cursor=pointer]: ☰
+      - generic [ref=e10]: Devis
+      - generic [ref=e11]:
+        - button "💬" [ref=e12] [cursor=pointer]
+        - button "🔔" [ref=e14] [cursor=pointer]
+        - button "☀" [ref=e15] [cursor=pointer]
+    - generic [ref=e16]:
+      - generic [ref=e17]: ⚠
+      - generic [ref=e18]:
+        - strong [ref=e19]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e20] [cursor=pointer]
+    - main [ref=e21]:
+      - generic [ref=e22]: Devis introuvable
+  - navigation [ref=e23]:
+    - button "+ Nouveau" [ref=e24] [cursor=pointer]
+    - button "☰ Menu" [ref=e25] [cursor=pointer]

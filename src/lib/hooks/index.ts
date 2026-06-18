@@ -106,10 +106,10 @@ export function useUpdateProfile() {
 
 // ── PARAMETRES ───────────────────────────────────────────────────
 export function useParametres() {
-  return useQuery<ParametresEntreprise>({
+  return useQuery<ParametresEntreprise | null>({
     queryKey: ['parametres'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('parametres_entreprise').select('*').single()
+      const { data, error } = await supabase.from('parametres_entreprise').select('*').maybeSingle()
       if (error) throw error
       return data
     },
@@ -120,7 +120,7 @@ export function useUpdateParametres() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (data: Partial<ParametresEntreprise>) => {
-      const { data: ex } = await supabase.from('parametres_entreprise').select('id').single()
+      const { data: ex } = await supabase.from('parametres_entreprise').select('id').maybeSingle()
       if (ex) {
         const { error } = await supabase.from('parametres_entreprise').update(data).eq('id', ex.id)
         if (error) throw error
@@ -439,7 +439,7 @@ export function useCreateIntervention() {
       }
       return result
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['interventions'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['interventions'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); qc.invalidateQueries({ queryKey: ['interventions-pending-count'] }) }
   })
 }
 export function useUpdateIntervention() {
@@ -598,6 +598,41 @@ export function useDeleteAllDevis() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['devis'] })
   })
 }
+export function useDuplicateDevis() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (d: Devis) => {
+      const user = useAuthStore.getState().user
+      if (!isAdm() && !user?.can_create_documents) throw new Error('Vous n\'êtes pas autorisé à créer des devis')
+      const org_id = orgId()
+      if (!org_id) throw new Error('Organisation introuvable — reconnectez-vous')
+      const payload: any = {
+        client_id: d.client_id,
+        intervenant_id: d.intervenant_id,
+        activite: d.activite,
+        lignes: d.lignes,
+        remise_pct: d.remise_pct || 0,
+        ...(d.remise_montant != null ? { remise_montant: d.remise_montant } : {}),
+        total_ht: d.total_ht,
+        tva_montant: d.tva_montant,
+        total_ttc: d.total_ttc,
+        modele_id: d.modele_id || 0,
+        notes: d.notes,
+        statut: 'brouillon',
+        valide_jusqu_au: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+        created_by: uid(),
+        organisation_id: org_id
+      }
+      const { data: result, error } = await supabase.from('devis').insert(payload).select().single()
+      if (error) {
+        if (error.code === '23505') throw new Error('Numéro de devis déjà utilisé — veuillez réessayer.')
+        throw error
+      }
+      return result as Devis
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['devis'] })
+  })
+}
 export function useDevisToFacture() {
   const qc = useQueryClient()
   return useMutation({
@@ -674,10 +709,12 @@ export async function notifyAdmins(titre: string, contenu: string, lien?: string
       })
       telegramSent = data?.sent === true
     } catch { /* fallback vers push */ }
-    await supabase.from('notifications').insert({
-      user_id: admin.id, titre, contenu, type: 'info', lue: false, lien: lien || null,
-      skip_push: telegramSent, organisation_id: org_id
-    } as any)
+    try {
+      await supabase.from('notifications').insert({
+        user_id: admin.id, titre, contenu, type: 'info', lue: false, lien: lien || null,
+        skip_push: telegramSent, organisation_id: org_id
+      } as any)
+    } catch { /* notifications table may not exist yet */ }
   }
 }
 
@@ -691,10 +728,12 @@ export async function notifyUser(userId: string, titre: string, contenu: string,
     })
     telegramSent = data?.sent === true
   } catch { /* fallback vers push */ }
-  await supabase.from('notifications').insert({
-    user_id: userId, titre, contenu, type: 'info', lue: false, lien: lien || null,
-    skip_push: telegramSent, organisation_id: org_id
-  } as any)
+  try {
+    await supabase.from('notifications').insert({
+      user_id: userId, titre, contenu, type: 'info', lue: false, lien: lien || null,
+      skip_push: telegramSent, organisation_id: org_id
+    } as any)
+  } catch { /* notifications table may not exist yet */ }
 }
 
 // ── NOTIFICATIONS IN-APP ──────────────────────────────────────────
@@ -711,7 +750,7 @@ export function useMyNotifications() {
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(50)
-      if (error) throw error
+      if (error) return []
       return data || []
     },
     refetchInterval: 30_000,
@@ -1282,7 +1321,7 @@ export function useConversations() {
         })
     },
     enabled: !!user,
-    refetchInterval: 20_000
+    refetchInterval: 45_000
   })
 }
 
@@ -1377,7 +1416,7 @@ export function useUnreadCount() {
       return count || 0
     },
     enabled: !!user,
-    refetchInterval: 15_000
+    refetchInterval: 60_000
   })
   useEffect(() => {
     if (!user) return
@@ -1460,6 +1499,25 @@ export function useUpdateJournalEntry() {
       if (error) throw error
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ['journal'] })
+  })
+}
+
+// ── LIENS PUBLICS ────────────────────────────────────────────────
+export function useCreatePublicLink() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ document_type, document_id }: { document_type: 'devis' | 'facture'; document_id: string }) => {
+      const org_id = orgId()
+      if (!org_id) throw new Error('Organisation introuvable — reconnectez-vous')
+      const { data, error } = await supabase
+        .from('document_public_links')
+        .insert({ document_type, document_id, organisation_id: org_id, created_by: uid() })
+        .select('token')
+        .single()
+      if (error) throw error
+      return data as { token: string }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['public-links'] })
   })
 }
 

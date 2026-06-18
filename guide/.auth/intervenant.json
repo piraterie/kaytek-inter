@@ -1,0 +1,14 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "kaytek-auth",
+          "value": "{\"access_token\":\"eyJhbGciOiJFUzI1NiIsImtpZCI6ImNhOGQ5MzFhLTMxODEtNDUxYy04MmU2LTk1MDcyMDdkYmY0MiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2RpbXJ1a2t4ZWhjd3plbXNsd2l6LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI4OGE3MWE5My1kNmRlLTQzMzctODFlZi0wMDk3OGQ1OTZmNWEiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzgxNTYxOTcwLCJpYXQiOjE3ODE1NTgzNzAsImVtYWlsIjoiaW50ZXJ2ZW5hbnRAa2F5dGVrLnRlc3QiLCJwaG9uZSI6IiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7ImVtYWlsX3ZlcmlmaWVkIjp0cnVlfSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTc4MTU1ODM3MH1dLCJzZXNzaW9uX2lkIjoiM2FlYWFlZjktOGQ3Mi00ZjkzLTg5MGQtZjU3YjA0NWFlOTQ0IiwiaXNfYW5vbnltb3VzIjpmYWxzZX0.D7nnmyacHADbKSvyihdqLWrH17E5cQdItFkPOBkQumzLIl-gwTp01KOhJ8WmmsX7QTTC8RarJPye5O3R0TTYkw\",\"token_type\":\"bearer\",\"expires_in\":3600,\"expires_at\":1781561970,\"refresh_token\":\"uorppnw4wsgk\",\"user\":{\"id\":\"88a71a93-d6de-4337-81ef-00978d596f5a\",\"aud\":\"authenticated\",\"role\":\"authenticated\",\"email\":\"intervenant@kaytek.test\",\"email_confirmed_at\":\"2026-06-15T18:18:10.680912Z\",\"phone\":\"\",\"confirmed_at\":\"2026-06-15T18:18:10.680912Z\",\"last_sign_in_at\":\"2026-06-15T21:19:30.113859871Z\",\"app_metadata\":{\"provider\":\"email\",\"providers\":[\"email\"]},\"user_metadata\":{\"email_verified\":true},\"identities\":[{\"identity_id\":\"dd8766c4-334b-46b4-af7b-3108a6acf685\",\"id\":\"88a71a93-d6de-4337-81ef-00978d596f5a\",\"user_id\":\"88a71a93-d6de-4337-81ef-00978d596f5a\",\"identity_data\":{\"email\":\"intervenant@kaytek.test\",\"email_verified\":false,\"phone_verified\":false,\"sub\":\"88a71a93-d6de-4337-81ef-00978d596f5a\"},\"provider\":\"email\",\"last_sign_in_at\":\"2026-06-15T18:18:10.677831Z\",\"created_at\":\"2026-06-15T18:18:10.677877Z\",\"updated_at\":\"2026-06-15T18:18:10.677877Z\",\"email\":\"intervenant@kaytek.test\"}],\"created_at\":\"2026-06-15T18:18:10.675603Z\",\"updated_at\":\"2026-06-15T21:19:30.116392Z\",\"is_anonymous\":false}}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+- generic [ref=e6]:
+  - complementary [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]: 🔐
+      - generic [ref=e10]:
+        - generic [ref=e11]: Kaytek Inter
+        - generic [ref=e12]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e13] [cursor=pointer]:
+        - img [ref=e14]
+    - navigation [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: Pilotage
+        - button "Dashboard" [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+          - generic [ref=e25]: Dashboard
+        - button "Messagerie" [ref=e26] [cursor=pointer]:
+          - img [ref=e27]
+          - generic [ref=e30]: Messagerie
+      - generic [ref=e31]:
+        - generic [ref=e32]: Terrain
+        - button "Interventions 8" [ref=e33] [cursor=pointer]:
+          - img [ref=e34]
+          - generic [ref=e36]: Interventions
+          - generic [ref=e37]: "8"
+        - button "Planning" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - generic [ref=e41]: Planning
+        - button "Devis" [ref=e42] [cursor=pointer]:
+          - img [ref=e43]
+          - generic [ref=e46]: Devis
+        - button "Factures" [ref=e47] [cursor=pointer]:
+          - img [ref=e48]
+          - generic [ref=e51]: Factures
+      - generic [ref=e52]:
+        - generic [ref=e53]: Gestion
+        - button "Clients" [ref=e54] [cursor=pointer]:
+          - img [ref=e55]
+          - generic [ref=e60]: Clients
+        - button "Catalogue" [ref=e61] [cursor=pointer]:
+          - img [ref=e62]
+          - generic [ref=e66]: Catalogue
+        - button "Commissions" [ref=e67] [cursor=pointer]:
+          - img [ref=e68]
+          - generic [ref=e70]: Commissions
+        - button "Guide" [ref=e71] [cursor=pointer]:
+          - img [ref=e72]
+          - generic [ref=e74]: Guide
+      - generic [ref=e75]:
+        - generic [ref=e76]: Administration
+        - button "Utilisateurs" [ref=e77] [cursor=pointer]:
+          - img [ref=e78]
+          - generic [ref=e80]: Utilisateurs
+        - button "Paramètres" [ref=e81] [cursor=pointer]:
+          - img [ref=e82]
+          - generic [ref=e85]: Paramètres
+        - button "Journal" [ref=e86] [cursor=pointer]:
+          - img [ref=e87]
+          - generic [ref=e90]: Journal
+    - generic [ref=e92]:
+      - button "AT Admin B Test Administrateur · Kaytek Inter" [ref=e93] [cursor=pointer]:
+        - generic [ref=e94]:
+          - generic [ref=e95]: AT
+          - generic [ref=e96]:
+            - generic [ref=e97]: Admin B Test
+            - generic [ref=e98]: Administrateur · Kaytek Inter
+      - generic [ref=e99]:
+        - button "Clair" [ref=e100] [cursor=pointer]:
+          - img [ref=e101]
+          - text: Clair
+        - button "Quitter" [ref=e107] [cursor=pointer]:
+          - img [ref=e108]
+          - text: Quitter
+  - generic [ref=e111]:
+    - banner [ref=e112]:
+      - button "Menu" [ref=e113] [cursor=pointer]: ☰
+      - generic [ref=e114]: Messagerie
+      - generic [ref=e115]:
+        - button "💬" [ref=e116] [cursor=pointer]
+        - button "🔔" [ref=e118] [cursor=pointer]
+        - button "+ Nouveau" [ref=e119] [cursor=pointer]
+        - button "☀" [ref=e120] [cursor=pointer]
+    - generic [ref=e121]:
+      - generic [ref=e122]: ⚠
+      - generic [ref=e123]:
+        - strong [ref=e124]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e125] [cursor=pointer]
+    - main [ref=e126]:
+      - generic [ref=e342]:
+        - generic [ref=e343]:
+          - generic [ref=e344]:
+            - generic [ref=e345]: Messages
+            - generic [ref=e346]: 1 contact
+          - generic [ref=e348] [cursor=pointer]:
+            - generic [ref=e350]: T
+            - generic [ref=e351]:
+              - generic [ref=e352]:
+                - generic [ref=e353]: Intervenant A Test
+                - generic [ref=e354]: Hier
+              - generic [ref=e355]: Bonjour, j'ai bien accepté l'intervention. Je serai …
+        - generic [ref=e357]:
+          - generic [ref=e358]:
+            - generic [ref=e359]: T
+            - generic [ref=e360]:
+              - generic [ref=e361]: Intervenant A Test
+              - generic [ref=e362]: Intervenant
+          - generic [ref=e364]:
+            - generic [ref=e366]:
+              - generic [ref=e368]: T
+              - generic [ref=e369]:
+                - generic [ref=e370]: Intervenant A
+                - generic [ref=e371]: ✅ Intervenant A Test a accepté l'intervention INT-2026-039 — 10 Rue du Test, Paris 75001
+                - generic [ref=e373]: 16:24
+            - generic [ref=e376]:
+              - generic [ref=e377]: Bonjour, j'ai bien accepté l'intervention. Je serai sur place dans 30 minutes.
+              - generic [ref=e379]: 16:33
+          - generic [ref=e380]:
+            - button "Photo" [ref=e381] [cursor=pointer]:
+              - img [ref=e382]
+            - textbox "Message…" [ref=e386]
+            - button "Maintenir pour enregistrer" [ref=e387] [cursor=pointer]:
+              - img [ref=e388]

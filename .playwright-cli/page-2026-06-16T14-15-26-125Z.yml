@@ -1,0 +1,453 @@
+- generic [ref=e24]:
+  - complementary [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e27]: 🔐
+      - generic [ref=e28]:
+        - generic [ref=e29]: Kaytek Inter
+        - generic [ref=e30]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+    - navigation [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]: Pilotage
+        - button "Dashboard" [ref=e37] [cursor=pointer]:
+          - img [ref=e38]
+          - generic [ref=e43]: Dashboard
+        - button "Messagerie" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e48]: Messagerie
+      - generic [ref=e49]:
+        - generic [ref=e50]: Terrain
+        - button "Interventions 9" [ref=e51] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e54]: Interventions
+          - generic [ref=e55]: "9"
+        - button "Planning" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - generic [ref=e59]: Planning
+        - button "Devis" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+          - generic [ref=e64]: Devis
+        - button "Factures" [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+          - generic [ref=e69]: Factures
+      - generic [ref=e70]:
+        - generic [ref=e71]: Gestion
+        - button "Clients" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+          - generic [ref=e78]: Clients
+        - button "Catalogue" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e84]: Catalogue
+        - button "Commissions" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e88]: Commissions
+        - button "Guide" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - generic [ref=e92]: Guide
+      - generic [ref=e93]:
+        - generic [ref=e94]: Administration
+        - button "Utilisateurs" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+          - generic [ref=e98]: Utilisateurs
+        - button "Paramètres" [ref=e99] [cursor=pointer]:
+          - img [ref=e100]
+          - generic [ref=e103]: Paramètres
+        - button "Journal" [active] [ref=e104] [cursor=pointer]:
+          - img [ref=e105]
+          - generic [ref=e108]: Journal
+    - generic [ref=e110]:
+      - button "AT Admin B Test Administrateur · Kaytek Inter" [ref=e111] [cursor=pointer]:
+        - generic [ref=e112]:
+          - generic [ref=e113]: AT
+          - generic [ref=e114]:
+            - generic [ref=e115]: Admin B Test
+            - generic [ref=e116]: Administrateur · Kaytek Inter
+      - generic [ref=e117]:
+        - button "Clair" [ref=e118] [cursor=pointer]:
+          - img [ref=e119]
+          - text: Clair
+        - button "Quitter" [ref=e125] [cursor=pointer]:
+          - img [ref=e126]
+          - text: Quitter
+  - generic [ref=e129]:
+    - banner [ref=e130]:
+      - button "Menu" [ref=e131] [cursor=pointer]: ☰
+      - generic [ref=e132]: Journal
+      - generic [ref=e133]:
+        - button "💬" [ref=e134] [cursor=pointer]
+        - button "🔔" [ref=e136] [cursor=pointer]
+        - button "+ Nouveau" [ref=e137] [cursor=pointer]
+        - button "☀" [ref=e138] [cursor=pointer]
+    - generic [ref=e1980]:
+      - generic [ref=e1981]: ⚠
+      - generic [ref=e1982]:
+        - strong [ref=e1983]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e1984] [cursor=pointer]
+    - main [ref=e144]:
+      - generic [ref=e2086]:
+        - generic [ref=e2087]:
+          - generic [ref=e2088]:
+            - heading "Journal d'activité" [level=1] [ref=e2089]
+            - paragraph [ref=e2090]: 26 entrées · Qui a fait quoi, quand
+          - generic [ref=e2091]:
+            - button "📥 Export (26)" [ref=e2092] [cursor=pointer]
+            - button "📊 Rapport" [ref=e2093] [cursor=pointer]
+            - button "🗑 Vider" [ref=e2094] [cursor=pointer]
+        - generic [ref=e2095]:
+          - generic [ref=e2096]:
+            - generic [ref=e2097]: "10"
+            - generic [ref=e2098]: Interventions
+          - generic [ref=e2099]:
+            - generic [ref=e2100]: "9"
+            - generic [ref=e2101]: Devis
+          - generic [ref=e2102]:
+            - generic [ref=e2103]: "2"
+            - generic [ref=e2104]: Factures
+          - generic [ref=e2105]:
+            - generic [ref=e2106]: 0,00 €
+            - generic [ref=e2107]: CA TTC payé
+        - generic [ref=e2108]:
+          - generic [ref=e2109]:
+            - button "Aujourd'hui" [ref=e2110] [cursor=pointer]
+            - button "Cette semaine" [ref=e2111] [cursor=pointer]
+            - button "Ce mois" [ref=e2112] [cursor=pointer]
+            - button "Tout" [ref=e2113] [cursor=pointer]
+          - generic [ref=e2114]:
+            - generic [ref=e2115]: 🔍
+            - textbox "Rechercher…" [ref=e2116]
+          - combobox [ref=e2117] [cursor=pointer]:
+            - option "Toutes actions" [selected]
+            - option "creation"
+            - option "modification"
+            - option "suppression"
+            - option "paiement"
+          - combobox [ref=e2118] [cursor=pointer]:
+            - option "Toutes tables" [selected]
+            - option "Devis"
+            - option "Factures"
+            - option "Interventions"
+        - table [ref=e2120]:
+          - rowgroup [ref=e2121]:
+            - row "Date Utilisateur Action Table Résumé Note Actions" [ref=e2122]:
+              - columnheader "Date" [ref=e2123]
+              - columnheader "Utilisateur" [ref=e2124]
+              - columnheader "Action" [ref=e2125]
+              - columnheader "Table" [ref=e2126]
+              - columnheader "Résumé" [ref=e2127]
+              - columnheader "Note" [ref=e2128]
+              - columnheader "Actions" [ref=e2129]
+          - rowgroup [ref=e2130]:
+            - row "16/06/2026 16:02 Admin B Test creation Devis N° DEV-2026-144 · brouillon · 187,00 € — ✏ 🗑" [ref=e2131]:
+              - cell "16/06/2026 16:02" [ref=e2132]
+              - cell "Admin B Test" [ref=e2133]
+              - cell "creation" [ref=e2134]:
+                - generic [ref=e2135]: creation
+              - cell "Devis" [ref=e2136]
+              - cell "N° DEV-2026-144 · brouillon · 187,00 €" [ref=e2137]
+              - cell "—" [ref=e2138]
+              - cell "✏ 🗑" [ref=e2139]:
+                - generic [ref=e2140]:
+                  - button "✏" [ref=e2141] [cursor=pointer]
+                  - button "🗑" [ref=e2142] [cursor=pointer]
+            - row "16/06/2026 15:54 Admin B Test modification Interventions N° INT-2026-044 · accepte · serrurerie — ✏ 🗑" [ref=e2143]:
+              - cell "16/06/2026 15:54" [ref=e2144]
+              - cell "Admin B Test" [ref=e2145]
+              - cell "modification" [ref=e2146]:
+                - generic [ref=e2147]: modification
+              - cell "Interventions" [ref=e2148]
+              - cell "N° INT-2026-044 · accepte · serrurerie" [ref=e2149]
+              - cell "—" [ref=e2150]
+              - cell "✏ 🗑" [ref=e2151]:
+                - generic [ref=e2152]:
+                  - button "✏" [ref=e2153] [cursor=pointer]
+                  - button "🗑" [ref=e2154] [cursor=pointer]
+            - row "16/06/2026 15:53 Admin B Test creation Interventions N° INT-2026-044 · en_attente · serrurerie — ✏ 🗑" [ref=e2155]:
+              - cell "16/06/2026 15:53" [ref=e2156]
+              - cell "Admin B Test" [ref=e2157]
+              - cell "creation" [ref=e2158]:
+                - generic [ref=e2159]: creation
+              - cell "Interventions" [ref=e2160]
+              - cell "N° INT-2026-044 · en_attente · serrurerie" [ref=e2161]
+              - cell "—" [ref=e2162]
+              - cell "✏ 🗑" [ref=e2163]:
+                - generic [ref=e2164]:
+                  - button "✏" [ref=e2165] [cursor=pointer]
+                  - button "🗑" [ref=e2166] [cursor=pointer]
+            - row "12/06/2026 23:55 Admin B Test modification Devis N° DEV-2026-126 · accepte · 165,00 € — ✏ 🗑" [ref=e2167]:
+              - cell "12/06/2026 23:55" [ref=e2168]
+              - cell "Admin B Test" [ref=e2169]
+              - cell "modification" [ref=e2170]:
+                - generic [ref=e2171]: modification
+              - cell "Devis" [ref=e2172]
+              - cell "N° DEV-2026-126 · accepte · 165,00 €" [ref=e2173]
+              - cell "—" [ref=e2174]
+              - cell "✏ 🗑" [ref=e2175]:
+                - generic [ref=e2176]:
+                  - button "✏" [ref=e2177] [cursor=pointer]
+                  - button "🗑" [ref=e2178] [cursor=pointer]
+            - row "12/06/2026 23:55 Admin B Test creation Factures N° FAC-2026-040 · impayee · 165,00 € — ✏ 🗑" [ref=e2179]:
+              - cell "12/06/2026 23:55" [ref=e2180]
+              - cell "Admin B Test" [ref=e2181]
+              - cell "creation" [ref=e2182]:
+                - generic [ref=e2183]: creation
+              - cell "Factures" [ref=e2184]
+              - cell "N° FAC-2026-040 · impayee · 165,00 €" [ref=e2185]
+              - cell "—" [ref=e2186]
+              - cell "✏ 🗑" [ref=e2187]:
+                - generic [ref=e2188]:
+                  - button "✏" [ref=e2189] [cursor=pointer]
+                  - button "🗑" [ref=e2190] [cursor=pointer]
+            - row "12/06/2026 23:55 Admin B Test modification Devis N° DEV-2026-126 · envoye · 165,00 € — ✏ 🗑" [ref=e2191]:
+              - cell "12/06/2026 23:55" [ref=e2192]
+              - cell "Admin B Test" [ref=e2193]
+              - cell "modification" [ref=e2194]:
+                - generic [ref=e2195]: modification
+              - cell "Devis" [ref=e2196]
+              - cell "N° DEV-2026-126 · envoye · 165,00 €" [ref=e2197]
+              - cell "—" [ref=e2198]
+              - cell "✏ 🗑" [ref=e2199]:
+                - generic [ref=e2200]:
+                  - button "✏" [ref=e2201] [cursor=pointer]
+                  - button "🗑" [ref=e2202] [cursor=pointer]
+            - row "12/06/2026 23:55 Admin B Test creation Devis N° DEV-2026-126 · brouillon · 165,00 € — ✏ 🗑" [ref=e2203]:
+              - cell "12/06/2026 23:55" [ref=e2204]
+              - cell "Admin B Test" [ref=e2205]
+              - cell "creation" [ref=e2206]:
+                - generic [ref=e2207]: creation
+              - cell "Devis" [ref=e2208]
+              - cell "N° DEV-2026-126 · brouillon · 165,00 €" [ref=e2209]
+              - cell "—" [ref=e2210]
+              - cell "✏ 🗑" [ref=e2211]:
+                - generic [ref=e2212]:
+                  - button "✏" [ref=e2213] [cursor=pointer]
+                  - button "🗑" [ref=e2214] [cursor=pointer]
+            - row "12/06/2026 23:55 Admin B Test creation Interventions N° INT-2026-040 · en_attente · serrurerie — ✏ 🗑" [ref=e2215]:
+              - cell "12/06/2026 23:55" [ref=e2216]
+              - cell "Admin B Test" [ref=e2217]
+              - cell "creation" [ref=e2218]:
+                - generic [ref=e2219]: creation
+              - cell "Interventions" [ref=e2220]
+              - cell "N° INT-2026-040 · en_attente · serrurerie" [ref=e2221]
+              - cell "—" [ref=e2222]
+              - cell "✏ 🗑" [ref=e2223]:
+                - generic [ref=e2224]:
+                  - button "✏" [ref=e2225] [cursor=pointer]
+                  - button "🗑" [ref=e2226] [cursor=pointer]
+            - row "12/06/2026 23:53 Admin B Test creation Interventions N° INT-2026-039 · en_attente · serrurerie — ✏ 🗑" [ref=e2227]:
+              - cell "12/06/2026 23:53" [ref=e2228]
+              - cell "Admin B Test" [ref=e2229]
+              - cell "creation" [ref=e2230]:
+                - generic [ref=e2231]: creation
+              - cell "Interventions" [ref=e2232]
+              - cell "N° INT-2026-039 · en_attente · serrurerie" [ref=e2233]
+              - cell "—" [ref=e2234]
+              - cell "✏ 🗑" [ref=e2235]:
+                - generic [ref=e2236]:
+                  - button "✏" [ref=e2237] [cursor=pointer]
+                  - button "🗑" [ref=e2238] [cursor=pointer]
+            - row "12/06/2026 23:52 Admin B Test creation Devis N° DEV-2026-125 · brouillon · 220,00 € — ✏ 🗑" [ref=e2239]:
+              - cell "12/06/2026 23:52" [ref=e2240]
+              - cell "Admin B Test" [ref=e2241]
+              - cell "creation" [ref=e2242]:
+                - generic [ref=e2243]: creation
+              - cell "Devis" [ref=e2244]
+              - cell "N° DEV-2026-125 · brouillon · 220,00 €" [ref=e2245]
+              - cell "—" [ref=e2246]
+              - cell "✏ 🗑" [ref=e2247]:
+                - generic [ref=e2248]:
+                  - button "✏" [ref=e2249] [cursor=pointer]
+                  - button "🗑" [ref=e2250] [cursor=pointer]
+            - row "12/06/2026 23:49 Admin B Test creation Interventions N° INT-2026-038 · en_attente · serrurerie — ✏ 🗑" [ref=e2251]:
+              - cell "12/06/2026 23:49" [ref=e2252]
+              - cell "Admin B Test" [ref=e2253]
+              - cell "creation" [ref=e2254]:
+                - generic [ref=e2255]: creation
+              - cell "Interventions" [ref=e2256]
+              - cell "N° INT-2026-038 · en_attente · serrurerie" [ref=e2257]
+              - cell "—" [ref=e2258]
+              - cell "✏ 🗑" [ref=e2259]:
+                - generic [ref=e2260]:
+                  - button "✏" [ref=e2261] [cursor=pointer]
+                  - button "🗑" [ref=e2262] [cursor=pointer]
+            - row "12/06/2026 23:49 Admin B Test creation Devis N° DEV-2026-124 · brouillon · 220,00 € — ✏ 🗑" [ref=e2263]:
+              - cell "12/06/2026 23:49" [ref=e2264]
+              - cell "Admin B Test" [ref=e2265]
+              - cell "creation" [ref=e2266]:
+                - generic [ref=e2267]: creation
+              - cell "Devis" [ref=e2268]
+              - cell "N° DEV-2026-124 · brouillon · 220,00 €" [ref=e2269]
+              - cell "—" [ref=e2270]
+              - cell "✏ 🗑" [ref=e2271]:
+                - generic [ref=e2272]:
+                  - button "✏" [ref=e2273] [cursor=pointer]
+                  - button "🗑" [ref=e2274] [cursor=pointer]
+            - row "12/06/2026 22:57 Admin B Test creation Interventions N° INT-2026-037 · en_attente · serrurerie — ✏ 🗑" [ref=e2275]:
+              - cell "12/06/2026 22:57" [ref=e2276]
+              - cell "Admin B Test" [ref=e2277]
+              - cell "creation" [ref=e2278]:
+                - generic [ref=e2279]: creation
+              - cell "Interventions" [ref=e2280]
+              - cell "N° INT-2026-037 · en_attente · serrurerie" [ref=e2281]
+              - cell "—" [ref=e2282]
+              - cell "✏ 🗑" [ref=e2283]:
+                - generic [ref=e2284]:
+                  - button "✏" [ref=e2285] [cursor=pointer]
+                  - button "🗑" [ref=e2286] [cursor=pointer]
+            - row "12/06/2026 22:57 Admin B Test creation Devis N° DEV-2026-123 · brouillon · 220,00 € — ✏ 🗑" [ref=e2287]:
+              - cell "12/06/2026 22:57" [ref=e2288]
+              - cell "Admin B Test" [ref=e2289]
+              - cell "creation" [ref=e2290]:
+                - generic [ref=e2291]: creation
+              - cell "Devis" [ref=e2292]
+              - cell "N° DEV-2026-123 · brouillon · 220,00 €" [ref=e2293]
+              - cell "—" [ref=e2294]
+              - cell "✏ 🗑" [ref=e2295]:
+                - generic [ref=e2296]:
+                  - button "✏" [ref=e2297] [cursor=pointer]
+                  - button "🗑" [ref=e2298] [cursor=pointer]
+            - row "12/06/2026 22:56 Admin B Test creation Interventions N° INT-2026-036 · en_attente · serrurerie — ✏ 🗑" [ref=e2299]:
+              - cell "12/06/2026 22:56" [ref=e2300]
+              - cell "Admin B Test" [ref=e2301]
+              - cell "creation" [ref=e2302]:
+                - generic [ref=e2303]: creation
+              - cell "Interventions" [ref=e2304]
+              - cell "N° INT-2026-036 · en_attente · serrurerie" [ref=e2305]
+              - cell "—" [ref=e2306]
+              - cell "✏ 🗑" [ref=e2307]:
+                - generic [ref=e2308]:
+                  - button "✏" [ref=e2309] [cursor=pointer]
+                  - button "🗑" [ref=e2310] [cursor=pointer]
+            - row "12/06/2026 22:55 Admin B Test creation Devis N° DEV-2026-122 · brouillon · 220,00 € — ✏ 🗑" [ref=e2311]:
+              - cell "12/06/2026 22:55" [ref=e2312]
+              - cell "Admin B Test" [ref=e2313]
+              - cell "creation" [ref=e2314]:
+                - generic [ref=e2315]: creation
+              - cell "Devis" [ref=e2316]
+              - cell "N° DEV-2026-122 · brouillon · 220,00 €" [ref=e2317]
+              - cell "—" [ref=e2318]
+              - cell "✏ 🗑" [ref=e2319]:
+                - generic [ref=e2320]:
+                  - button "✏" [ref=e2321] [cursor=pointer]
+                  - button "🗑" [ref=e2322] [cursor=pointer]
+            - row "12/06/2026 22:30 Admin B Test modification Devis N° DEV-2026-121 · accepte · 165,00 € — ✏ 🗑" [ref=e2323]:
+              - cell "12/06/2026 22:30" [ref=e2324]
+              - cell "Admin B Test" [ref=e2325]
+              - cell "modification" [ref=e2326]:
+                - generic [ref=e2327]: modification
+              - cell "Devis" [ref=e2328]
+              - cell "N° DEV-2026-121 · accepte · 165,00 €" [ref=e2329]
+              - cell "—" [ref=e2330]
+              - cell "✏ 🗑" [ref=e2331]:
+                - generic [ref=e2332]:
+                  - button "✏" [ref=e2333] [cursor=pointer]
+                  - button "🗑" [ref=e2334] [cursor=pointer]
+            - row "12/06/2026 22:30 Admin B Test creation Factures N° FAC-2026-039 · impayee · 165,00 € — ✏ 🗑" [ref=e2335]:
+              - cell "12/06/2026 22:30" [ref=e2336]
+              - cell "Admin B Test" [ref=e2337]
+              - cell "creation" [ref=e2338]:
+                - generic [ref=e2339]: creation
+              - cell "Factures" [ref=e2340]
+              - cell "N° FAC-2026-039 · impayee · 165,00 €" [ref=e2341]
+              - cell "—" [ref=e2342]
+              - cell "✏ 🗑" [ref=e2343]:
+                - generic [ref=e2344]:
+                  - button "✏" [ref=e2345] [cursor=pointer]
+                  - button "🗑" [ref=e2346] [cursor=pointer]
+            - row "12/06/2026 22:30 Admin B Test modification Devis N° DEV-2026-121 · envoye · 165,00 € — ✏ 🗑" [ref=e2347]:
+              - cell "12/06/2026 22:30" [ref=e2348]
+              - cell "Admin B Test" [ref=e2349]
+              - cell "modification" [ref=e2350]:
+                - generic [ref=e2351]: modification
+              - cell "Devis" [ref=e2352]
+              - cell "N° DEV-2026-121 · envoye · 165,00 €" [ref=e2353]
+              - cell "—" [ref=e2354]
+              - cell "✏ 🗑" [ref=e2355]:
+                - generic [ref=e2356]:
+                  - button "✏" [ref=e2357] [cursor=pointer]
+                  - button "🗑" [ref=e2358] [cursor=pointer]
+            - row "12/06/2026 22:30 Admin B Test creation Devis N° DEV-2026-121 · brouillon · 165,00 € — ✏ 🗑" [ref=e2359]:
+              - cell "12/06/2026 22:30" [ref=e2360]
+              - cell "Admin B Test" [ref=e2361]
+              - cell "creation" [ref=e2362]:
+                - generic [ref=e2363]: creation
+              - cell "Devis" [ref=e2364]
+              - cell "N° DEV-2026-121 · brouillon · 165,00 €" [ref=e2365]
+              - cell "—" [ref=e2366]
+              - cell "✏ 🗑" [ref=e2367]:
+                - generic [ref=e2368]:
+                  - button "✏" [ref=e2369] [cursor=pointer]
+                  - button "🗑" [ref=e2370] [cursor=pointer]
+            - row "12/06/2026 22:30 Admin B Test creation Interventions N° INT-2026-035 · en_attente · serrurerie — ✏ 🗑" [ref=e2371]:
+              - cell "12/06/2026 22:30" [ref=e2372]
+              - cell "Admin B Test" [ref=e2373]
+              - cell "creation" [ref=e2374]:
+                - generic [ref=e2375]: creation
+              - cell "Interventions" [ref=e2376]
+              - cell "N° INT-2026-035 · en_attente · serrurerie" [ref=e2377]
+              - cell "—" [ref=e2378]
+              - cell "✏ 🗑" [ref=e2379]:
+                - generic [ref=e2380]:
+                  - button "✏" [ref=e2381] [cursor=pointer]
+                  - button "🗑" [ref=e2382] [cursor=pointer]
+            - row "12/06/2026 22:25 Admin B Test creation Devis N° DEV-2026-120 · brouillon · 165,00 € — ✏ 🗑" [ref=e2383]:
+              - cell "12/06/2026 22:25" [ref=e2384]
+              - cell "Admin B Test" [ref=e2385]
+              - cell "creation" [ref=e2386]:
+                - generic [ref=e2387]: creation
+              - cell "Devis" [ref=e2388]
+              - cell "N° DEV-2026-120 · brouillon · 165,00 €" [ref=e2389]
+              - cell "—" [ref=e2390]
+              - cell "✏ 🗑" [ref=e2391]:
+                - generic [ref=e2392]:
+                  - button "✏" [ref=e2393] [cursor=pointer]
+                  - button "🗑" [ref=e2394] [cursor=pointer]
+            - row "12/06/2026 22:25 Admin B Test creation Interventions N° INT-2026-034 · en_attente · serrurerie — ✏ 🗑" [ref=e2395]:
+              - cell "12/06/2026 22:25" [ref=e2396]
+              - cell "Admin B Test" [ref=e2397]
+              - cell "creation" [ref=e2398]:
+                - generic [ref=e2399]: creation
+              - cell "Interventions" [ref=e2400]
+              - cell "N° INT-2026-034 · en_attente · serrurerie" [ref=e2401]
+              - cell "—" [ref=e2402]
+              - cell "✏ 🗑" [ref=e2403]:
+                - generic [ref=e2404]:
+                  - button "✏" [ref=e2405] [cursor=pointer]
+                  - button "🗑" [ref=e2406] [cursor=pointer]
+            - row "12/06/2026 22:23 Admin B Test creation Devis N° DEV-2026-119 · brouillon · 165,00 € — ✏ 🗑" [ref=e2407]:
+              - cell "12/06/2026 22:23" [ref=e2408]
+              - cell "Admin B Test" [ref=e2409]
+              - cell "creation" [ref=e2410]:
+                - generic [ref=e2411]: creation
+              - cell "Devis" [ref=e2412]
+              - cell "N° DEV-2026-119 · brouillon · 165,00 €" [ref=e2413]
+              - cell "—" [ref=e2414]
+              - cell "✏ 🗑" [ref=e2415]:
+                - generic [ref=e2416]:
+                  - button "✏" [ref=e2417] [cursor=pointer]
+                  - button "🗑" [ref=e2418] [cursor=pointer]
+            - row "12/06/2026 22:22 Admin B Test creation Interventions N° INT-2026-033 · en_attente · serrurerie — ✏ 🗑" [ref=e2419]:
+              - cell "12/06/2026 22:22" [ref=e2420]
+              - cell "Admin B Test" [ref=e2421]
+              - cell "creation" [ref=e2422]:
+                - generic [ref=e2423]: creation
+              - cell "Interventions" [ref=e2424]
+              - cell "N° INT-2026-033 · en_attente · serrurerie" [ref=e2425]
+              - cell "—" [ref=e2426]
+              - cell "✏ 🗑" [ref=e2427]:
+                - generic [ref=e2428]:
+                  - button "✏" [ref=e2429] [cursor=pointer]
+                  - button "🗑" [ref=e2430] [cursor=pointer]
+            - row "12/06/2026 22:18 Admin B Test creation Interventions N° INT-2026-032 · en_attente · serrurerie — ✏ 🗑" [ref=e2431]:
+              - cell "12/06/2026 22:18" [ref=e2432]
+              - cell "Admin B Test" [ref=e2433]
+              - cell "creation" [ref=e2434]:
+                - generic [ref=e2435]: creation
+              - cell "Interventions" [ref=e2436]
+              - cell "N° INT-2026-032 · en_attente · serrurerie" [ref=e2437]
+              - cell "—" [ref=e2438]
+              - cell "✏ 🗑" [ref=e2439]:
+                - generic [ref=e2440]:
+                  - button "✏" [ref=e2441] [cursor=pointer]
+                  - button "🗑" [ref=e2442] [cursor=pointer]

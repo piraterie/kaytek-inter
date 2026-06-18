@@ -1,9 +1,10 @@
 // src/pages/InterventionsPage.tsx
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useInterventions, useCreateIntervention, useUpdateIntervention, useDeleteIntervention, useArchiveIntervention, useBulkArchiveInterventions, useDeleteArchivedInterventions, useClients, useIntervenants, useProfiles, useSendMessage } from '@/lib/hooks'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useInterventions, useCreateIntervention, useUpdateIntervention, useDeleteIntervention, useArchiveIntervention, useBulkArchiveInterventions, useDeleteArchivedInterventions, useClients, useIntervenants, useProfiles, useSendMessage, useCreateClient } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { CustomSelect } from '@/components/CustomSelect'
+import { AddressAutocomplete } from '@/components/AddressAutocomplete'
 import ConfirmModal from '@/components/ConfirmModal'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 import type { Categorie, Intervention } from '@/types'
@@ -29,6 +30,7 @@ function downloadCSV(rows: string[][], filename: string) {
 
 export default function InterventionsPage() {
   const nav = useNavigate()
+  const location = useLocation()
   const { user } = useAuthStore()
   const { add } = useToastStore()
   const isAdmin = user?.role === 'admin'
@@ -36,6 +38,13 @@ export default function InterventionsPage() {
   const [search, setSearch] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [createModal, setCreateModal] = useState(false)
+
+  useEffect(() => {
+    if ((location.state as any)?.openCreate) {
+      setCreateModal(true)
+      window.history.replaceState({}, '')
+    }
+  }, [])
   const [editModal, setEditModal] = useState(false)
   const [editTarget, setEditTarget] = useState<Intervention | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; action: () => void } | null>(null)
@@ -72,6 +81,9 @@ export default function InterventionsPage() {
   const [createForm, setCreateForm] = useState({ client_id:'', intervenant_id:'', type:'serrurerie' as Categorie, urgence:false, adresse:'', description:'', date_prevue:'', notes_admin:'' })
   const [editForm, setEditForm] = useState({ statut:'en_attente' as any, montant_ttc:'', intervenant_id:'', date_prevue:'', notes_admin:'' })
   const [msgModal, setMsgModal] = useState<{ inter: Intervention; text: string; destinataire_id: string } | null>(null)
+  const [showClientModal, setShowClientModal] = useState(false)
+  const [clientForm, setClientForm] = useState({ type: 'particulier', nom: '', prenom: '', telephone: '', email: '', adresse_intervention: '' })
+  const createClient = useCreateClient()
   const [createModalClosing, setCreateModalClosing] = useState(false)
   const [editModalClosing, setEditModalClosing] = useState(false)
 
@@ -106,6 +118,22 @@ export default function InterventionsPage() {
       ])
     ]
     downloadCSV(rows, `interventions-${new Date().toISOString().split('T')[0]}.csv`)
+  }
+
+  async function submitNewClient(e: React.FormEvent) {
+    e.preventDefault()
+    if (!clientForm.nom.trim()) { add('Le nom est requis', 'warning'); return }
+    try {
+      const newClient = await createClient.mutateAsync(clientForm as any)
+      setCreateForm(f => ({
+        ...f,
+        client_id: (newClient as any).id,
+        adresse: (newClient as any).adresse_intervention || f.adresse
+      }))
+      add(`Client ${clientForm.nom} créé et sélectionné`)
+      setShowClientModal(false)
+      setClientForm({ type: 'particulier', nom: '', prenom: '', telephone: '', email: '', adresse_intervention: '' })
+    } catch (err: any) { add('Erreur : ' + err.message, 'error') }
   }
 
   async function submitCreate(e: React.FormEvent) {
@@ -587,19 +615,33 @@ export default function InterventionsPage() {
             <div className="modal-header"><span className="modal-title">Nouvelle intervention</span><button className="btn-icon sm" onClick={closeCreateModal}>✕</button></div>
             <form onSubmit={submitCreate}>
               <div className="modal-body">
-                <div className="form-group"><label>Client <span className="req">*</span></label>
-                  <CustomSelect
-                    value={createForm.client_id}
-                    placeholder="Sélectionner un client…"
-                    options={clients.map(c => ({
-                      value: c.id,
-                      label: [c.nom, c.prenom].filter(Boolean).join(' ') + (c.telephone ? ` · ${c.telephone}` : '')
-                    }))}
-                    onChange={cid => {
-                      const client = clients.find(c => c.id === cid)
-                      setCreateForm(f => ({ ...f, client_id: cid, adresse: client?.adresse_intervention || f.adresse }))
-                    }}
-                  />
+                <div className="form-group">
+                  <label>Client <span className="req">*</span></label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <CustomSelect
+                        value={createForm.client_id}
+                        placeholder="Sélectionner un client…"
+                        options={clients.map(c => ({
+                          value: c.id,
+                          label: [c.nom, c.prenom].filter(Boolean).join(' ') + (c.telephone ? ` · ${c.telephone}` : '')
+                        }))}
+                        onChange={cid => {
+                          const client = clients.find(c => c.id === cid)
+                          setCreateForm(f => ({ ...f, client_id: cid, adresse: client?.adresse_intervention || f.adresse }))
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowClientModal(true)}
+                      title="Créer un nouveau client"
+                      style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                    >
+                      + Nouveau
+                    </button>
+                  </div>
                 </div>
                 <div className="form-group"><label>Intervenant</label>
                   <CustomSelect
@@ -626,7 +668,15 @@ export default function InterventionsPage() {
                 <div className="form-group"><label>Date prévue</label>
                   <input type="datetime-local" value={createForm.date_prevue} onChange={e => setCreateForm(f=>({...f,date_prevue:e.target.value}))} />
                 </div>
-                <div className="form-group"><label>Adresse</label><input value={createForm.adresse} onChange={e => setCreateForm(f=>({...f,adresse:e.target.value}))} placeholder="Adresse complète" /></div>
+                <div className="form-group">
+                  <label>Adresse</label>
+                  <AddressAutocomplete
+                    value={createForm.adresse}
+                    onChange={v => setCreateForm(f => ({ ...f, adresse: v }))}
+                    onSelect={s => setCreateForm(f => ({ ...f, adresse: s.label }))}
+                    placeholder="Adresse complète"
+                  />
+                </div>
                 <div className="form-group"><label>Description</label><textarea value={createForm.description} onChange={e => setCreateForm(f=>({...f,description:e.target.value}))} placeholder="Nature de l'intervention…" /></div>
                 {isAdmin && <div className="form-group"><label>Notes admin (privées)</label><textarea value={createForm.notes_admin} onChange={e => setCreateForm(f=>({...f,notes_admin:e.target.value}))} /></div>}
                 <label style={{ display:'flex',alignItems:'center',gap:10,textTransform:'none',fontSize:14,fontWeight:500,letterSpacing:0,cursor:'pointer' }}>
@@ -691,6 +741,72 @@ export default function InterventionsPage() {
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={closeEditModal}>Annuler</button>
                 <button type="submit" className="btn btn-primary" disabled={update.isPending}>{update.isPending?'Sauvegarde…':'Enregistrer'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CRÉER CLIENT RAPIDE */}
+      {showClientModal && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={() => setShowClientModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Nouveau client</span>
+              <button className="btn-icon sm" onClick={() => setShowClientModal(false)}>✕</button>
+            </div>
+            <form onSubmit={submitNewClient}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Nom <span className="req">*</span></label>
+                  <input
+                    autoFocus
+                    value={clientForm.nom}
+                    onChange={e => setClientForm(f => ({ ...f, nom: e.target.value }))}
+                    placeholder="Nom du client"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Prénom</label>
+                  <input
+                    value={clientForm.prenom}
+                    onChange={e => setClientForm(f => ({ ...f, prenom: e.target.value }))}
+                    placeholder="Prénom (optionnel)"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Téléphone</label>
+                  <input
+                    type="tel"
+                    value={clientForm.telephone}
+                    onChange={e => setClientForm(f => ({ ...f, telephone: e.target.value }))}
+                    placeholder="06 00 00 00 00"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={clientForm.email}
+                    onChange={e => setClientForm(f => ({ ...f, email: e.target.value }))}
+                    placeholder="email@exemple.fr (optionnel)"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Adresse d'intervention</label>
+                  <AddressAutocomplete
+                    value={clientForm.adresse_intervention}
+                    onChange={v => setClientForm(f => ({ ...f, adresse_intervention: v }))}
+                    onSelect={s => setClientForm(f => ({ ...f, adresse_intervention: s.label }))}
+                    placeholder="Adresse complète (optionnel)"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowClientModal(false)}>Annuler</button>
+                <button type="submit" className="btn btn-primary" disabled={createClient.isPending}>
+                  {createClient.isPending ? 'Création…' : 'Créer et sélectionner'}
+                </button>
               </div>
             </form>
           </div>

@@ -1,0 +1,196 @@
+- generic [ref=e6]:
+  - complementary [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]: 🔐
+      - generic [ref=e10]:
+        - generic [ref=e11]: Kaytek Inter
+        - generic [ref=e12]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e13] [cursor=pointer]:
+        - img [ref=e14]
+    - navigation [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: Pilotage
+        - button "Dashboard" [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+          - generic [ref=e25]: Dashboard
+        - button "Messagerie" [ref=e26] [cursor=pointer]:
+          - img [ref=e27]
+          - generic [ref=e30]: Messagerie
+      - generic [ref=e31]:
+        - generic [ref=e32]: Terrain
+        - button "Interventions 8" [ref=e33] [cursor=pointer]:
+          - img [ref=e34]
+          - generic [ref=e36]: Interventions
+          - generic [ref=e37]: "8"
+        - button "Planning" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - generic [ref=e41]: Planning
+        - button "Devis" [ref=e42] [cursor=pointer]:
+          - img [ref=e43]
+          - generic [ref=e46]: Devis
+        - button "Factures" [ref=e47] [cursor=pointer]:
+          - img [ref=e48]
+          - generic [ref=e51]: Factures
+      - generic [ref=e52]:
+        - generic [ref=e53]: Gestion
+        - button "Clients" [ref=e54] [cursor=pointer]:
+          - img [ref=e55]
+          - generic [ref=e60]: Clients
+        - button "Catalogue" [ref=e61] [cursor=pointer]:
+          - img [ref=e62]
+          - generic [ref=e66]: Catalogue
+        - button "Commissions" [ref=e67] [cursor=pointer]:
+          - img [ref=e68]
+          - generic [ref=e70]: Commissions
+        - button "Guide" [ref=e71] [cursor=pointer]:
+          - img [ref=e72]
+          - generic [ref=e74]: Guide
+      - generic [ref=e75]:
+        - generic [ref=e76]: Administration
+        - button "Utilisateurs" [ref=e77] [cursor=pointer]:
+          - img [ref=e78]
+          - generic [ref=e80]: Utilisateurs
+        - button "Paramètres" [ref=e81] [cursor=pointer]:
+          - img [ref=e82]
+          - generic [ref=e85]: Paramètres
+        - button "Journal" [ref=e86] [cursor=pointer]:
+          - img [ref=e87]
+          - generic [ref=e90]: Journal
+    - generic [ref=e92]:
+      - button "AT Admin B Test Administrateur · Kaytek Inter" [ref=e93] [cursor=pointer]:
+        - generic [ref=e94]:
+          - generic [ref=e95]: AT
+          - generic [ref=e96]:
+            - generic [ref=e97]: Admin B Test
+            - generic [ref=e98]: Administrateur · Kaytek Inter
+      - generic [ref=e99]:
+        - button "Clair" [ref=e100] [cursor=pointer]:
+          - img [ref=e101]
+          - text: Clair
+        - button "Quitter" [ref=e107] [cursor=pointer]:
+          - img [ref=e108]
+          - text: Quitter
+  - generic [ref=e111]:
+    - banner [ref=e112]:
+      - button "Menu" [ref=e113] [cursor=pointer]: ☰
+      - generic [ref=e114]: Devis
+      - generic [ref=e115]:
+        - button "💬" [ref=e116] [cursor=pointer]
+        - button "🔔" [ref=e118] [cursor=pointer]
+        - button "+ Nouveau" [ref=e119] [cursor=pointer]
+        - button "☀" [ref=e120] [cursor=pointer]
+    - generic [ref=e121]:
+      - generic [ref=e122]: ⚠
+      - generic [ref=e123]:
+        - strong [ref=e124]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e125] [cursor=pointer]
+    - main [ref=e126]:
+      - generic [ref=e127]:
+        - generic [ref=e128]:
+          - button "←" [ref=e129] [cursor=pointer]
+          - heading "Créer un devis" [level=1] [ref=e131]
+        - generic [ref=e132]:
+          - generic [ref=e134]:
+            - generic [ref=e135]: "1"
+            - generic [ref=e136]: Client
+          - generic [ref=e139]:
+            - generic [ref=e140]: "2"
+            - generic [ref=e141]: Prestations
+          - generic [ref=e144]:
+            - generic [ref=e145]: "3"
+            - generic [ref=e146]: Options
+          - generic [ref=e149]:
+            - generic [ref=e150]: "4"
+            - generic [ref=e151]: Envoi
+        - generic [ref=e153]:
+          - generic [ref=e154]:
+            - generic [ref=e155]: Client *
+            - button "Sélectionner un client… ▼" [ref=e157] [cursor=pointer]:
+              - generic [ref=e158]: Sélectionner un client…
+              - generic: ▼
+          - generic [ref=e159]:
+            - generic [ref=e160]:
+              - generic [ref=e161]: Activité
+              - combobox [ref=e162] [cursor=pointer]:
+                - option "🔒 Serrurerie" [selected]
+                - option "🔧 Plomberie"
+                - option "⚡ Électricité"
+                - option "🪟 Vitrerie"
+            - generic [ref=e163]:
+              - generic [ref=e164]: Valide jusqu'au
+              - textbox [ref=e165]: 2026-07-16
+          - generic [ref=e166]:
+            - generic [ref=e167]: Intervenant
+            - button "Admin B Test ▼" [ref=e169] [cursor=pointer]:
+              - generic [ref=e170]: Admin B Test
+              - generic: ▼
+          - generic [ref=e171]: ℹ Ce devis sera valable jusqu'au 16/07/2026. Date modifiable ci-dessus.
+        - generic [ref=e172]:
+          - generic [ref=e173]:
+            - generic [ref=e174]:
+              - generic [ref=e175]: 🔧
+              - generic [ref=e176]: Prestations
+            - generic [ref=e177]:
+              - generic [ref=e178]: 🔍
+              - textbox "Rechercher dans le catalogue…" [ref=e179]
+            - generic [ref=e180]: Aucune prestation dans le catalogue pour cette activité
+          - button "+ Ajouter une prestation manuelle" [active] [ref=e182] [cursor=pointer]
+        - generic [ref=e183]:
+          - generic [ref=e184]:
+            - generic [ref=e185]: 💰
+            - generic [ref=e186]: Récapitulatif
+          - generic [ref=e187]:
+            - generic [ref=e188]: Total HT
+            - generic [ref=e189]: 0,00 €
+          - generic [ref=e190]:
+            - generic [ref=e191]: TVA
+            - generic [ref=e192]: 0,00 €
+          - generic [ref=e193]:
+            - generic [ref=e194]: Total TTC
+            - generic [ref=e195]: 0,00 €
+        - button "⚙ Options avancées Modèle PDF, conditions, remise… ∨" [ref=e197] [cursor=pointer]:
+          - generic [ref=e198]:
+            - generic [ref=e199]: ⚙
+            - generic [ref=e200]: Options avancées
+            - generic [ref=e201]: Modèle PDF, conditions, remise…
+          - generic [ref=e202]: ∨
+        - generic [ref=e204]:
+          - generic [ref=e205]: ✍
+          - generic [ref=e206]:
+            - generic [ref=e207]: Signature client
+            - generic [ref=e208]: Disponible après enregistrement du devis.
+        - generic [ref=e209]:
+          - button "Annuler" [ref=e210] [cursor=pointer]
+          - button "📄 Aperçu PDF" [ref=e211] [cursor=pointer]
+          - button "💾 Sauvegarder brouillon" [ref=e212] [cursor=pointer]
+          - button "✉ Enregistrer & Envoyer" [ref=e213] [cursor=pointer]
+        - generic [ref=e215]:
+          - generic [ref=e218]:
+            - generic [ref=e219]: Ajouter une prestation manuelle
+            - button "✕" [ref=e220] [cursor=pointer]
+          - generic [ref=e221]:
+            - generic [ref=e222]:
+              - generic [ref=e223]: Description *
+              - 'textbox "Ex : Remplacement serrure 3 points…" [ref=e224]'
+            - generic [ref=e225]:
+              - generic [ref=e226]:
+                - generic [ref=e227]: Quantité *
+                - spinbutton [ref=e228]: "1"
+              - generic [ref=e229]:
+                - generic [ref=e230]: Prix unitaire HT *
+                - spinbutton [ref=e231]: "0"
+            - generic [ref=e232]:
+              - generic [ref=e233]: TVA *
+              - combobox [ref=e234] [cursor=pointer]:
+                - option "0%"
+                - option "5.5%"
+                - option "10%" [selected]
+                - option "20%"
+            - generic [ref=e235]:
+              - generic [ref=e236]: Notes (optionnel)
+              - textbox "Informations complémentaires…" [ref=e237]
+            - generic [ref=e238]:
+              - generic [ref=e239]: Total ligne
+              - generic [ref=e240]: 0,00 € TTC
+            - button "+ Ajouter cette prestation" [ref=e241] [cursor=pointer]

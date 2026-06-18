@@ -17,11 +17,12 @@ export const useAuthStore = create<{
 
 export const useUIStore = create(persist<{
   theme: 'light'|'dark'; sidebarOpen: boolean
-  toggleTheme: () => void; toggleSidebar: () => void
+  toggleTheme: () => void; toggleSidebar: () => void; closeSidebar: () => void
 }>((set) => ({
   theme: 'dark', sidebarOpen: true,
   toggleTheme: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
-  toggleSidebar: () => set(s => ({ sidebarOpen: !s.sidebarOpen }))
+  toggleSidebar: () => set(s => ({ sidebarOpen: !s.sidebarOpen })),
+  closeSidebar: () => set({ sidebarOpen: false })
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }), { name: 'kaytek-ui', partialize: (s: any) => ({ theme: s.theme }) } as any))
 

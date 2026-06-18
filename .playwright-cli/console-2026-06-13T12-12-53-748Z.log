@@ -1,0 +1,7 @@
+[     153ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-5PWU34Q3.js?v=35545325:21550
+[     153ms] [ERROR] Variables Supabase manquantes dans .env.local @ http://localhost:5173/src/lib/supabase/client.ts:3
+[     154ms] Error: supabaseUrl is required.
+    at validateSupabaseUrl (http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=35545325:20621:26)
+    at new SupabaseClient (http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=35545325:20850:21)
+    at createClient (http://localhost:5173/node_modules/.vite/deps/@supabase_supabase-js.js?v=35545325:21063:10)
+    at http://localhost:5173/src/lib/supabase/client.ts:5:25

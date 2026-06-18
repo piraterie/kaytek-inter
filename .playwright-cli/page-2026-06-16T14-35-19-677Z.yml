@@ -1,0 +1,135 @@
+- generic [ref=e24]:
+  - complementary [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e27]: 🔐
+      - generic [ref=e28]:
+        - generic [ref=e29]: Kaytek Inter
+        - generic [ref=e30]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+    - navigation [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]: Pilotage
+        - button "Dashboard" [ref=e37] [cursor=pointer]:
+          - img [ref=e38]
+          - generic [ref=e43]: Dashboard
+        - button "Messagerie" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e48]: Messagerie
+      - generic [ref=e49]:
+        - generic [ref=e50]: Terrain
+        - button "Interventions 4" [ref=e51] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e54]: Interventions
+          - generic [ref=e55]: "4"
+        - button "Planning" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - generic [ref=e59]: Planning
+        - button "Devis" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+          - generic [ref=e64]: Devis
+        - button "Factures" [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+          - generic [ref=e69]: Factures
+      - generic [ref=e70]:
+        - generic [ref=e71]: Gestion
+        - button "Commissions" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+          - generic [ref=e75]: Commissions
+        - button "Guide" [active] [ref=e76] [cursor=pointer]:
+          - img [ref=e77]
+          - generic [ref=e79]: Guide
+    - generic [ref=e81]:
+      - button "T Intervenant A Test Intervenant · Kaytek Inter" [ref=e82] [cursor=pointer]:
+        - generic [ref=e83]:
+          - generic [ref=e84]: T
+          - generic [ref=e85]:
+            - generic [ref=e86]: Intervenant A Test
+            - generic [ref=e87]: Intervenant · Kaytek Inter
+      - generic [ref=e88]:
+        - button "Clair" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - text: Clair
+        - button "Quitter" [ref=e96] [cursor=pointer]:
+          - img [ref=e97]
+          - text: Quitter
+  - generic [ref=e100]:
+    - banner [ref=e101]:
+      - button "Menu" [ref=e102] [cursor=pointer]: ☰
+      - generic [ref=e103]: Guide
+      - generic [ref=e104]:
+        - button "💬" [ref=e105] [cursor=pointer]
+        - button "🔔" [ref=e107] [cursor=pointer]
+        - button "☀" [ref=e108] [cursor=pointer]
+    - main [ref=e109]:
+      - generic [ref=e674]:
+        - generic [ref=e675]:
+          - generic [ref=e676]:
+            - heading "Guide Intervenant" [level=1] [ref=e677]:
+              - img [ref=e678]
+              - text: Guide Intervenant
+            - paragraph [ref=e680]: Tout ce dont vous avez besoin sur le terrain.
+          - button "❓ FAQ" [ref=e681] [cursor=pointer]
+        - generic [ref=e682]:
+          - generic [ref=e683]:
+            - generic [ref=e684]: Progression du guide
+            - generic [ref=e685]: 0/8 · 0%
+          - generic [ref=e687]:
+            - generic "Démarrage rapide" [ref=e688]
+            - generic "Connexion" [ref=e689]
+            - generic "Réception d'une intervention" [ref=e690]
+            - generic "Accepter une intervention" [ref=e691]
+            - generic "Gérer les statuts" [ref=e692]
+            - generic "Ajouter des photos" [ref=e693]
+            - generic "Signature client" [ref=e694]
+            - generic "Clôturer une intervention" [ref=e695]
+        - generic [ref=e696]:
+          - generic [ref=e698]:
+            - generic [ref=e699]:
+              - img [ref=e700]
+              - textbox "Rechercher…" [ref=e703]
+            - generic [ref=e704]:
+              - button "🚀 Démarrage rapide" [ref=e705] [cursor=pointer]:
+                - generic [ref=e706]: 🚀
+                - generic [ref=e707]: Démarrage rapide
+              - button "1 Connexion" [ref=e708] [cursor=pointer]:
+                - generic [ref=e709]: "1"
+                - generic [ref=e710]: Connexion
+              - button "2 Réception d'une intervention" [ref=e711] [cursor=pointer]:
+                - generic [ref=e712]: "2"
+                - generic [ref=e713]: Réception d'une intervention
+              - button "3 Accepter une intervention" [ref=e714] [cursor=pointer]:
+                - generic [ref=e715]: "3"
+                - generic [ref=e716]: Accepter une intervention
+              - button "4 Gérer les statuts" [ref=e717] [cursor=pointer]:
+                - generic [ref=e718]: "4"
+                - generic [ref=e719]: Gérer les statuts
+              - button "5 Ajouter des photos" [ref=e720] [cursor=pointer]:
+                - generic [ref=e721]: "5"
+                - generic [ref=e722]: Ajouter des photos
+              - button "6 Signature client" [ref=e723] [cursor=pointer]:
+                - generic [ref=e724]: "6"
+                - generic [ref=e725]: Signature client
+              - button "7 Clôturer une intervention" [ref=e726] [cursor=pointer]:
+                - generic [ref=e727]: "7"
+                - generic [ref=e728]: Clôturer une intervention
+          - generic [ref=e730]:
+            - generic [ref=e731]:
+              - generic [ref=e732]: 🚀
+              - generic [ref=e733]:
+                - heading "Démarrage rapide" [level=2] [ref=e735]
+                - paragraph [ref=e736]: Maîtriser l'essentiel de l'application en moins de 2 minutes.
+            - generic [ref=e738]:
+              - generic [ref=e739]: 🎬
+              - generic [ref=e740]: Vidéo bientôt disponible
+              - generic [ref=e741]: Cette vidéo sera disponible après le premier enregistrement Playwright.
+            - generic [ref=e742]:
+              - generic [ref=e743]: Étapes
+              - list [ref=e744]:
+                - listitem [ref=e745]: Le Dashboard montre vos interventions du jour et vos gains.
+                - listitem [ref=e746]: Consultez "Interventions" pour voir les missions qui vous sont assignées.
+                - listitem [ref=e747]: Mettez à jour les statuts (En route → Sur place → Terminé) depuis la fiche.
+                - listitem [ref=e748]: Ajoutez des photos et signez les devis directement sur votre écran.
+                - listitem [ref=e749]: La Messagerie vous connecte directement avec l'administrateur.
+            - generic [ref=e751]: ⏱ 2 minutes
+            - button "Marquer comme vu" [ref=e752] [cursor=pointer]

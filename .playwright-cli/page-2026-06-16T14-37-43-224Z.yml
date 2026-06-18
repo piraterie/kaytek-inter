@@ -1,0 +1,73 @@
+- generic [ref=e24]:
+  - generic [ref=e100]:
+    - banner [ref=e101]:
+      - button "Menu" [ref=e102] [cursor=pointer]: ☰
+      - generic [ref=e103]: Interventions
+      - generic [ref=e104]:
+        - button "💬" [ref=e105] [cursor=pointer]
+        - button "🔔" [ref=e107] [cursor=pointer]
+        - button "☀" [ref=e108] [cursor=pointer]
+    - main [ref=e109]:
+      - generic [ref=e849]:
+        - generic [ref=e850]:
+          - generic [ref=e851]:
+            - heading "Interventions" [level=1] [ref=e852]
+            - paragraph [ref=e853]: 4 résultats
+          - button "···" [ref=e856] [cursor=pointer]
+        - generic [ref=e857]:
+          - generic [ref=e858]:
+            - generic [ref=e859]: 🔍
+            - textbox "Client, adresse, intervenant…" [ref=e860]
+          - button "Tous" [ref=e861] [cursor=pointer]
+          - button "en attente" [ref=e862] [cursor=pointer]
+          - button "en cours" [ref=e863] [cursor=pointer]
+          - button "termine" [ref=e864] [cursor=pointer]
+          - button "annule" [ref=e865] [cursor=pointer]
+          - button "refuse" [ref=e866] [cursor=pointer]
+        - generic [ref=e867]:
+          - generic [ref=e868]:
+            - generic [ref=e869] [cursor=pointer]:
+              - generic [ref=e870]:
+                - generic [ref=e872]: INT-2026-039
+                - generic [ref=e873]: TEST-WORKFLOW PW-1781301130756
+                - generic [ref=e874]: 📍 10 Rue du Test, Paris 75001
+                - generic [ref=e876]: serrurerie
+              - generic [ref=e877]:
+                - generic [ref=e878]: 180,00 €
+                - generic [ref=e879]: en cours
+            - button "···" [ref=e881] [cursor=pointer]
+          - generic [ref=e882]:
+            - generic [ref=e883] [cursor=pointer]:
+              - generic [ref=e884]:
+                - generic [ref=e886]: INT-2026-038
+                - generic [ref=e887]: TEST-WORKFLOW PW-1781300962277
+                - generic [ref=e888]: 📍 10 Rue du Test, Paris 75001
+                - generic [ref=e890]: serrurerie
+              - generic [ref=e891]:
+                - generic [ref=e892]: —
+                - generic [ref=e893]: en attente
+            - button "···" [ref=e895] [cursor=pointer]
+          - generic [ref=e896]:
+            - generic [ref=e897] [cursor=pointer]:
+              - generic [ref=e898]:
+                - generic [ref=e900]: INT-2026-037
+                - generic [ref=e901]: TEST-WORKFLOW PW-1781297822070
+                - generic [ref=e902]: 📍 10 Rue du Test, Paris 75001
+                - generic [ref=e904]: serrurerie
+              - generic [ref=e905]:
+                - generic [ref=e906]: —
+                - generic [ref=e907]: en attente
+            - button "···" [ref=e909] [cursor=pointer]
+          - generic [ref=e910]:
+            - generic [ref=e911] [cursor=pointer]:
+              - generic [ref=e912]:
+                - generic [ref=e914]: INT-2026-036
+                - generic [ref=e915]: TEST-WORKFLOW PW-1781297747189
+                - generic [ref=e916]: 📍 10 Rue du Test, Paris 75001
+                - generic [ref=e918]: serrurerie
+              - generic [ref=e919]:
+                - generic [ref=e920]: —
+                - generic [ref=e921]: en attente
+            - button "···" [ref=e923] [cursor=pointer]
+  - navigation [ref=e847]:
+    - button "☰ Menu" [ref=e848] [cursor=pointer]

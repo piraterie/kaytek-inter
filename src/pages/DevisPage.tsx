@@ -1,10 +1,9 @@
 // src/pages/DevisPage.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useDevis, useDeleteDevis, useDeleteAllDevis, useDevisToFacture, useUpdateDevis, useParametres, notifyUser, REQUIRED_PARAMS } from '@/lib/hooks'
+import { useDevis, useDeleteDevis, useDeleteAllDevis, useDevisToFacture, useUpdateDevis, useParametres, useDuplicateDevis, notifyUser, REQUIRED_PARAMS } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
-import { generateDevisPDF, downloadBlob } from '@/lib/pdf/generator'
 import EmailDevisModal from '@/components/EmailDevisModal'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 import type { Devis } from '@/types'
@@ -58,6 +57,7 @@ export default function DevisPage() {
   const del = useDeleteDevis()
   const delAll = useDeleteAllDevis()
   const upd = useUpdateDevis()
+  const dup = useDuplicateDevis()
 
   const [filterStatut, setFilterStatut] = useState('tous')
   const [search, setSearch] = useState('')
@@ -124,6 +124,7 @@ export default function DevisPage() {
     if (!checkParams()) return
     try {
       add('Generation PDF...', 'info')
+      const { generateDevisPDF, downloadBlob } = await import('@/lib/pdf/generator')
       const blob = await generateDevisPDF(d, params!, d.modele_id || params?.modele_pdf_defaut || 0)
       downloadBlob(blob, `${d.numero}.pdf`)
       add('PDF telecharge')
@@ -149,6 +150,14 @@ export default function DevisPage() {
   async function handleSend(id: string) {
     try { await upd.mutateAsync({ id, statut: 'envoye', envoye_le: new Date().toISOString() }); add('Devis marque comme envoye') }
     catch (e: any) { add(e.message, 'error') }
+  }
+
+  async function handleDuplicate(d: Devis) {
+    try {
+      const newDevis = await dup.mutateAsync(d)
+      add('Devis dupliqué en brouillon')
+      nav(`/devis/${(newDevis as any).id}/editer`)
+    } catch (e: any) { add(e.message, 'error') }
   }
 
   function handleDel(id: string) {
@@ -244,7 +253,7 @@ export default function DevisPage() {
           {isAdmin && !selectionMode && filtered.length > 0 && (
             <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
           )}
-          {isAdmin && devis.length > 0 && (
+          {isAdmin && selectionMode && devis.length > 0 && (
             <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={handleVider} disabled={delAll.isPending}>
               🗑 Tout supprimer
             </button>
@@ -657,6 +666,15 @@ export default function DevisPage() {
             />
           )}
           <SheetSection label="Document" />
+          {canCreateDocs && (
+            <SheetRow
+              icon="📋"
+              label="Dupliquer ce devis"
+              sublabel="Nouveau brouillon avec les mêmes lignes"
+              onClick={() => { setActiveSheet(null); handleDuplicate(activeSheet) }}
+              disabled={dup.isPending}
+            />
+          )}
           {isAdmin && (
             <SheetRow
               icon="📄"

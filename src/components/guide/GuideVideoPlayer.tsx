@@ -40,7 +40,7 @@ export default function GuideVideoPlayer({ video, sectionSlug, onComplete }: Pro
           Vidéo bientôt disponible
         </div>
         <div style={{ color: 'var(--t3)', fontSize: 12 }}>
-          Cette vidéo sera disponible après le premier enregistrement Playwright.
+          Cette vidéo sera bientôt disponible.
         </div>
       </div>
     )

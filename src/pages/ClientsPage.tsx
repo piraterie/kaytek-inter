@@ -1,9 +1,10 @@
 // src/pages/ClientsPage.tsx
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useClients, useCreateClient, useUpdateClient, useArchiveClient, useDeleteClientSafe, useBulkArchiveClients, useDeleteArchivedClients } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
+import { AddressAutocomplete } from '@/components/AddressAutocomplete'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 
 function downloadCSV(rows: string[][], filename: string) {
@@ -18,6 +19,7 @@ const chkStyle: React.CSSProperties = { width: 18, height: 18, cursor: 'pointer'
 
 export default function ClientsPage() {
   const nav = useNavigate()
+  const location = useLocation()
   const { user } = useAuthStore()
   const { add } = useToastStore()
   const isAdmin = user?.role === 'admin'
@@ -41,6 +43,14 @@ export default function ClientsPage() {
 
   const [form, setForm] = useState({ type:'particulier', nom:'', prenom:'', telephone:'', email:'', adresse_intervention:'', notes_internes:'' })
   const [modalClosing, setModalClosing] = useState(false)
+
+  useEffect(() => {
+    if ((location.state as any)?.openCreate) {
+      openCreate()
+      window.history.replaceState({}, '')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function closeModal() {
     if (modalClosing) return
@@ -454,7 +464,18 @@ export default function ClientsPage() {
                 <div className="form-group"><label>Prénom</label><input value={form.prenom} onChange={e=>setForm(f=>({...f,prenom:e.target.value}))} /></div>
                 <div className="form-group"><label>Téléphone</label><input value={form.telephone} onChange={e=>setForm(f=>({...f,telephone:e.target.value}))} type="tel" /></div>
                 <div className="form-group"><label>Email</label><input type="email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} /></div>
-                <div className="form-group"><label>Adresse d'intervention</label><input value={form.adresse_intervention} onChange={e=>setForm(f=>({...f,adresse_intervention:e.target.value}))} /></div>
+                <div className="form-group">
+                  <label>Adresse d'intervention</label>
+                  <AddressAutocomplete
+                    value={form.adresse_intervention}
+                    onChange={v => setForm(f => ({ ...f, adresse_intervention: v }))}
+                    onSelect={s => setForm(f => ({
+                      ...f,
+                      adresse_intervention: s.label,
+                    }))}
+                    placeholder="Adresse complète"
+                  />
+                </div>
                 <div className="form-group"><label>Notes internes</label><textarea value={form.notes_internes} onChange={e=>setForm(f=>({...f,notes_internes:e.target.value}))} /></div>
               </div>
               <div className="modal-footer">

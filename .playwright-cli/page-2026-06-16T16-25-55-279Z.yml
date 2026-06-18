@@ -1,0 +1,101 @@
+- generic [ref=e24]:
+  - generic [ref=e129]:
+    - banner [ref=e130]:
+      - button "Menu" [ref=e131] [cursor=pointer]: ☰
+      - generic [ref=e132]: Dashboard
+      - generic [ref=e133]:
+        - button "💬" [ref=e134] [cursor=pointer]
+        - button "🔔" [ref=e136] [cursor=pointer]
+        - button "☀" [ref=e275] [cursor=pointer]
+    - generic [ref=e139]:
+      - generic [ref=e140]: ⚠
+      - generic [ref=e141]:
+        - strong [ref=e142]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e143] [cursor=pointer]
+    - main [ref=e144]:
+      - generic [ref=e145]:
+        - generic [ref=e146]:
+          - heading "Bonjour, Admin B 👋" [level=1] [ref=e147]
+          - paragraph [ref=e148]: mardi 16 juin 2026
+        - generic [ref=e149]:
+          - generic [ref=e150]:
+            - generic [ref=e152]: 🔧
+            - generic [ref=e153]: "0"
+            - generic [ref=e154]: Interventions aujourd'hui
+          - generic [ref=e155]:
+            - generic [ref=e157]: 💶
+            - generic [ref=e158]: 0 €
+            - generic [ref=e159]: CA du mois
+          - generic [ref=e160]:
+            - generic [ref=e162]: ⚠
+            - generic [ref=e163]: 330 €
+            - generic [ref=e164]: Impayés
+          - generic [ref=e165]:
+            - generic [ref=e167]: 💰
+            - generic [ref=e168]: 0 €
+            - generic [ref=e169]: Commissions dues
+        - generic [ref=e170]:
+          - generic [ref=e171]:
+            - generic [ref=e172]:
+              - generic [ref=e173]: Interventions récentes
+              - button "Voir tout →" [ref=e174] [cursor=pointer]
+            - generic [ref=e235]:
+              - generic [ref=e236] [cursor=pointer]:
+                - generic [ref=e237]:
+                  - generic [ref=e238]: INT-2026-044
+                  - generic [ref=e239]: AUDIT-TEST Dupont Jean
+                - generic [ref=e240]: accepte
+              - generic [ref=e241] [cursor=pointer]:
+                - generic [ref=e242]:
+                  - generic [ref=e243]: INT-2026-040
+                  - generic [ref=e244]: TEST-ISO PW-1781295531342
+                - generic [ref=e245]: en attente
+              - generic [ref=e246] [cursor=pointer]:
+                - generic [ref=e247]:
+                  - generic [ref=e248]: INT-2026-039
+                  - generic [ref=e249]: TEST-WORKFLOW PW-1781301130756
+                - generic [ref=e250]: en cours
+              - generic [ref=e251] [cursor=pointer]:
+                - generic [ref=e252]:
+                  - generic [ref=e253]: INT-2026-038
+                  - generic [ref=e254]: TEST-WORKFLOW PW-1781300962277
+                - generic [ref=e255]: en attente
+              - generic [ref=e256] [cursor=pointer]:
+                - generic [ref=e257]:
+                  - generic [ref=e258]: INT-2026-037
+                  - generic [ref=e259]: TEST-WORKFLOW PW-1781297822070
+                - generic [ref=e260]: en attente
+          - generic [ref=e221]:
+            - button "🔧 Nouvelle intervention" [ref=e222] [cursor=pointer]
+            - button "📄 Créer un devis" [ref=e223] [cursor=pointer]
+            - button "✉ Messagerie" [ref=e224] [cursor=pointer]
+  - navigation [ref=e261]:
+    - button "+ Nouveau" [active] [ref=e262] [cursor=pointer]
+    - button "☰ Menu" [ref=e263] [cursor=pointer]
+  - generic [ref=e277]:
+    - generic [ref=e279]:
+      - generic [ref=e280]: Créer
+      - generic [ref=e281]: Choisissez le type de document
+    - generic [ref=e282]:
+      - button "🔧 Nouvelle intervention Créer un nouveau chantier" [ref=e283] [cursor=pointer]:
+        - generic [ref=e284]: 🔧
+        - generic [ref=e285]:
+          - generic [ref=e286]: Nouvelle intervention
+          - generic [ref=e287]: Créer un nouveau chantier
+      - button "👥 Nouveau client Ajouter un client" [ref=e288] [cursor=pointer]:
+        - generic [ref=e289]: 👥
+        - generic [ref=e290]:
+          - generic [ref=e291]: Nouveau client
+          - generic [ref=e292]: Ajouter un client
+      - generic [ref=e293]: Documents
+      - button "📄 Nouveau devis Rédiger un devis client" [ref=e294] [cursor=pointer]:
+        - generic [ref=e295]: 📄
+        - generic [ref=e296]:
+          - generic [ref=e297]: Nouveau devis
+          - generic [ref=e298]: Rédiger un devis client
+      - button "🧾 Nouvelle facture Créer une facture" [ref=e299] [cursor=pointer]:
+        - generic [ref=e300]: 🧾
+        - generic [ref=e301]:
+          - generic [ref=e302]: Nouvelle facture
+          - generic [ref=e303]: Créer une facture

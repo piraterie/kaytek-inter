@@ -1,0 +1,26 @@
+[     207ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-5PWU34Q3.js?v=35545325:21550
+[     310ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4426
+[     310ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4426
+[   58879ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/devices?select=id&user_id=eq.59e65e97-326d-484d-911d-fb0c72212cb6&device_id=eq.6b016b1b-a657-4a5b-b0ae-315a8a0143a4:0
+[   79571ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[   80684ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 1032139ms] [LOG] [create-intervention payload] {statut: en_attente, tva_pct: 10, type: serrurerie, urgence: false, client_id: c3b0b02f-8df9-4874-8d85-e7f9ca2adfc8} @ http://localhost:5173/src/lib/hooks/index.ts:392
+[ 1101435ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/notifications:0
+[ 1195908ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 1196984ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 1310701ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 1311767ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 1426875ms] [WARNING] The specified value "Remplacement serrure 3 points" does not conform to the required format, "yyyy-MM-dd". @ :7226
+[ 1583089ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 1584172ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 1632662ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 1633756ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 1786162ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 1787253ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 2073134ms] [LOG] [commissions] user 59e65e97-326d-484d-911d-fb0c72212cb6 admin @ http://localhost:5173/src/lib/hooks/index.ts:963
+[ 2073231ms] [LOG] [commissions] factures payées 0 [] @ http://localhost:5173/src/lib/hooks/index.ts:976
+[ 2234063ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 2235150ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[ 2235285ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:5173/parametres:0
+[ 2340472ms] [LOG] [commissions] user 59e65e97-326d-484d-911d-fb0c72212cb6 admin @ http://localhost:5173/src/lib/hooks/index.ts:963
+[ 2340666ms] [LOG] [commissions] factures payées 0 [] @ http://localhost:5173/src/lib/hooks/index.ts:976

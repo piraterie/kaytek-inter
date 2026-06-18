@@ -1,0 +1,114 @@
+- generic [ref=e24]:
+  - complementary [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e27]: 🔐
+      - generic [ref=e28]:
+        - generic [ref=e29]: Kaytek Inter
+        - generic [ref=e30]: Serrurerie · Vitrerie
+    - navigation [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]: Pilotage
+        - button "Dashboard" [ref=e37] [cursor=pointer]:
+          - img [ref=e38]
+          - generic [ref=e43]: Dashboard
+        - button "Messagerie" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e48]: Messagerie
+      - generic [ref=e49]:
+        - generic [ref=e50]: Terrain
+        - button "Interventions 4" [ref=e51] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e54]: Interventions
+          - generic [ref=e55]: "4"
+        - button "Planning" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - generic [ref=e59]: Planning
+        - button "Devis" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+          - generic [ref=e64]: Devis
+        - button "Factures" [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+          - generic [ref=e69]: Factures
+      - generic [ref=e70]:
+        - generic [ref=e71]: Gestion
+        - button "Commissions" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+          - generic [ref=e75]: Commissions
+        - button "Guide" [ref=e76] [cursor=pointer]:
+          - img [ref=e77]
+          - generic [ref=e79]: Guide
+    - generic [ref=e81]:
+      - button "T Intervenant A Test Intervenant · Kaytek Inter" [ref=e82] [cursor=pointer]:
+        - generic [ref=e83]:
+          - generic [ref=e84]: T
+          - generic [ref=e85]:
+            - generic [ref=e86]: Intervenant A Test
+            - generic [ref=e87]: Intervenant · Kaytek Inter
+      - generic [ref=e88]:
+        - button "Clair" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - text: Clair
+        - button "Quitter" [ref=e96] [cursor=pointer]:
+          - img [ref=e97]
+          - text: Quitter
+  - generic [ref=e100]:
+    - banner [ref=e101]:
+      - button "Menu" [ref=e102] [cursor=pointer]: ☰
+      - generic [ref=e103]: Dashboard
+      - generic [ref=e104]:
+        - button "💬" [ref=e105] [cursor=pointer]
+        - button "🔔" [ref=e107] [cursor=pointer]
+        - button "☀" [ref=e108] [cursor=pointer]
+    - main [ref=e109]:
+      - generic [ref=e753]:
+        - generic [ref=e754]:
+          - heading "Bonjour, Intervenant A 👋" [level=1] [ref=e755]
+          - paragraph [ref=e756]: mardi 16 juin 2026
+        - generic [ref=e757]:
+          - generic [ref=e758]:
+            - generic [ref=e760]: 🔧
+            - generic [ref=e761]: "0"
+            - generic [ref=e762]: Mes interventions aujourd'hui
+          - generic [ref=e763]:
+            - generic [ref=e765]: 💶
+            - generic [ref=e766]: 0 €
+            - generic [ref=e767]: Mes gains ce mois
+          - generic [ref=e768]:
+            - generic [ref=e770]: ⏳
+            - generic [ref=e771]: 0 €
+            - generic [ref=e772]: À recevoir
+          - generic [ref=e773]:
+            - generic [ref=e775]: 💬
+            - generic [ref=e776]: "0"
+            - generic [ref=e777]: Messages non lus
+        - generic [ref=e778]:
+          - generic [ref=e779]:
+            - generic [ref=e780]:
+              - generic [ref=e781]: Interventions récentes
+              - button "Voir tout →" [ref=e782] [cursor=pointer]
+            - generic [ref=e826]:
+              - generic [ref=e827] [cursor=pointer]:
+                - generic [ref=e828]:
+                  - generic [ref=e829]: INT-2026-039
+                  - generic [ref=e830]: TEST-WORKFLOW PW-1781301130756
+                - generic [ref=e831]: en cours
+              - generic [ref=e832] [cursor=pointer]:
+                - generic [ref=e833]:
+                  - generic [ref=e834]: INT-2026-038
+                  - generic [ref=e835]: TEST-WORKFLOW PW-1781300962277
+                - generic [ref=e836]: en attente
+              - generic [ref=e837] [cursor=pointer]:
+                - generic [ref=e838]:
+                  - generic [ref=e839]: INT-2026-037
+                  - generic [ref=e840]: TEST-WORKFLOW PW-1781297822070
+                - generic [ref=e841]: en attente
+              - generic [ref=e842] [cursor=pointer]:
+                - generic [ref=e843]:
+                  - generic [ref=e844]: INT-2026-036
+                  - generic [ref=e845]: TEST-WORKFLOW PW-1781297747189
+                - generic [ref=e846]: en attente
+          - generic [ref=e822]:
+            - button "✉ Messagerie" [ref=e823] [cursor=pointer]
+            - button "💰 Mes commissions" [ref=e824] [cursor=pointer]
+  - navigation [ref=e847]:
+    - button "☰ Menu" [active] [ref=e848] [cursor=pointer]

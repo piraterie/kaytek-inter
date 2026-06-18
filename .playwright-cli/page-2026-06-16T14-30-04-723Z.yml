@@ -1,0 +1,112 @@
+- generic [ref=e24]:
+  - complementary [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e27]: 🔐
+      - generic [ref=e28]:
+        - generic [ref=e29]: Kaytek Inter
+        - generic [ref=e30]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+    - navigation [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]: Pilotage
+        - button "Dashboard" [ref=e37] [cursor=pointer]:
+          - img [ref=e38]
+          - generic [ref=e43]: Dashboard
+        - button "Messagerie" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e48]: Messagerie
+      - generic [ref=e49]:
+        - generic [ref=e50]: Terrain
+        - button "Interventions 4" [ref=e51] [cursor=pointer]:
+          - img [ref=e52]
+          - generic [ref=e54]: Interventions
+          - generic [ref=e55]: "4"
+        - button "Planning" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - generic [ref=e59]: Planning
+        - button "Devis" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+          - generic [ref=e64]: Devis
+        - button "Factures" [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+          - generic [ref=e69]: Factures
+      - generic [ref=e70]:
+        - generic [ref=e71]: Gestion
+        - button "Commissions" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+          - generic [ref=e75]: Commissions
+        - button "Guide" [ref=e76] [cursor=pointer]:
+          - img [ref=e77]
+          - generic [ref=e79]: Guide
+    - generic [ref=e81]:
+      - button "T Intervenant A Test Intervenant · Kaytek Inter" [ref=e82] [cursor=pointer]:
+        - generic [ref=e83]:
+          - generic [ref=e84]: T
+          - generic [ref=e85]:
+            - generic [ref=e86]: Intervenant A Test
+            - generic [ref=e87]: Intervenant · Kaytek Inter
+      - generic [ref=e88]:
+        - button "Clair" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - text: Clair
+        - button "Quitter" [ref=e96] [cursor=pointer]:
+          - img [ref=e97]
+          - text: Quitter
+  - generic [ref=e100]:
+    - banner [ref=e101]:
+      - button "Menu" [ref=e102] [cursor=pointer]: ☰
+      - generic [ref=e103]: Interventions
+      - generic [ref=e104]:
+        - button "💬" [ref=e105] [cursor=pointer]
+        - button "🔔" [ref=e107] [cursor=pointer]
+        - button "☀" [ref=e108] [cursor=pointer]
+    - main [ref=e109]:
+      - generic [ref=e280]:
+        - generic [ref=e281]:
+          - button "←" [ref=e282] [cursor=pointer]
+          - generic [ref=e283]:
+            - heading "INT-2026-039" [level=1] [ref=e284]
+            - paragraph [ref=e285]: TEST-WORKFLOW PW-1781301130756 · 10 Rue du Test, Paris 75001
+          - generic [ref=e287]: en cours
+        - button "⚡ Actions" [ref=e299] [cursor=pointer]
+        - generic [ref=e300]:
+          - button "📋 Détail" [ref=e301] [cursor=pointer]
+          - button "📷 Photos (0)" [ref=e302] [cursor=pointer]
+          - button "📝 Compte-rendu" [ref=e303] [cursor=pointer]
+          - button "💰 Commission" [ref=e304] [cursor=pointer]
+          - button "📄 Devis / Facture" [ref=e305] [cursor=pointer]
+        - generic [ref=e350]:
+          - generic [ref=e351]:
+            - generic [ref=e352]: Travail réalisé
+            - textbox [ref=e353]: Remplacement serrure 3 points. Ouverture sans dégradation. Nouvelle serrure Vachette installée.
+          - generic [ref=e354]:
+            - generic [ref=e355]:
+              - generic [ref=e356]: Matériel utilisé
+              - textbox [ref=e357]: Serrure Vachette A2P 3 points
+            - generic [ref=e358]:
+              - generic [ref=e359]: Temps (min)
+              - spinbutton [ref=e360]: "45"
+          - generic [ref=e361]:
+            - generic [ref=e362]:
+              - generic [ref=e363]: Montant final TTC (€)
+              - spinbutton [ref=e364]: "180"
+            - generic [ref=e365]:
+              - generic [ref=e366]: 🔩 Pièces achetées (€)
+              - spinbutton [ref=e367]
+              - generic [ref=e368]: Coût des pièces — déduit de la base commissionnable une fois confirmé
+          - generic [ref=e370]:
+            - generic [ref=e371]: Aperçu de la répartition
+            - generic [ref=e372]:
+              - generic [ref=e373]: CA TTC
+              - generic [ref=e374]: 180,00 €
+            - generic [ref=e375]:
+              - generic [ref=e376]: Base commissionnable
+              - generic [ref=e377]: 180,00 €
+            - generic [ref=e378]:
+              - generic [ref=e379]: Commission intervenant (30%)
+              - generic [ref=e380]: 54,00 €
+          - button "💾 Sauvegarder" [ref=e369] [cursor=pointer]
+  - generic [ref=e381]:
+    - generic [ref=e382]: ✓
+    - text: Compte-rendu sauvegardé

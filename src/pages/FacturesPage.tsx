@@ -1,10 +1,9 @@
 // src/pages/FacturesPage.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useFactures, useUpdateFacture, useDeleteFacture, useDeleteAllFactures, useParametres, notifyAdmins, REQUIRED_PARAMS } from '@/lib/hooks'
+import { useFactures, useUpdateFacture, useDeleteFacture, useDeleteAllFactures, useParametres, useCreatePublicLink, notifyAdmins, REQUIRED_PARAMS } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
-import { generateFacturePDF, downloadBlob } from '@/lib/pdf/generator'
 import { pdfCache } from '@/lib/pdf/cache'
 import { supabase } from '@/lib/supabase/client'
 import { envoyerEmail } from '@/lib/supabase/auth'
@@ -54,6 +53,9 @@ export default function FacturesPage() {
   const [selectionMode, setSelectionMode] = useState(false)
   const [activeSheet, setActiveSheet] = useState<Facture | null>(null)
   const [showMobileActions, setShowMobileActions] = useState(false)
+  const createLink = useCreatePublicLink()
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [copiedShare, setCopiedShare] = useState(false)
 
   const filtered = factures
     .filter(f => filterStatut === 'tous' || f.statut_paiement === filterStatut)
@@ -122,6 +124,7 @@ export default function FacturesPage() {
     if (!pdfCache.get(f.id) && params) {
       ;(async () => {
         try {
+          const { generateFacturePDF } = await import('@/lib/pdf/generator')
           const blob = await generateFacturePDF(f, f.devis || null, params)
           pdfCache.set(f.id, blob)
           console.log('[pdf-cache] facture pré-générée', f.numero)
@@ -134,6 +137,7 @@ export default function FacturesPage() {
     if (!checkParams()) return
     try {
       add('Generation PDF...', 'info')
+      const { generateFacturePDF, downloadBlob } = await import('@/lib/pdf/generator')
       const blob = await generateFacturePDF(f, f.devis || null, params)
       downloadBlob(blob, `${f.numero}.pdf`)
       add('PDF telecharge')
@@ -176,6 +180,7 @@ export default function FacturesPage() {
         // Niveau 3 : génération fraîche (fallback)
         if (!blob) {
           const tG = Date.now()
+          const { generateFacturePDF } = await import('@/lib/pdf/generator')
           blob = await generateFacturePDF(f, f.devis || null, params)
           pdfCache.set(f.id, blob)
           console.log(`[facture-email] PDF généré ${Date.now() - tG}ms`)
@@ -239,6 +244,16 @@ export default function FacturesPage() {
       await upd.mutateAsync({ id: f.id, statut_paiement: 'payee', date_paiement: new Date().toISOString() })
       await handleEmail({ ...f, statut_paiement: 'payee', date_paiement: new Date().toISOString() })
     } catch (e: any) { add(e.message, 'error') }
+  }
+
+  async function handleShareFacture(f: Facture) {
+    setActiveSheet(null)
+    try {
+      const result = await createLink.mutateAsync({ document_type: 'facture', document_id: f.id })
+      setShareUrl(`${window.location.origin}/d/${result.token}`)
+    } catch (e: any) {
+      add(e.message, 'error')
+    }
   }
 
   function handleDel(id: string) {
@@ -317,7 +332,7 @@ export default function FacturesPage() {
             {isAdmin && !selectionMode && filtered.length > 0 && (
               <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
             )}
-            {isAdmin && factures.length > 0 && (
+            {isAdmin && selectionMode && factures.length > 0 && (
               <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={handleVider} disabled={delAll.isPending}>
                 🗑 Tout supprimer
               </button>
@@ -643,6 +658,15 @@ export default function FacturesPage() {
               loading={sendingEmailId === activeSheet.id}
             />
           )}
+          {isAdmin && (
+            <SheetRow
+              icon="🔗"
+              label="Partager par lien"
+              sublabel="Crée un lien public pour que le client consulte la facture"
+              onClick={() => handleShareFacture(activeSheet)}
+              loading={createLink.isPending}
+            />
+          )}
 
           {/* Danger */}
           {isAdmin && (
@@ -754,6 +778,41 @@ export default function FacturesPage() {
           onConfirm={confirmDialog.action}
           onCancel={() => setConfirmDialog(null)}
         />
+      )}
+
+      {shareUrl && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15,23,42,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
+          <div style={{ background: 'var(--s0)', borderRadius: 'var(--r2)', padding: '24px 20px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.35)', border: '1px solid var(--b1)' }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--t0)', marginBottom: 4 }}>🔗 Lien de partage</div>
+            <div style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 14 }}>Ce lien permet au client de consulter la facture sans connexion.</div>
+            <div style={{ padding: '10px 14px', background: 'var(--s1)', borderRadius: 8, border: '1px solid var(--b1)', fontSize: 12, color: 'var(--t1)', wordBreak: 'break-all', marginBottom: 14 }}>
+              {shareUrl}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button className="btn btn-primary" style={{ justifyContent: 'center', textAlign: 'center' }}
+                onClick={() => { navigator.clipboard.writeText(shareUrl); setCopiedShare(true); setTimeout(() => setCopiedShare(false), 2000) }}>
+                {copiedShare ? '✓ Lien copié !' : '🔗 Copier le lien'}
+              </button>
+              <button className="btn" style={{ background: '#25D366', color: '#fff', border: 'none', justifyContent: 'center', textAlign: 'center' }}
+                onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent('Votre facture : ' + shareUrl)}`, '_blank')}>
+                WhatsApp
+              </button>
+              <button className="btn" style={{ justifyContent: 'center', textAlign: 'center' }}
+                onClick={() => window.open(`sms:?body=${encodeURIComponent('Votre facture : ' + shareUrl)}`)}>
+                SMS
+              </button>
+              {navigator.share && (
+                <button className="btn" style={{ background: '#2563eb', color: '#fff', border: 'none', justifyContent: 'center', textAlign: 'center' }}
+                  onClick={() => navigator.share({ title: 'Facture Kaytek Inter', url: shareUrl }).catch(() => {})}>
+                  Partager via…
+                </button>
+              )}
+              <button className="btn" style={{ color: 'var(--t2)', justifyContent: 'center', textAlign: 'center' }} onClick={() => setShareUrl(null)}>
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )

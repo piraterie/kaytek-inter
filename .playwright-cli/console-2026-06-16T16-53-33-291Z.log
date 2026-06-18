@@ -1,0 +1,23 @@
+[      65ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-5PWU34Q3.js?v=35545325:21550
+[     119ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4426
+[     119ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4426
+[     672ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[     809ms] [ERROR] Warning: Each child in a list should have a unique "key" prop.%s%s See https://reactjs.org/link/warning-keys for more information.%s 
+
+Check the render method of `DevisApercuPage`.  
+    at tr
+    at DevisApercuPage (http://localhost:5173/src/pages/DevisApercuPage.tsx?t=1781628475709:26:18)
+    at Guard (http://localhost:5173/src/App.tsx?t=1781628475709:47:18)
+    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4122:5)
+    at Outlet (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4528:26)
+    at main
+    at div
+    at div
+    at AppLayout (http://localhost:5173/src/components/layout/AppLayout.tsx?t=1781625893534:67:29)
+    at Guard (http://localhost:5173/src/App.tsx?t=1781628475709:47:18)
+    at RenderedRoute (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4122:5)
+    at Routes (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4592:5)
+    at App (http://localhost:5173/src/App.tsx?t=1781628475709:153:45)
+    at Router (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:4535:15)
+    at BrowserRouter (http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=35545325:5273:5)
+    at QueryClientProvider (http://localhost:5173/node_modules/.vite/deps/@tanstack_react-query.js?v=35545325:3235:3) @ http://localhost:5173/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=35545325:63
