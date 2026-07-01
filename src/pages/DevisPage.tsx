@@ -6,17 +6,16 @@ import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
 import EmailDevisModal from '@/components/EmailDevisModal'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
+import { exportDevisPremium } from '@/lib/exportPremium'
 import type { Devis } from '@/types'
-
-function downloadCSV(rows: string[][], filename: string) {
-  const csv = '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url)
-}
 
 const SC: Record<string, string> = {
   en_attente_validation: 'pill-amber', brouillon: 'pill-gray', envoye: 'pill-blue',
   accepte: 'pill-green', refuse: 'pill-red', expire: 'pill-orange'
+}
+const ACT_PILL: Record<string, string> = {
+  serrurerie: 'pill-gray', plomberie: 'pill-blue', electricite: 'pill-amber',
+  vitrerie: 'pill-purple', chauffagiste: 'pill-orange',
 }
 const SL: Record<string, string> = {
   en_attente_validation: 'À valider', brouillon: 'Brouillon', envoye: 'Envoyé',
@@ -193,21 +192,10 @@ export default function DevisPage() {
     })
   }
 
-  function handleExportCSV() {
-    const rows = [
-      ['Numéro', 'Client', 'Activité', 'Total HT', 'Total TTC', 'Statut', 'Date', 'Valide jusqu\'au'],
-      ...filtered.map(d => [
-        d.numero,
-        `${d.client?.nom || ''} ${d.client?.prenom || ''}`.trim(),
-        d.activite || '—',
-        String(d.total_ht || 0),
-        String(d.total_ttc || 0),
-        d.statut,
-        new Date(d.created_at).toLocaleDateString('fr-FR'),
-        d.valide_jusqu_au ? new Date(d.valide_jusqu_au).toLocaleDateString('fr-FR') : '—'
-      ])
-    ]
-    downloadCSV(rows, `devis-${new Date().toISOString().split('T')[0]}.csv`)
+  async function handleExportCSV() {
+    try {
+      await exportDevisPremium(filtered, { params, user: user ? { nom: user.nom, prenom: user.prenom } : null })
+    } catch (e: any) { add('Erreur export : ' + e.message, 'error') }
   }
 
   async function handleValidate(d: Devis) {
@@ -249,7 +237,7 @@ export default function DevisPage() {
         </div>
         {/* Desktop : inchangé */}
         <div className="page-actions hide-mobile">
-          <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}>📥 CSV</button>
+          <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}>📊 Excel</button>
           {isAdmin && !selectionMode && filtered.length > 0 && (
             <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
           )}
@@ -474,7 +462,7 @@ export default function DevisPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtDate(d.created_at)}</span>
                     {d.activite && (
-                      <span className={`pill ${d.activite === 'serrurerie' ? 'pill-gray' : 'pill-blue'}`} style={{ fontSize: 10 }}>
+                      <span className={`pill ${ACT_PILL[d.activite] || 'pill-gray'}`} style={{ fontSize: 10 }}>
                         {d.activite}
                       </span>
                     )}
@@ -574,7 +562,7 @@ export default function DevisPage() {
                     <div style={{ fontWeight: 600, color: 'var(--t0)', fontSize: 13 }}>{d.client?.nom} {d.client?.prenom}</div>
                     {d.client?.email && <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 1 }}>{d.client.email}</div>}
                   </td>
-                  <td>{d.activite ? <span className={`pill ${d.activite === 'serrurerie' ? 'pill-gray' : 'pill-blue'}`}>{d.activite}</span> : '—'}</td>
+                  <td>{d.activite ? <span className={`pill ${ACT_PILL[d.activite] || 'pill-gray'}`}>{d.activite}</span> : '—'}</td>
                   <td style={{ fontWeight: 700, color: 'var(--t0)' }}>{eur(d.total_ttc)}</td>
                   <td><span className={`pill ${SC[d.statut] || 'pill-gray'}`}>{SL[d.statut] || d.statut}</span></td>
                   {isAdmin && <td style={{ fontSize: 12 }}>{d.intervenant?.nom ? `${d.intervenant.prenom} ${d.intervenant.nom}` : '—'}</td>}
@@ -708,8 +696,8 @@ export default function DevisPage() {
       {showMobileActions && (
         <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
           <SheetRow
-            icon="📥"
-            label="Exporter CSV"
+            icon="📊"
+            label="Exporter Excel"
             sublabel={filtered.length === 0 ? 'Aucun devis' : `${filtered.length} devis`}
             onClick={() => { setShowMobileActions(false); handleExportCSV() }}
             disabled={filtered.length === 0}

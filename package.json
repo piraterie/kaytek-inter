@@ -15,9 +15,18 @@
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report",
     "test:setup": "playwright test tests/auth.setup.ts --project=setup",
-    "test:beta": "playwright test tests/beta --project=beta"
+    "test:beta": "playwright test tests/beta --project=beta",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:build": "npm run build && npx cap sync android"
   },
   "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^10.0.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@fullcalendar/core": "^6.1.20",
     "@fullcalendar/daygrid": "^6.1.20",
     "@fullcalendar/interaction": "^6.1.20",
@@ -28,6 +37,7 @@
     "@supabase/supabase-js": "^2.45.4",
     "@tanstack/react-query": "^5.56.2",
     "date-fns": "^3.6.0",
+    "exceljs": "^4.4.0",
     "lucide-react": "^1.17.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -39,6 +49,8 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
     "@playwright/cli": "^0.1.14",
     "@playwright/test": "^1.60.0",
     "@types/react": "^18.3.5",

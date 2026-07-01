@@ -32,7 +32,10 @@ export default defineConfig({
     })
   ],
   resolve: {
-    alias: { '@': path.resolve(__dirname, './src') }
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      'exceljs': path.resolve(__dirname, 'node_modules/exceljs/dist/es5/exceljs.browser.js'),
+    }
   },
   build: {
     rollupOptions: {
@@ -42,7 +45,8 @@ export default defineConfig({
           supabase: ['@supabase/supabase-js'],
           query: ['@tanstack/react-query'],
           pdf: ['@react-pdf/renderer'],
-          xlsx: ['xlsx']
+          xlsx: ['xlsx'],
+          exceljs: ['exceljs'],
         }
       }
     }

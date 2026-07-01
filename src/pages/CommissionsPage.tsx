@@ -2,14 +2,9 @@
 import { useState } from 'react'
 import { useCommissionsData, useMarkCommissionReceived, useUpdateInterventionMateriel, notifyUser, notifyAdmins } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
+import { exportCommissionsPremium } from '@/lib/exportPremium'
 
 const eur = (n: number) => (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
-
-function downloadCSV(rows: string[][], filename: string) {
-  const csv = '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url)
-}
 
 type MaterielModal = {
   intervention_id: string
@@ -323,25 +318,10 @@ export default function CommissionsPage() {
   const totalCommAll = items.reduce((s, c) => s + c.commission_intervenant, 0)
   const totalResteAll = items.reduce((s, c) => s + c.reste_entreprise, 0)
 
-  function handleExportCSV() {
-    const rows = [
-      ['Intervenant', 'Facture', 'Intervention', 'Client', 'CA TTC', 'Matériel confirmé', 'Base', '% Commission', 'Commission intervenant', 'Reste entreprise', 'Date paiement', 'Commission reçue'],
-      ...items.map(c => [
-        `${c.intervenant?.prenom || ''} ${c.intervenant?.nom || ''}`.trim(),
-        c.facture_numero || '—',
-        c.intervention_numero || '—',
-        c.client ? `${c.client.nom || ''} ${c.client.prenom || ''}`.trim() : '—',
-        String(c.montant_ttc),
-        String(c.cout_pieces),
-        String(c.base_commissionnable),
-        String(c.commission_pct) + '%',
-        String(c.commission_intervenant),
-        String(c.reste_entreprise),
-        c.date_paiement ? new Date(c.date_paiement).toLocaleDateString('fr-FR') : '—',
-        c.recue ? 'Oui' : 'Non',
-      ])
-    ]
-    downloadCSV(rows, `commissions-${new Date().toISOString().split('T')[0]}.csv`)
+  async function handleExportCSV() {
+    try {
+      await exportCommissionsPremium(items, { user: user ? { nom: user.nom, prenom: user.prenom } : null })
+    } catch (e: any) { add('Erreur export : ' + e.message, 'error') }
   }
 
   return (
@@ -351,7 +331,7 @@ export default function CommissionsPage() {
           <h1 className="page-title">Commissions</h1>
           <p className="page-subtitle">Calculées sur les factures payées · {items.length} entrée{items.length !== 1 ? 's' : ''}</p>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={items.length === 0}>📥 CSV</button>
+        <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={items.length === 0}>📊 Excel</button>
       </div>
 
       {isAdmin && unattributedCount > 0 && (

@@ -7,6 +7,7 @@ import { CustomSelect } from '@/components/CustomSelect'
 import { AddressAutocomplete } from '@/components/AddressAutocomplete'
 import ConfirmModal from '@/components/ConfirmModal'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
+import { exportInterventionsPremium } from '@/lib/exportPremium'
 import type { Categorie, Intervention } from '@/types'
 
 const ns = (s: string) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
@@ -16,17 +17,16 @@ const ACTIVITES: { value: Categorie; label: string }[] = [
   { value: 'plomberie', label: 'Plomberie' },
   { value: 'electricite', label: 'Électricité' },
   { value: 'vitrerie', label: 'Vitrerie' },
+  { value: 'chauffagiste', label: 'Chauffagiste' },
 ]
+const ACT_PILL: Record<string, string> = {
+  serrurerie: 'pill-gray', plomberie: 'pill-blue', electricite: 'pill-amber',
+  vitrerie: 'pill-purple', chauffagiste: 'pill-orange',
+}
 
 const SC: Record<string,string> = { en_attente:'pill-amber',accepte:'pill-blue',en_cours:'pill-orange',termine:'pill-green',facture:'pill-purple',annule:'pill-gray',refuse:'pill-red' }
 const STATUTS_LIST = ['en_attente','accepte','en_cours','termine','facture','annule'] as const
 const chkStyle: React.CSSProperties = { width: 18, height: 18, cursor: 'pointer', flexShrink: 0, accentColor: 'var(--bl)' }
-
-function downloadCSV(rows: string[][], filename: string) {
-  const csv = '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url)
-}
 
 export default function InterventionsPage() {
   const nav = useNavigate()
@@ -107,17 +107,10 @@ export default function InterventionsPage() {
   }
   function exitSelection() { setSelected(new Set()); setSelectionMode(false) }
 
-  function handleExport() {
-    const rows = [
-      ['Numéro','Client','Intervenant','Type','Date prévue','Montant TTC','Statut','Adresse','Description'],
-      ...items.map(i => [
-        i.numero, `${i.client?.nom||''} ${i.client?.prenom||''}`.trim(),
-        `${i.intervenant?.prenom||''} ${i.intervenant?.nom||''}`.trim(),
-        i.type||'', i.date_prevue?new Date(i.date_prevue).toLocaleDateString('fr-FR'):'',
-        i.montant_ttc?String(i.montant_ttc):'', i.statut, i.adresse||'', i.description||''
-      ])
-    ]
-    downloadCSV(rows, `interventions-${new Date().toISOString().split('T')[0]}.csv`)
+  async function handleExport() {
+    try {
+      await exportInterventionsPremium(items, { user: user ? { nom: user.nom, prenom: user.prenom } : null })
+    } catch (e: any) { add('Erreur export : ' + e.message, 'error') }
   }
 
   async function submitNewClient(e: React.FormEvent) {
@@ -288,7 +281,7 @@ export default function InterventionsPage() {
         </div>
         {/* Desktop : inchangé */}
         <div className="page-actions hide-mobile">
-          <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={items.length===0}>📥 CSV</button>
+          <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={items.length===0}>📊 Excel</button>
           {isAdmin && (
             <button
               className={`btn btn-sm ${showArchived ? 'btn-primary' : 'btn-secondary'}`}
@@ -418,7 +411,7 @@ export default function InterventionsPage() {
                 {i.date_prevue && <div style={{ fontSize:12, color:'var(--t3)', marginTop:1 }}>📅 {new Date(i.date_prevue).toLocaleDateString('fr-FR')}</div>}
                 {!selectionMode && (
                   <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {i.type && <span className={`pill ${i.type==='serrurerie'?'pill-gray':'pill-blue'}`}>{i.type}</span>}
+                    {i.type && <span className={`pill ${ACT_PILL[i.type]||'pill-gray'}`}>{i.type}</span>}
                     {isAdmin && i.intervenant && <span style={{ fontSize:11, color:'var(--t2)' }}>👤 {i.intervenant.prenom} {i.intervenant.nom}</span>}
                   </div>
                 )}
@@ -484,7 +477,7 @@ export default function InterventionsPage() {
                   <div style={{ fontSize:11,color:'var(--t3)' }}>{i.client?.telephone}</div>
                 </td>
                 {isAdmin&&<td style={{ fontSize:13 }}>{i.intervenant?.prenom} {i.intervenant?.nom}</td>}
-                <td>{i.type?<span className={`pill ${i.type==='serrurerie'?'pill-gray':'pill-blue'}`}>{i.type}</span>:'—'}</td>
+                <td>{i.type?<span className={`pill ${ACT_PILL[i.type]||'pill-gray'}`}>{i.type}</span>:'—'}</td>
                 <td style={{ fontSize:12 }}>{i.date_prevue?new Date(i.date_prevue).toLocaleDateString('fr-FR'):'—'}</td>
                 <td className="td-bold">{i.montant_ttc?i.montant_ttc.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}):'—'}</td>
                 <td><span className={`pill ${SC[i.statut]||'pill-gray'}`}>{i.statut.replace('_',' ')}</span></td>
@@ -563,8 +556,8 @@ export default function InterventionsPage() {
       {showMobileActions && (
         <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
           <SheetRow
-            icon="📥"
-            label="Exporter CSV"
+            icon="📊"
+            label="Exporter Excel"
             sublabel={items.length === 0 ? 'Aucune intervention' : `${items.length} intervention${items.length > 1 ? 's' : ''}`}
             onClick={() => { setShowMobileActions(false); handleExport() }}
             disabled={items.length === 0}
