@@ -44,6 +44,7 @@
   --rd:#DC2626;--rdBg:#FEF2F2;--rdBd:#FECACA;--rdTx:#991B1B;
   --pu:#7C3AED;--puBg:#F5F3FF;--puBd:#DDD6FE;--puTx:#5B21B6;
   --or:#EA580C;--orBg:#FFF7ED;--orBd:#FED7AA;--orTx:#9A3412;
+  --gr:#64748B;--grBg:#F1F5F9;--grBd:#CBD5E1;--grTx:#475569;
 
   /* Toast — toujours sombre pour la lisibilité */
   --toastBg:#1E293B;--toastColor:#F1F5F9;
@@ -102,6 +103,7 @@
   --rd:#EF4444;--rdBg:rgba(239,68,68,.12);--rdBd:rgba(239,68,68,.40);--rdTx:#FCA5A5;
   --pu:#A855F7;--puBg:rgba(168,85,247,.12);--puBd:rgba(168,85,247,.40);--puTx:#C4B5FD;
   --or:#F97316;--orBg:rgba(249,115,22,.12);--orBd:rgba(249,115,22,.40);--orTx:#FDBA74;
+  --gr:#94A3B8;--grBg:rgba(148,163,184,.14);--grBd:rgba(148,163,184,.42);--grTx:#CBD5E1;
 
   /* Toast */
   --toastBg:#1A253E;--toastColor:#F0F4FC;
@@ -215,6 +217,23 @@ textarea{resize:vertical;min-height:80px}
 .card-header{padding:14px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .card-title{font-size:14px;font-weight:700;color:var(--t0)}
 .card-body{padding:16px 18px}
+
+/* ── Planning dashboard ──────────────────────────────────── */
+.planning-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.planning-stat{
+  background:var(--s0);border:1px solid var(--b1);border-radius:var(--r2);
+  padding:14px 10px;text-align:center;box-shadow:var(--sh0);
+}
+.planning-stat-value{font-size:24px;font-weight:800;color:var(--t0);line-height:1.1}
+.planning-stat-label{font-size:11px;color:var(--t2);font-weight:600;margin-top:4px}
+.planning-section-header:hover{background:var(--s1)}
+.planning-row:hover{background:var(--s1)}
+.kaytek-planning .fc-event{cursor:pointer}
+@media(max-width:640px){
+  .planning-stats{grid-template-columns:repeat(2,1fr)}
+  .planning-stat{padding:10px 8px}
+  .planning-stat-value{font-size:20px}
+}
 
 /* ── Stat cards ──────────────────────────────────────────── */
 .stat-card{
@@ -431,18 +450,42 @@ label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;le
 /* Grille */
 .kaytek-planning .fc .fc-timegrid-slot{height:32px}
 .kaytek-planning .fc .fc-timegrid-slot-label{font-size:11px;color:var(--t3);font-weight:500}
-/* Événements */
-.kaytek-planning .fc .fc-event{border-radius:8px;border:none;cursor:pointer;transition:transform .15s,box-shadow .15s}
-.kaytek-planning .fc .fc-event:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.20)}
+/* Événements — badges colorés, lisibles en clair comme en sombre */
+.kaytek-planning .fc .fc-event{
+  border-radius:8px;border-width:1.5px;border-style:solid;border-color:var(--b1);
+  cursor:pointer;font-weight:600;
+  transition:transform .15s,box-shadow .15s,filter .15s;
+}
+.kaytek-planning .fc .fc-event:hover{transform:translateY(-1px);box-shadow:var(--sh1)}
 .kaytek-planning .fc .fc-event-main{padding:0}
-.kaytek-planning .fc .fc-daygrid-event{border-radius:6px;font-size:11px}
+.kaytek-planning .fc .fc-daygrid-event{border-radius:7px;font-size:11px;margin-top:2px}
+.kaytek-planning .fc .fc-timegrid-event{border-radius:8px;box-shadow:var(--sh0)}
+
+/* Statuts — fond léger + bordure colorée + texte adapté au thème (jamais blanc-sur-blanc)
+   --fc-event-text-color est utilisé en interne par FullCalendar sur .fc-event-main
+   (vue mois/semaine/jour) : il faut le redéfinir, "color" seul ne suffit pas. */
+.kaytek-planning .fc .fc-event.ev-rd{background:var(--rdBg) !important;border-color:var(--rdBd) !important;color:var(--rdTx) !important;--fc-event-text-color:var(--rdTx)}
+.kaytek-planning .fc .fc-event.ev-or{background:var(--orBg) !important;border-color:var(--orBd) !important;color:var(--orTx) !important;--fc-event-text-color:var(--orTx)}
+.kaytek-planning .fc .fc-event.ev-am{background:var(--amBg) !important;border-color:var(--amBd) !important;color:var(--amTx) !important;--fc-event-text-color:var(--amTx)}
+.kaytek-planning .fc .fc-event.ev-bl{background:var(--blBg) !important;border-color:var(--blBd) !important;color:var(--blTx) !important;--fc-event-text-color:var(--blTx)}
+.kaytek-planning .fc .fc-event.ev-pu{background:var(--puBg) !important;border-color:var(--puBd) !important;color:var(--puTx) !important;--fc-event-text-color:var(--puTx)}
+.kaytek-planning .fc .fc-event.ev-gn{background:var(--gnBg) !important;border-color:var(--gnBd) !important;color:var(--gnTx) !important;--fc-event-text-color:var(--gnTx)}
+.kaytek-planning .fc .fc-event.ev-gr{background:var(--grBg) !important;border-color:var(--grBd) !important;color:var(--grTx) !important;--fc-event-text-color:var(--grTx)}
+
 /* "Aujourd'hui" */
 .kaytek-planning .fc .fc-day-today .fc-col-header-cell-cushion{color:var(--bl);font-weight:800}
 .kaytek-planning .fc .fc-day-today{background:var(--blBg)}
-/* Liste */
+/* Liste — ligne légèrement teintée selon le statut */
 .kaytek-planning .fc .fc-list-day-cushion{background:var(--s1);font-size:12px;font-weight:700;color:var(--t2);padding:8px 14px}
 .kaytek-planning .fc .fc-list-event:hover td{background:var(--s1)}
 .kaytek-planning .fc .fc-list-event td{padding:10px 14px;border-color:var(--b0)}
+.kaytek-planning .fc .fc-list-event.ev-rd td{background:var(--rdBg)}
+.kaytek-planning .fc .fc-list-event.ev-or td{background:var(--orBg)}
+.kaytek-planning .fc .fc-list-event.ev-am td{background:var(--amBg)}
+.kaytek-planning .fc .fc-list-event.ev-bl td{background:var(--blBg)}
+.kaytek-planning .fc .fc-list-event.ev-pu td{background:var(--puBg)}
+.kaytek-planning .fc .fc-list-event.ev-gn td{background:var(--gnBg)}
+.kaytek-planning .fc .fc-list-event.ev-gr td{background:var(--grBg)}
 .kaytek-planning .fc .fc-list-day th{border-color:var(--b1)}
 .kaytek-planning .fc .fc-list-empty{color:var(--t3);font-size:14px;padding:48px 0}
 /* "More" popover */
@@ -455,6 +498,67 @@ label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;le
 [data-theme="dark"] .kaytek-planning .fc .fc-list-day-cushion{background:var(--s1)}
 [data-theme="dark"] .kaytek-planning .fc .fc-popover{background:var(--s0)}
 [data-theme="dark"] .kaytek-planning .fc .fc-popover-header{background:var(--s1)}
+
+/* ═══════════════════════════════════════════════════════════
+   PLANNING MOBILE — toolbar 3 lignes + lisibilité calendrier
+   ═══════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+  /* Le footer fixe (+ Nouveau / Menu) ne doit jamais masquer la fin du planning */
+  .planning-page{padding-bottom:90px}
+
+  /* Toolbar custom : remplace le headerToolbar natif (désactivé en JS sur mobile)
+     pour garantir 3 lignes distinctes sans aucun chevauchement. */
+  .planning-mobile-toolbar{display:flex;flex-direction:column;gap:9px;padding:2px 2px 12px}
+  .pmt-nav{display:flex;align-items:center;justify-content:center;gap:8px}
+  .pmt-navbtn{
+    width:34px;height:34px;flex-shrink:0;border-radius:10px;border:1px solid var(--b1);
+    background:var(--s1);color:var(--t1);font-size:18px;font-weight:700;line-height:1;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .pmt-navbtn:active{background:var(--s2)}
+  .pmt-today{
+    height:34px;flex-shrink:0;padding:0 14px;border-radius:10px;border:1px solid var(--blBd);
+    background:var(--blBg);color:var(--blTx);font-size:12.5px;font-weight:700;font-family:inherit;
+    cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;
+  }
+  .pmt-today:active{opacity:.7}
+  .pmt-title{
+    text-align:center;font-size:15px;font-weight:700;color:var(--t0);
+    letter-spacing:-.01em;padding:0 4px;line-height:1.3;word-break:break-word;
+  }
+  .pmt-views{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .pmt-views::-webkit-scrollbar{display:none}
+  .pmt-viewbtn{
+    flex:1 0 auto;min-width:72px;height:34px;border-radius:10px;border:1px solid var(--b1);
+    background:var(--s0);color:var(--t2);font-size:12px;font-weight:600;font-family:inherit;
+    cursor:pointer;-webkit-tap-highlight-color:transparent;
+    transition:background .12s,color .12s,border-color .12s;
+  }
+  .pmt-viewbtn.active{background:var(--bl);border-color:var(--bl);color:#fff}
+  .pmt-viewbtn:active:not(.active){background:var(--s1)}
+
+  /* Vue Mois : cellules assez hautes pour 2 badges + heure lisible */
+  .kaytek-planning .fc .fc-daygrid-day-frame{min-height:78px}
+  .kaytek-planning .fc .fc-daygrid-day-number{font-size:11.5px;padding:4px}
+  .kaytek-planning .fc .fc-daygrid-more-link{
+    font-size:10px;font-weight:700;color:var(--t2);background:var(--s1);
+    border-radius:6px;padding:1px 5px;margin:1px 4px 0;display:inline-block;
+  }
+  .kaytek-planning .fc .fc-col-header-cell-cushion{font-size:10.5px;padding:6px 2px}
+
+  /* Vue Semaine : fenêtre de 3 jours (voir PlanningPage.tsx, prop "views") →
+     colonnes assez larges nativement, sans scroll horizontal. */
+  .kaytek-planning .fc .fc-timegrid-slot-label-cushion{font-size:10.5px}
+  .kaytek-planning .fc .fc-timegrid-axis-cushion{font-size:10px}
+
+  /* Vue Liste : cartes plus respirées, vraies "cartes intervention" */
+  .kaytek-planning .fc .fc-list-event td{padding:12px 12px}
+  .kaytek-planning .fc .fc-list-day-cushion{padding:9px 12px}
+
+  /* Cibles tactiles confortables jour/semaine */
+  .kaytek-planning .fc .fc-timegrid-event{min-height:44px}
+}
 
 /* ── Fixed bars ──────────────────────────────────────────── */
 .bottom-action-bar{display:none}
