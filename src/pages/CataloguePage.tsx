@@ -11,15 +11,18 @@ const ACTIVITES: { value: Categorie | 'tous'; label: string }[] = [
   { value: 'plomberie', label: 'Plomberie' },
   { value: 'electricite', label: 'Électricité' },
   { value: 'vitrerie', label: 'Vitrerie' },
+  { value: 'chauffagiste', label: 'Chauffagiste' },
 ]
 
 const ACT_LABELS: Record<string, string> = {
   serrurerie: 'Serrurerie', plomberie: 'Plomberie',
   electricite: 'Électricité', vitrerie: 'Vitrerie',
+  chauffagiste: 'Chauffagiste',
 }
 const ACT_PILLS: Record<string, string> = {
   serrurerie: 'pill-gray', plomberie: 'pill-blue',
   electricite: 'pill-amber', vitrerie: 'pill-purple',
+  chauffagiste: 'pill-orange',
 }
 
 const ns = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -225,6 +228,7 @@ export default function CataloguePage() {
                     <option value="plomberie">Plomberie</option>
                     <option value="electricite">Électricité</option>
                     <option value="vitrerie">Vitrerie</option>
+                    <option value="chauffagiste">Chauffagiste</option>
                   </select>
                 </div>
                 <div className="grid-2">

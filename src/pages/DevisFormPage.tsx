@@ -23,7 +23,7 @@ const MODELES = Object.entries(THEMES).map(([id, t]) => ({
 }))
 
 const CAT_ICON: Record<string, string> = {
-  serrurerie: '🔒', plomberie: '🔧', electricite: '⚡', vitrerie: '🪟'
+  serrurerie: '🔒', plomberie: '🔧', electricite: '⚡', vitrerie: '🪟', chauffagiste: '🔥'
 }
 
 const QTY_BTN: React.CSSProperties = {
@@ -378,6 +378,7 @@ export default function DevisFormPage() {
                 <option value="plomberie">🔧 Plomberie</option>
                 <option value="electricite">⚡ Électricité</option>
                 <option value="vitrerie">🪟 Vitrerie</option>
+                <option value="chauffagiste">🔥 Chauffagiste</option>
               </select>
             </div>
             <div className="form-group" style={{ margin: 0 }}>

@@ -13,6 +13,10 @@ const SC: Record<string, string> = {
   en_attente: 'pill-amber', accepte: 'pill-blue', en_cours: 'pill-orange',
   termine: 'pill-green', facture: 'pill-purple', annule: 'pill-gray', refuse: 'pill-red'
 }
+const ACT_PILL: Record<string, string> = {
+  serrurerie: 'pill-gray', plomberie: 'pill-blue', electricite: 'pill-amber',
+  vitrerie: 'pill-purple', chauffagiste: 'pill-orange',
+}
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
@@ -93,7 +97,7 @@ export default function DashboardPage() {
                       </div>
                     </td>
                     <td>{i.client?.nom} {i.client?.prenom}</td>
-                    <td>{i.type ? <span className={`pill ${i.type === 'serrurerie' ? 'pill-gray' : 'pill-blue'}`}>{i.type}</span> : '—'}</td>
+                    <td>{i.type ? <span className={`pill ${ACT_PILL[i.type] || 'pill-gray'}`}>{i.type}</span> : '—'}</td>
                     <td><span className={`pill ${SC[i.statut] || 'pill-gray'}`}>{i.statut.replace('_', ' ')}</span></td>
                   </tr>
                 ))}

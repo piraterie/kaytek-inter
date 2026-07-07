@@ -5,7 +5,7 @@ export type StatutIntervention = 'en_attente'|'accepte'|'refuse'|'en_cours'|'ter
 export type StatutDevis = 'en_attente_validation'|'brouillon'|'envoye'|'accepte'|'refuse'|'expire'
 export type StatutPaiement = 'en_attente_validation'|'impayee'|'payee'|'acompte'|'partiel'|'annulee'
 export type ModePaiement = 'cb'|'especes'|'virement'|'cheque'
-export type Categorie = 'serrurerie'|'vitrerie'|'plomberie'|'electricite'
+export type Categorie = 'serrurerie'|'vitrerie'|'plomberie'|'electricite'|'chauffagiste'
 export type TypePhoto = 'avant'|'apres'|'autre'
 
 export interface Profile {
