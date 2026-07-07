@@ -311,7 +311,7 @@ export default function PublicDocumentPage() {
         </div>
 
         <div style={{ marginTop: 24, textAlign: 'center', fontSize: 11, color: '#cbd5e1' }}>
-          Propulsé par Kaytek Inter
+          Propulsé par Kaytek Inter · <a href="/confidentialite" style={{ color: '#94a3b8', textDecoration: 'none' }}>Confidentialité</a> · <a href="/delete-account" style={{ color: '#94a3b8', textDecoration: 'none' }}>Suppression de compte</a>
         </div>
       </div>
     </div>

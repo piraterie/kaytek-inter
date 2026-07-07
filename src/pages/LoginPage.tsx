@@ -347,6 +347,12 @@ export default function LoginPage() {
             </>
           )}
         </div>
+
+        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 12, color: 'var(--t3)', display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <a href="/confidentialite" style={{ color: 'var(--t3)', textDecoration: 'none' }}>Confidentialité</a>
+          <span style={{ color: 'var(--t3)', opacity: 0.4 }}>·</span>
+          <a href="/delete-account" style={{ color: 'var(--t3)', textDecoration: 'none' }}>Suppression de compte</a>
+        </div>
       </div>
     </div>
   )

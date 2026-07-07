@@ -315,6 +315,19 @@ export default function AppLayout() {
           })}
         </nav>
 
+        {/* ── CONFIDENTIALITÉ ── */}
+        {!compactDesktop && (
+          <div style={{ padding: '4px 16px 6px', textAlign: 'center', display: 'flex', justifyContent: 'center', gap: 10 }}>
+            <a href="/confidentialite" style={{ fontSize: 10, color: 'var(--navSec)', textDecoration: 'none', opacity: 0.7 }}>
+              Confidentialité
+            </a>
+            <span style={{ fontSize: 10, color: 'var(--navSec)', opacity: 0.4 }}>·</span>
+            <a href="/delete-account" style={{ fontSize: 10, color: 'var(--navSec)', textDecoration: 'none', opacity: 0.7 }}>
+              Supprimer mon compte
+            </a>
+          </div>
+        )}
+
         {/* ── USER AREA ── */}
         <div style={{ padding: compactDesktop ? '10px 6px' : '10px 10px', borderTop: '1px solid var(--navBd)', flexShrink: 0 }}>
           {!compactDesktop ? (

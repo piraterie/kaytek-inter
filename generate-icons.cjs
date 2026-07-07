@@ -1,8 +1,9 @@
-// generate-icons.js — génère les icônes PNG PWA depuis le SVG Kaytek Inter
+// generate-icons.cjs — génère les icônes PNG PWA depuis le SVG Kaytek Inter
 const { chromium } = require('playwright')
 const path = require('path')
 const fs = require('fs')
 
+// Symbole inchangé — respiration gérée par le viewBox "-13 -13 126 126"
 const svgBody = `
   <defs>
     <clipPath id="fl">
@@ -18,7 +19,9 @@ const svgBody = `
   <line x1="40" y1="50" x2="67" y2="78" stroke="#3B82F6" stroke-width="9" stroke-linecap="round"/>
 `
 
-async function generate(size, outputPath, padding = 0.10, bgColor = '#ffffff') {
+// viewBox avec 13px de padding interne → symbole occupe ~75% du SVG
+// padding externe = marge supplémentaire dans l'image finale
+async function generate(size, outputPath, padding = 0.12, bgColor = '#ffffff') {
   const logoSize = Math.round(size * (1 - 2 * padding))
   const offset = Math.round(size * padding)
 
@@ -32,7 +35,7 @@ html, body { width: ${size}px; height: ${size}px; overflow: hidden; background: 
 </style>
 </head>
 <body>
-<svg xmlns="http://www.w3.org/2000/svg" width="${logoSize}" height="${logoSize}" viewBox="0 0 100 100" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="${logoSize}" height="${logoSize}" viewBox="-13 -13 126 126" fill="none">
 ${svgBody}
 </svg>
 </body>
@@ -50,24 +53,24 @@ ${svgBody}
   await browser.close()
 
   fs.unlinkSync(tmpFile)
-  console.log(`✓ ${outputPath} (${size}×${size})`)
+  console.log(`✓ ${outputPath} (${size}×${size}, symbole=${Math.round(logoSize * 0.754)}px net)`)
 }
 
 async function main() {
-  // Dossier icons
   const iconsDir = path.join(__dirname, 'public', 'icons')
   if (!fs.existsSync(iconsDir)) fs.mkdirSync(iconsDir, { recursive: true })
 
-  // Regular icons (fond blanc, 10% padding)
-  await generate(192, path.join(iconsDir, 'icon-192.png'), 0.10)
-  await generate(512, path.join(iconsDir, 'icon-512.png'), 0.08)
+  // Regular icons (purpose: any) — 12% padding externe + ~10% padding SVG interne = ~22% total
+  await generate(192, path.join(iconsDir, 'icon-192.png'), 0.12)
+  await generate(512, path.join(iconsDir, 'icon-512.png'), 0.12)
 
-  // Apple touch icon (180×180, fond blanc, 10% padding)
-  await generate(180, path.join(__dirname, 'public', 'apple-touch-icon.png'), 0.12)
+  // Apple touch icon — un peu plus aéré sur iOS
+  await generate(180, path.join(__dirname, 'public', 'apple-touch-icon.png'), 0.14)
 
-  // Maskable icon (fond blanc plein, moins de padding — safe zone 80%)
-  await generate(512, path.join(iconsDir, 'icon-512-maskable.png'), 0.04)
-  await generate(192, path.join(iconsDir, 'icon-192-maskable.png'), 0.04)
+  // Maskable icons (purpose: maskable) — safe zone Android/Chrome = 80% du centre (10% marge)
+  // 8% padding externe + SVG interne ~10% = symbole dans ~63% de l'image = bien dans la safe zone
+  await generate(512, path.join(iconsDir, 'icon-512-maskable.png'), 0.08)
+  await generate(192, path.join(iconsDir, 'icon-192-maskable.png'), 0.08)
 
   console.log('\n✅ Toutes les icônes générées.')
 }

@@ -31,6 +31,8 @@ const GuideIntervenantPage = lazy(() => import('@/pages/guide/GuideIntervenantPa
 const GuideFAQPage = lazy(() => import('@/pages/guide/GuideFAQPage'))
 const GuideAdminVideosPage = lazy(() => import('@/pages/guide/GuideAdminVideosPage'))
 const PublicDocumentPage = lazy(() => import('@/pages/PublicDocumentPage'))
+const ConfidentialitePage = lazy(() => import('@/pages/ConfidentialitePage'))
+const DeleteAccountPage = lazy(() => import('@/pages/DeleteAccountPage'))
 
 function Guard({ children, adminOnly = false, requireCanCreateDocs = false }: { children: React.ReactNode; adminOnly?: boolean; requireCanCreateDocs?: boolean }) {
   const { user, loading, error } = useAuthStore()
@@ -228,6 +230,8 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/d/:token" element={<PublicDocumentPage />} />
+      <Route path="/confidentialite" element={<ConfidentialitePage />} />
+      <Route path="/delete-account" element={<DeleteAccountPage />} />
       <Route path="/" element={<Guard><AppLayout /></Guard>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />

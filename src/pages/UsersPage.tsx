@@ -8,7 +8,7 @@ import { useProfiles, useUpdateProfile } from '@/lib/hooks'
 import { useToastStore } from '@/lib/store'
 import { inviterIntervenant, supprimerUtilisateur } from '@/lib/supabase/auth'
 import { supabase } from '@/lib/supabase/client'
-import { getUserDevices, revokeDevice, isCurrentDevice, type DeviceRecord } from '@/lib/devices'
+import { getUserDevices, revokeDevice, resetUserDevices, isCurrentDevice, type DeviceRecord } from '@/lib/devices'
 import ConfirmModal from '@/components/ConfirmModal'
 import type { Profile } from '@/types'
 
@@ -134,6 +134,18 @@ export default function UsersPage() {
     await revokeDevice(deviceDbId)
     setDevicesData(prev => prev.map(d => d.id === deviceDbId ? { ...d, actif: false } : d))
     add('Appareil révoqué')
+  }
+
+  function handleResetDevices() {
+    if (!devicesTarget) return
+    setConfirmDialog({
+      message: `Réinitialiser tous les appareils de ${devicesTarget.prenom} ${devicesTarget.nom} ?\n\nCet utilisateur sera déconnecté de tous ses appareils et pourra se reconnecter normalement.`,
+      action: async () => {
+        await resetUserDevices(devicesTarget.id)
+        setDevicesData(prev => prev.map(d => ({ ...d, actif: false })))
+        add('Appareils réinitialisés — l\'utilisateur peut se reconnecter')
+      }
+    })
   }
 
   return (
@@ -297,6 +309,15 @@ export default function UsersPage() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={()=>setDevicesModal(false)}>Fermer</button>
+              {devicesData.some(d => d.actif) && (
+                <button
+                  className="btn btn-primary"
+                  style={{ background: '#dc2626', borderColor: '#dc2626' }}
+                  onClick={handleResetDevices}
+                >
+                  Réinitialiser les appareils
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -27,13 +27,13 @@ export async function signIn(email: string, password: string) {
       return { profile: null, error: 'Profil introuvable' }
     }
 
-    // Vérification et enregistrement de l'appareil
-    const { error: deviceError } = await registerDevice(data.user.id, profile.organisation_id)
+    // Vérification et enregistrement de l'appareil (les admins ne sont jamais bloqués)
+    const { error: deviceError } = await registerDevice(data.user.id, profile.organisation_id, profile.role === 'admin')
     if (deviceError === 'DEVICE_LIMIT') {
       await supabase.auth.signOut()
       return {
         profile: null,
-        error: "Nombre maximal d'appareils autorisés atteint. Contactez votre administrateur."
+        error: "Limite d'appareils atteinte. Demandez à votre administrateur de réinitialiser vos appareils ou de supprimer un ancien appareil."
       }
     }
 
