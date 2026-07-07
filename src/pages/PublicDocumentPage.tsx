@@ -1,19 +1,21 @@
 // src/pages/PublicDocumentPage.tsx
-// Page publique — visible sans authentification via un token de partage
+// Page publique de consultation client — accessible sans connexion via token de partage
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import KaytekLogo from '@/components/KaytekLogo'
+import { generateDevisPDF, generateFacturePDF, downloadBlob } from '@/lib/pdf/generator'
 
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-document`
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
 const eur = (n?: number | null) =>
   (n ?? 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
 
-const fmtDate = (s?: string) =>
+const fmtDate = (s?: string | null) =>
   s ? new Date(s).toLocaleDateString('fr-FR') : '—'
 
-const TVA_LABEL: Record<number, string> = { 0: '0%', 10: '10%', 20: '20%' }
+const TVA_LABEL: Record<number, string> = { 0: '0 %', 10: '10 %', 20: '20 %' }
 
 function StatusBadge({ statut }: { statut: string }) {
   const MAP: Record<string, { label: string; bg: string; color: string }> = {
@@ -45,49 +47,61 @@ export default function PublicDocumentPage() {
   const [data, setData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [copied, setCopied] = useState(false)
+  const [generating, setGenerating] = useState(false)
 
-  useEffect(() => {
-    if (!token) { setError('Lien invalide'); setLoading(false); return }
-    fetch(`${EDGE_URL}?token=${token}`)
-      .then(r => r.json())
-      .then(json => {
-        if (json.error) setError(json.error)
-        else setData(json)
-      })
-      .catch(() => setError('Impossible de charger le document'))
-      .finally(() => setLoading(false))
-  }, [token])
-
-  function handleShare() {
-    const url = window.location.href
-    if (navigator.share) {
-      navigator.share({ title: 'Document Kaytek Inter', url }).catch(() => {})
-    } else {
-      navigator.clipboard.writeText(url).then(() => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      })
+  async function handleDownloadPDF() {
+    if (!data || generating) return
+    setGenerating(true)
+    try {
+      const { document_type, document: doc, params } = data
+      // Complète les champs optionnels manquants pour satisfaire le typage du générateur
+      const p = {
+        id: '', raison_sociale: '', tva_defaut: 20, couleur_principale: '#1e3a5f',
+        modele_pdf_defaut: 0, email_envoi_devis: false, email_relance_facture: false,
+        email_paiement_recu: false, email_new_intervention: false, updated_at: '',
+        ...params,
+      }
+      let blob: Blob
+      if (document_type === 'devis') {
+        const devis = { modele_id: 0, remise_pct: 0, total_ht: 0, tva_montant: 0, total_ttc: 0, lignes: [], ...doc }
+        blob = await generateDevisPDF(devis, p, devis.modele_id ?? 0)
+        downloadBlob(blob, `devis-${doc.numero || 'document'}.pdf`)
+      } else {
+        const facture = { montant_ht: 0, tva_montant: 0, montant_ttc: 0, acompte_recu: 0, date_emission: '', ...doc }
+        const devisLie = doc.devis ? { modele_id: 0, remise_pct: 0, total_ht: 0, tva_montant: 0, total_ttc: 0, lignes: [], ...doc.devis } : null
+        blob = await generateFacturePDF(facture, devisLie, p)
+        downloadBlob(blob, `facture-${doc.numero || 'document'}.pdf`)
+      }
+    } catch (e: any) {
+      alert('Erreur lors de la génération du PDF : ' + (e?.message || String(e)))
+    } finally {
+      setGenerating(false)
     }
   }
 
-  function handleWhatsApp() {
-    const url = window.location.href
-    const text = encodeURIComponent(`Voici votre document : ${url}`)
-    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank')
-  }
+  useEffect(() => {
+    if (!token) { setError('Lien invalide'); setLoading(false); return }
 
-  function handleSMS() {
-    const url = window.location.href
-    window.open(`sms:?body=${encodeURIComponent(`Votre document : ${url}`)}`)
-  }
-
-  function handleCopyLink() {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+    fetch(`${EDGE_URL}?token=${token}`, {
+      headers: {
+        'apikey': ANON_KEY,
+        'Authorization': `Bearer ${ANON_KEY}`,
+      }
     })
-  }
+      .then(async r => {
+        let json: any
+        try { json = await r.json() } catch { throw new Error('Réponse invalide du serveur') }
+        const errMsg = json?.error || json?.message || json?.msg
+        if (!r.ok || errMsg) throw new Error(errMsg || `Erreur ${r.status}`)
+        if (!json.document_type || !json.document) throw new Error('Données du document manquantes')
+        return json
+      })
+      .then(json => setData(json))
+      .catch((e: any) => setError(e?.message || 'Impossible de charger le document'))
+      .finally(() => setLoading(false))
+  }, [token])
+
+  // ── États de chargement / erreur ───────────────────────────────────────────
 
   if (loading) {
     return (
@@ -98,182 +112,203 @@ export default function PublicDocumentPage() {
     )
   }
 
-  if (error) {
+  if (error || !data) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', gap: 12, background: '#f8fafc', padding: 24 }}>
-        <div style={{ fontSize: 40 }}>⚠️</div>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', margin: 0 }}>Document introuvable</h2>
-        <p style={{ color: '#64748b', fontSize: 14, textAlign: 'center', maxWidth: 320 }}>{error}</p>
+        <KaytekLogo size={40} />
+        <div style={{ fontSize: 36, marginTop: 8 }}>⚠️</div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', margin: 0, textAlign: 'center' }}>Document introuvable</h2>
+        <p style={{ color: '#64748b', fontSize: 14, textAlign: 'center', maxWidth: 360, lineHeight: 1.6 }}>
+          {error || 'Ce lien est invalide ou a expiré.'}
+        </p>
+        <p style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center' }}>
+          Demandez un nouveau lien à votre prestataire.
+        </p>
       </div>
     )
   }
 
+  // ── Extraction des données ─────────────────────────────────────────────────
+
   const { document_type, document: doc, params } = data
   const isDevis = document_type === 'devis'
-  const lignes = isDevis ? (doc.lignes || []) : (doc.devis?.lignes || [])
-  const client = doc.client
-  const totalHT = isDevis ? doc.total_ht : doc.montant_ht
-  const tvaMontant = isDevis ? doc.tva_montant : doc.tva_montant
-  const totalTTC = isDevis ? doc.total_ttc : doc.montant_ttc
-  const statut = isDevis ? doc.statut : doc.statut_paiement
-  const numero = doc.numero
-  const dateDoc = isDevis ? doc.created_at : doc.date_emission
+
+  if (!doc) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', gap: 12, background: '#f8fafc', padding: 24 }}>
+        <div style={{ fontSize: 36 }}>⚠️</div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', margin: 0 }}>Document introuvable</h2>
+        <p style={{ color: '#64748b', fontSize: 14, textAlign: 'center', maxWidth: 320 }}>
+          Le document associé à ce lien n'existe plus.
+        </p>
+      </div>
+    )
+  }
+
+  const lignes: any[] = isDevis ? (doc.lignes || []) : (doc.devis?.lignes || [])
+  const client = doc.client || null
+  const totalHT    = isDevis ? doc.total_ht   : doc.montant_ht
+  const tvaMontant = doc.tva_montant
+  const totalTTC   = isDevis ? doc.total_ttc  : doc.montant_ttc
+  const statut     = isDevis ? doc.statut      : doc.statut_paiement
+  const numero     = doc.numero || '—'
+  const dateDoc    = isDevis ? doc.created_at  : doc.date_emission
   const dateEcheance = isDevis ? doc.valide_jusqu_au : doc.date_echeance
+
+  const contactTel   = params?.telephone || null
+  const contactEmail = params?.email || null
+
+  // ── Rendu ──────────────────────────────────────────────────────────────────
 
   return (
     <div style={{ minHeight: '100dvh', background: '#f1f5f9', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Barre partage en haut */}
-      <div style={{
+
+
+      {/* Bandeau entreprise — masqué à l'impression (l'en-tête du document suffit) */}
+      <div className="pub-no-print" style={{
         position: 'sticky', top: 0, zIndex: 100,
         background: '#fff', borderBottom: '1px solid #e2e8f0',
-        padding: '12px 16px',
-        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+        padding: '10px 16px',
+        display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        <KaytekLogo size={28} />
-        <span style={{ fontSize: 13, color: '#64748b', flex: 1 }}>
-          {params?.raison_sociale || 'Document partagé'}
+        <KaytekLogo size={26} />
+        <span style={{ fontSize: 13, color: '#64748b', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {params?.raison_sociale || 'Document'}
         </span>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button
-            onClick={handleCopyLink}
-            style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#1e293b', fontFamily: 'inherit' }}
-          >
-            {copied ? '✓ Copié !' : '🔗 Copier le lien'}
-          </button>
-          <button
-            onClick={handleWhatsApp}
-            style={{ padding: '7px 14px', borderRadius: 8, border: 'none', background: '#25D366', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#fff', fontFamily: 'inherit' }}
-          >
-            WhatsApp
-          </button>
-          <button
-            onClick={handleSMS}
-            style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#1e293b', fontFamily: 'inherit', display: 'none' }}
-            className="sms-btn"
-          >
-            SMS
-          </button>
-          {navigator.share && (
-            <button
-              onClick={handleShare}
-              style={{ padding: '7px 14px', borderRadius: 8, border: 'none', background: '#2563eb', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#fff', fontFamily: 'inherit' }}
-            >
-              Partager
-            </button>
-          )}
-        </div>
+        <button
+          onClick={handleDownloadPDF}
+          disabled={generating}
+          style={{ padding: '7px 14px', borderRadius: 8, border: 'none', background: '#1e3a5f', color: '#fff', cursor: generating ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', flexShrink: 0, opacity: generating ? 0.7 : 1 }}
+        >
+          {generating ? '…' : '⬇ Télécharger PDF'}
+        </button>
       </div>
 
-      {/* Corps du document */}
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px 48px' }}>
-        <div style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.06)' }}>
+      {/* Corps */}
+      <div className="pub-page" style={{ maxWidth: 720, margin: '0 auto', padding: '20px 12px 48px' }}>
+        <div className="pub-card" style={{ background: '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.06)' }}>
+
           {/* En-tête entreprise */}
-          <div style={{ background: '#1e3a5f', padding: '28px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{
+            background: '#1e3a5f', padding: '24px 28px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+            flexWrap: 'wrap', gap: 16,
+          }}>
             <div>
-              {params?.logo_url ? (
-                <img src={params.logo_url} alt="Logo" style={{ height: 48, objectFit: 'contain', marginBottom: 10 }} />
-              ) : (
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: 0.5 }}>{params?.raison_sociale || 'Entreprise'}</div>
+              {params?.logo_url
+                ? <img src={params.logo_url} alt="Logo" style={{ height: 44, objectFit: 'contain', marginBottom: 8 }} />
+                : <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: 0.3 }}>{params?.raison_sociale || 'Entreprise'}</div>
+              }
+              {params?.adresse && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)', marginTop: 4 }}>{params.adresse}</div>}
+              {(params?.code_postal || params?.ville) && (
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>
+                  {[params?.code_postal, params?.ville].filter(Boolean).join(' ')}
+                </div>
               )}
-              {params?.adresse && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)', marginTop: 4 }}>{params.adresse}</div>}
-              {(params?.code_postal || params?.ville) && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{[params?.code_postal, params?.ville].filter(Boolean).join(' ')}</div>}
-              {params?.telephone && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)', marginTop: 4 }}>{params.telephone}</div>}
-              {params?.email && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)' }}>{params.email}</div>}
+              {contactTel && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)', marginTop: 4 }}>{contactTel}</div>}
+              {contactEmail && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>{contactEmail}</div>}
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: 2, background: 'rgba(255,255,255,0.12)', padding: '8px 18px', borderRadius: 10, display: 'inline-block' }}>
+              <div style={{
+                fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: 2,
+                background: 'rgba(255,255,255,0.13)', padding: '7px 16px', borderRadius: 10, display: 'inline-block',
+              }}>
                 {isDevis ? 'DEVIS' : 'FACTURE'}
               </div>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 8 }}>{numero}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 4 }}>{fmtDate(dateDoc)}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.62)', marginTop: 3 }}>{fmtDate(dateDoc)}</div>
               {dateEcheance && (
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>
-                  {isDevis ? 'Valable jusqu\'au ' : 'Échéance '}{fmtDate(dateEcheance)}
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>
+                  {isDevis ? "Valable jusqu'au " : 'Échéance '}{fmtDate(dateEcheance)}
                 </div>
               )}
             </div>
           </div>
 
-          <div style={{ padding: '24px 32px' }}>
+          <div style={{ padding: '20px 24px 28px' }}>
+
             {/* Statut */}
-            <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <StatusBadge statut={statut} />
-            </div>
+            {statut && (
+              <div style={{ marginBottom: 18 }}>
+                <StatusBadge statut={statut} />
+              </div>
+            )}
 
             {/* Client */}
             {client && (
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '16px 20px', marginBottom: 24 }}>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', marginBottom: 22 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Client</div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: '#1e293b' }}>{[client.nom, client.prenom].filter(Boolean).join(' ')}</div>
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>
+                  {[client.nom, client.prenom].filter(Boolean).join(' ') || '—'}
+                </div>
                 {client.telephone && <div style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>{client.telephone}</div>}
                 {client.email && <div style={{ fontSize: 13, color: '#64748b' }}>{client.email}</div>}
-                {client.adresse_intervention && <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>{client.adresse_intervention}</div>}
+                {client.adresse_intervention && (
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>{client.adresse_intervention}</div>
+                )}
               </div>
             )}
 
             {/* Prestations */}
             {lignes.length > 0 && (
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, paddingBottom: 8, borderBottom: '2px solid #e2e8f0' }}>
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, paddingBottom: 8, borderBottom: '2px solid #e2e8f0' }}>
                   Prestations
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {/* En-têtes desktop */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px 80px 60px 80px', gap: 8, padding: '6px 12px', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    <span>Description</span>
-                    <span style={{ textAlign: 'center' }}>Qté</span>
-                    <span style={{ textAlign: 'right' }}>Prix HT</span>
-                    <span style={{ textAlign: 'center' }}>TVA</span>
-                    <span style={{ textAlign: 'right' }}>Total TTC</span>
-                  </div>
-                  {lignes.map((l: any, i: number) => (
-                    <div key={i} style={{
-                      display: 'grid', gridTemplateColumns: '1fr 60px 80px 60px 80px', gap: 8,
-                      padding: '10px 12px',
-                      background: i % 2 === 0 ? '#f8fafc' : '#fff',
-                      borderRadius: 6, fontSize: 13, color: '#1e293b'
-                    }}>
-                      <span style={{ fontWeight: 500 }}>{l.description}</span>
-                      <span style={{ textAlign: 'center', color: '#64748b' }}>{l.quantite}</span>
-                      <span style={{ textAlign: 'right' }}>{eur(l.prix_ht)}</span>
-                      <span style={{ textAlign: 'center', color: '#64748b' }}>{TVA_LABEL[l.tva_pct] || `${l.tva_pct}%`}</span>
-                      <span style={{ textAlign: 'right', fontWeight: 600 }}>{eur(l.total_ttc)}</span>
-                    </div>
-                  ))}
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ padding: '6px 8px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Description</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'center', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', width: 50 }}>Qté</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'right', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', width: 90 }}>PU HT</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'center', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', width: 60 }}>TVA</th>
+                        <th style={{ padding: '6px 8px', textAlign: 'right', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', width: 90 }}>Total TTC</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lignes.map((l: any, i: number) => (
+                        <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'transparent' : '#f8fafc' }}>
+                          <td style={{ padding: '10px 8px', fontWeight: 500, color: '#1e293b' }}>{l.description || '—'}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center', color: '#64748b' }}>{l.quantite ?? 1}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#64748b' }}>{eur(l.prix_ht)}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center', color: '#64748b' }}>{TVA_LABEL[l.tva_pct] ?? `${l.tva_pct ?? 0} %`}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 700, color: '#1e293b' }}>{eur(l.total_ttc)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
 
             {/* Totaux */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <div style={{ width: '100%', maxWidth: 280 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13, color: '#64748b', borderBottom: '1px solid #f1f5f9' }}>
-                  <span>Total HT</span>
-                  <span style={{ fontWeight: 600 }}>{eur(totalHT)}</span>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+              <div style={{ width: '100%', maxWidth: 260 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', fontSize: 13, color: '#64748b', borderBottom: '1px solid #f1f5f9' }}>
+                  <span>Total HT</span><span style={{ fontWeight: 600 }}>{eur(totalHT)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13, color: '#64748b', borderBottom: '1px solid #f1f5f9' }}>
-                  <span>TVA</span>
-                  <span style={{ fontWeight: 600 }}>{eur(tvaMontant)}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', fontSize: 13, color: '#64748b', borderBottom: '1px solid #f1f5f9' }}>
+                  <span>TVA</span><span style={{ fontWeight: 600 }}>{eur(tvaMontant)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0 4px', fontSize: 17, fontWeight: 800, color: '#1e293b', borderTop: '2px solid #1e3a5f', marginTop: 4 }}>
-                  <span>Total TTC</span>
-                  <span>{eur(totalTTC)}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 0 0', fontSize: 18, fontWeight: 800, color: '#1e3a5f', borderTop: '2px solid #1e3a5f', marginTop: 4 }}>
+                  <span>Total TTC</span><span>{eur(totalTTC)}</span>
                 </div>
               </div>
             </div>
 
             {/* Notes */}
             {doc.notes && (
-              <div style={{ marginTop: 24, padding: '14px 16px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Notes</div>
+              <div style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 16 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 5 }}>Notes</div>
                 <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>{doc.notes}</div>
               </div>
             )}
 
-            {/* Coordonnées bancaires pour les factures */}
+            {/* Coordonnées bancaires (facture) */}
             {!isDevis && params?.iban && (
-              <div style={{ marginTop: 20, padding: '14px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Règlement par virement</div>
+              <div style={{ padding: '12px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, marginBottom: 16 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 5 }}>Règlement par virement</div>
                 <div style={{ fontSize: 13, color: '#166534' }}>IBAN : <strong>{params.iban}</strong></div>
                 {params.bic && <div style={{ fontSize: 13, color: '#166534' }}>BIC : <strong>{params.bic}</strong></div>}
               </div>
@@ -281,36 +316,67 @@ export default function PublicDocumentPage() {
 
             {/* Infos légales */}
             {params?.siret && (
-              <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #f1f5f9', fontSize: 11, color: '#94a3b8', textAlign: 'center' }}>
+              <div style={{ paddingTop: 14, borderTop: '1px solid #f1f5f9', fontSize: 11, color: '#94a3b8', textAlign: 'center' }}>
                 SIRET : {params.siret}{params?.numero_tva ? ` — TVA : ${params.numero_tva}` : ''}
               </div>
             )}
           </div>
         </div>
 
-        {/* Boutons de partage en bas */}
-        <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {/* Actions client — masquées à l'impression */}
+        <div className="pub-no-print" style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+
           <button
-            onClick={handleCopyLink}
-            style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#1e293b', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
+            onClick={handleDownloadPDF}
+            disabled={generating}
+            style={{
+              padding: '12px 24px', borderRadius: 10, border: 'none',
+              background: '#1e3a5f', color: '#fff', cursor: generating ? 'wait' : 'pointer',
+              fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+              boxShadow: '0 2px 8px rgba(30,58,95,0.25)',
+              display: 'flex', alignItems: 'center', gap: 8,
+              opacity: generating ? 0.7 : 1,
+            }}
           >
-            {copied ? '✓ Lien copié !' : '🔗 Copier le lien'}
+            {generating ? 'Génération…' : '⬇ Télécharger PDF'}
           </button>
-          <button
-            onClick={handleWhatsApp}
-            style={{ padding: '10px 20px', borderRadius: 10, border: 'none', background: '#25D366', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#fff', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
-          >
-            WhatsApp
-          </button>
-          <button
-            onClick={handleSMS}
-            style={{ padding: '10px 20px', borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#1e293b', fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}
-          >
-            SMS
-          </button>
+
+          {/* Appel téléphonique si numéro disponible */}
+          {contactTel && (
+            <a
+              href={`tel:${contactTel.replace(/\s/g, '')}`}
+              style={{
+                padding: '12px 24px', borderRadius: 10,
+                border: '1px solid #e2e8f0', background: '#fff',
+                color: '#1e293b', textDecoration: 'none',
+                fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              📞 {contactTel}
+            </a>
+          )}
+
+          {/* Email si disponible */}
+          {contactEmail && (
+            <a
+              href={`mailto:${contactEmail}`}
+              style={{
+                padding: '12px 24px', borderRadius: 10,
+                border: '1px solid #e2e8f0', background: '#fff',
+                color: '#1e293b', textDecoration: 'none',
+                fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              ✉ Contacter
+            </a>
+          )}
         </div>
 
-        <div style={{ marginTop: 24, textAlign: 'center', fontSize: 11, color: '#cbd5e1' }}>
+        <div className="pub-no-print" style={{ marginTop: 16, textAlign: 'center', fontSize: 11, color: '#cbd5e1' }}>
           Propulsé par Kaytek Inter · <a href="/confidentialite" style={{ color: '#94a3b8', textDecoration: 'none' }}>Confidentialité</a> · <a href="/delete-account" style={{ color: '#94a3b8', textDecoration: 'none' }}>Suppression de compte</a>
         </div>
       </div>

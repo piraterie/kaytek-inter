@@ -54,14 +54,14 @@ Deno.serve(async (req) => {
     if (link.document_type === 'devis') {
       const { data } = await supabase
         .from('devis')
-        .select('id, numero, statut, lignes, remise_pct, remise_montant, total_ht, tva_montant, total_ttc, notes, valide_jusqu_au, created_at, activite, client:clients(nom, prenom, telephone, email, adresse_intervention), intervenant:profiles!intervenant_id(prenom, nom)')
+        .select('id, numero, statut, modele_id, lignes, remise_pct, remise_montant, total_ht, tva_montant, total_ttc, notes, valide_jusqu_au, created_at, activite, signature_client, signature_url, signe_le, signe_par, signature_date, client:clients(nom, prenom, telephone, email, adresse_intervention), intervenant:profiles!intervenant_id(prenom, nom)')
         .eq('id', link.document_id)
         .single()
       document = data
     } else if (link.document_type === 'facture') {
       const { data } = await supabase
         .from('factures')
-        .select('id, numero, statut_paiement, montant_ht, tva_montant, montant_ttc, date_emission, date_echeance, notes, client:clients(nom, prenom, telephone, email, adresse_intervention), devis:devis(lignes, remise_pct, total_ht, tva_montant, total_ttc, activite, notes)')
+        .select('id, numero, statut_paiement, montant_ht, tva_montant, montant_ttc, date_emission, date_echeance, date_paiement, mode_paiement, notes, client:clients(nom, prenom, telephone, email, adresse_intervention), devis:devis(modele_id, lignes, remise_pct, total_ht, tva_montant, total_ttc, activite, notes)')
         .eq('id', link.document_id)
         .single()
       document = data
@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     // Récupère les paramètres de l'organisation (logo, nom entreprise, etc.)
     const { data: params } = await supabase
       .from('parametres_entreprise')
-      .select('raison_sociale, logo_url, telephone, email, adresse, code_postal, ville, siret, numero_tva, iban')
+      .select('raison_sociale, logo_url, telephone, email, adresse, code_postal, ville, siret, numero_tva, iban, bic, rc_pro, cgv, modele_pdf_defaut')
       .eq('organisation_id', link.organisation_id)
       .maybeSingle()
 
