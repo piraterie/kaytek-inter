@@ -1,4 +1,5 @@
 // src/components/guide/GuideSectionCard.tsx — Carte d'une section du guide
+import { Rocket, BookOpen, Check, Clock, Video, Lightbulb } from 'lucide-react'
 import { useCompletedSlugs, useMarkSectionComplete } from '@/lib/hooks/guide'
 import { useGuideVideoMap } from '@/lib/hooks/guide'
 import GuideVideoPlayer from './GuideVideoPlayer'
@@ -30,9 +31,9 @@ export default function GuideSectionCard({ section, role, isQuickStart }: Props)
           width: 40, height: 40, borderRadius: 10, flexShrink: 0,
           background: isQuickStart ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'var(--blBg)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 20,
+          color: isQuickStart ? '#fff' : 'var(--bl)',
         }}>
-          {isQuickStart ? '🚀' : '📖'}
+          {isQuickStart ? <Rocket size={19} /> : <BookOpen size={19} />}
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -41,7 +42,8 @@ export default function GuideSectionCard({ section, role, isQuickStart }: Props)
               <span style={{
                 background: 'var(--gnBg)', color: 'var(--gnTx)',
                 borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 700,
-              }}>✓ Vu</span>
+                display: 'inline-flex', alignItems: 'center', gap: 3,
+              }}><Check size={11} /> Vu</span>
             )}
           </div>
           <p style={{ fontSize: 13, color: 'var(--t2)', margin: '4px 0 0' }}>{section.objectif}</p>
@@ -73,12 +75,12 @@ export default function GuideSectionCard({ section, role, isQuickStart }: Props)
 
       {/* Métadonnées */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-        <span className="pill pill-blue" style={{ fontSize: 12 }}>
-          ⏱ {section.temps_moyen}
+        <span className="pill pill-blue" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Clock size={11} /> {section.temps_moyen}
         </span>
         {video?.duree_secondes && (
-          <span className="pill pill-gray" style={{ fontSize: 12 }}>
-            🎬 Vidéo {Math.floor(video.duree_secondes / 60)}min{video.duree_secondes % 60 > 0 ? `${video.duree_secondes % 60}s` : ''}
+          <span className="pill pill-gray" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Video size={11} /> Vidéo {Math.floor(video.duree_secondes / 60)}min{video.duree_secondes % 60 > 0 ? `${video.duree_secondes % 60}s` : ''}
           </span>
         )}
       </div>
@@ -89,7 +91,7 @@ export default function GuideSectionCard({ section, role, isQuickStart }: Props)
           background: 'var(--amBg)', borderLeft: '3px solid var(--am)',
           borderRadius: '0 8px 8px 0', padding: '10px 14px', marginBottom: 20,
         }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--amTx)' }}>💡 Conseil — </span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--amTx)', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Lightbulb size={12} /> Conseil — </span>
           <span style={{ fontSize: 13, color: 'var(--t1)' }}>{section.conseil}</span>
         </div>
       )}
@@ -101,7 +103,7 @@ export default function GuideSectionCard({ section, role, isQuickStart }: Props)
         className={isDone ? 'btn btn-secondary' : 'btn btn-primary'}
         style={{ gap: 8 }}
       >
-        {isDone ? '✓ Section terminée' : mark.isPending ? 'Enregistrement…' : 'Marquer comme vu'}
+        {isDone ? <><Check size={14} /> Section terminée</> : mark.isPending ? 'Enregistrement…' : 'Marquer comme vu'}
       </button>
     </div>
   )

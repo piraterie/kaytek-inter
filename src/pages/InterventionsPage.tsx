@@ -1,6 +1,11 @@
 // src/pages/InterventionsPage.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import {
+  FileSpreadsheet, Archive, ArchiveRestore, CheckSquare, Trash2, X, Search,
+  MapPin, Calendar, User, Eye, Pencil, Mail, Play, CheckCircle2, MoreHorizontal,
+  AlertTriangle,
+} from 'lucide-react'
 import { useInterventions, useCreateIntervention, useUpdateIntervention, useDeleteIntervention, useArchiveIntervention, useBulkArchiveInterventions, useDeleteArchivedInterventions, useClients, useIntervenants, useProfiles, useSendMessage, useCreateClient } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { CustomSelect } from '@/components/CustomSelect'
@@ -271,7 +276,7 @@ export default function InterventionsPage() {
     if (!msgModal.destinataire_id) { add('Sélectionnez un destinataire', 'warning'); return }
     try {
       await sendMsg.mutateAsync({ destinataire_id: msgModal.destinataire_id, contenu: msgModal.text, type: 'texte' })
-      add('Message envoyé ✓')
+      add('Message envoyé')
       setMsgModal(null)
       nav(`/messagerie/${msgModal.destinataire_id}`)
     } catch (err: any) { add('Erreur : ' + err.message, 'error') }
@@ -288,22 +293,22 @@ export default function InterventionsPage() {
         </div>
         {/* Desktop : inchangé */}
         <div className="page-actions hide-mobile">
-          <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={items.length===0}>📥 CSV</button>
+          <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={items.length===0}><FileSpreadsheet size={14} /> CSV</button>
           {isAdmin && (
             <button
               className={`btn btn-sm ${showArchived ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => { setShowArchived(v => !v); setStatut('tous'); exitSelection() }}
             >
-              📦 {showArchived ? 'Masquer archives' : 'Archives'}
+              <Archive size={14} /> {showArchived ? 'Masquer archives' : 'Archives'}
             </button>
           )}
           {isAdmin && !selectionMode && items.length > 0 && (
-            <button className="btn btn-secondary" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
+            <button className="btn btn-secondary" onClick={() => setSelectionMode(true)}><CheckSquare size={14} /> Sélectionner</button>
           )}
           {isAdmin && showArchived && items.length > 0 && (
             <button className="btn btn-secondary" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
               onClick={handleViderArchives} disabled={delArchived.isPending}>
-              🗑 Vider les archives
+              <Trash2 size={14} /> Vider les archives
             </button>
           )}
           {isAdmin && !showArchived && <button className="btn btn-primary" onClick={() => setCreateModal(true)}>+ Nouvelle</button>}
@@ -321,7 +326,7 @@ export default function InterventionsPage() {
               style={{ paddingLeft: 16, paddingRight: 16, justifyContent: 'center' }}
               onClick={() => setShowMobileActions(true)}
             >
-              ···
+              <MoreHorizontal size={16} />
             </button>
           </div>
         </div>
@@ -335,25 +340,25 @@ export default function InterventionsPage() {
           {selected.size > 0 && !showArchived && (
             <button className="btn btn-secondary btn-sm" style={{ color: 'var(--amTx)', borderColor: 'var(--amBd)' }}
               onClick={handleArchiveSelected} disabled={bulkArchive.isPending}>
-              📦 Archiver la sélection
+              <Archive size={13} /> Archiver la sélection
             </button>
           )}
           {selected.size > 0 && showArchived && (
             <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
               onClick={handleDeleteArchivedSelected} disabled={delArchived.isPending}>
-              🗑 Supprimer la sélection
+              <Trash2 size={13} /> Supprimer la sélection
             </button>
           )}
-          <button className="btn btn-secondary btn-sm" onClick={exitSelection}>✕ Annuler la sélection</button>
+          <button className="btn btn-secondary btn-sm" onClick={exitSelection}><X size={13} /> Annuler la sélection</button>
         </div>
       )}
 
       <div className="filter-bar">
         <div className="search-bar" style={{ flex:1, minWidth:160, maxWidth:280 }}>
-          <span style={{ color:'var(--t3)', fontSize:17 }}>🔍</span>
+          <Search size={16} color="var(--t3)" style={{ flexShrink: 0 }} />
           <input placeholder="Client, adresse, intervenant…" value={search} onChange={e => setSearch(e.target.value)} />
           {search && (
-            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',fontSize:16,lineHeight:1,flexShrink:0 }}>✕</button>
+            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',display:'flex',flexShrink:0 }}><X size={15} /></button>
           )}
         </div>
         {!showArchived && STATUTS_FILTER.map(s => (
@@ -362,8 +367,8 @@ export default function InterventionsPage() {
       </div>
 
       {isError && (
-        <div style={{ padding:'10px 14px',background:'var(--rdBg)',border:'1px solid var(--rdBd)',borderRadius:'var(--r2)',marginBottom:12,fontSize:13,color:'var(--rdTx)' }}>
-          ⚠ Erreur : {(error as Error)?.message}
+        <div style={{ padding:'10px 14px',background:'var(--rdBg)',border:'1px solid var(--rdBd)',borderRadius:'var(--r2)',marginBottom:12,fontSize:13,color:'var(--rdTx)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} /> Erreur : {(error as Error)?.message}
         </div>
       )}
 
@@ -411,15 +416,16 @@ export default function InterventionsPage() {
               )}
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                  <span style={{ fontWeight:700, fontSize:15, color:'var(--t0)' }}>{i.urgence && '🔴 '}{i.numero}</span>
+                  {i.urgence && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--rd)', flexShrink: 0 }} />}
+                  <span style={{ fontWeight:700, fontSize:15, color:'var(--t0)' }}>{i.numero}</span>
                 </div>
                 <div style={{ fontSize:14, color:'var(--t1)' }}>{i.client?.nom} {i.client?.prenom}</div>
-                {i.adresse && <div style={{ fontSize:12, color:'var(--t3)', marginTop:2 }}>📍 {i.adresse}</div>}
-                {i.date_prevue && <div style={{ fontSize:12, color:'var(--t3)', marginTop:1 }}>📅 {new Date(i.date_prevue).toLocaleDateString('fr-FR')}</div>}
+                {i.adresse && <div style={{ fontSize:12, color:'var(--t3)', marginTop:2, display: 'flex', alignItems: 'center', gap: 4 }}><MapPin size={11} /> {i.adresse}</div>}
+                {i.date_prevue && <div style={{ fontSize:12, color:'var(--t3)', marginTop:1, display: 'flex', alignItems: 'center', gap: 4 }}><Calendar size={11} /> {new Date(i.date_prevue).toLocaleDateString('fr-FR')}</div>}
                 {!selectionMode && (
                   <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     {i.type && <span className={`pill ${i.type==='serrurerie'?'pill-gray':'pill-blue'}`}>{i.type}</span>}
-                    {isAdmin && i.intervenant && <span style={{ fontSize:11, color:'var(--t2)' }}>👤 {i.intervenant.prenom} {i.intervenant.nom}</span>}
+                    {isAdmin && i.intervenant && <span style={{ fontSize:11, color:'var(--t2)', display: 'flex', alignItems: 'center', gap: 4 }}><User size={11} /> {i.intervenant.prenom} {i.intervenant.nom}</span>}
                   </div>
                 )}
               </div>
@@ -435,9 +441,9 @@ export default function InterventionsPage() {
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={e => { e.stopPropagation(); setActiveSheet(i) }}
-                  style={{ fontSize: 18, letterSpacing: 1, padding: '6px 16px' }}
+                  style={{ padding: '6px 16px' }}
                 >
-                  ···
+                  <MoreHorizontal size={16} />
                 </button>
               </div>
             )}
@@ -478,7 +484,12 @@ export default function InterventionsPage() {
             {items.map(i => (
               <tr key={i.id} style={selected.has(i.id) ? { background: 'var(--blBg)' } : {}}>
                 {selectionMode && <td style={{ paddingRight: 0 }}><input type="checkbox" style={chkStyle} checked={selected.has(i.id)} onChange={() => toggleSelect(i.id)} /></td>}
-                <td className="td-bold" style={{ cursor:'pointer' }} onClick={() => nav(`/interventions/${i.id}`)}>{i.urgence&&'🔴 '}{i.numero}</td>
+                <td className="td-bold" style={{ cursor:'pointer' }} onClick={() => nav(`/interventions/${i.id}`)}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {i.urgence && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--rd)', flexShrink: 0 }} />}
+                    {i.numero}
+                  </div>
+                </td>
                 <td style={{ cursor:'pointer' }} onClick={() => nav(`/interventions/${i.id}`)}>
                   <div className="td-bold">{i.client?.nom} {i.client?.prenom}</div>
                   <div style={{ fontSize:11,color:'var(--t3)' }}>{i.client?.telephone}</div>
@@ -490,11 +501,11 @@ export default function InterventionsPage() {
                 <td><span className={`pill ${SC[i.statut]||'pill-gray'}`}>{i.statut.replace('_',' ')}</span></td>
                 <td>
                   <div style={{ display:'flex', gap:4 }}>
-                    <button className="btn-icon sm" onClick={() => nav(`/interventions/${i.id}`)} title="Voir">👁</button>
-                    {!showArchived && <button className="btn-icon sm" onClick={() => openEdit(i)} title="Modifier">✏</button>}
-                    {!showArchived && <button className="btn-icon sm" onClick={() => openMsgModal(i)} title="Messagerie">✉</button>}
-                    {isAdmin && <button className="btn-icon sm" onClick={() => handleArchive(i)} title={i.archive ? 'Restaurer' : 'Archiver'} style={{ color: i.archive ? 'var(--gnTx)' : 'var(--amTx)' }}>📦</button>}
-                    {isAdmin && !i.archive && <button className="btn-icon sm" style={{ color:'var(--rdTx)' }} onClick={() => handleDelete(i)} title="Supprimer">🗑</button>}
+                    <button className="btn-icon sm" onClick={() => nav(`/interventions/${i.id}`)} title="Voir"><Eye size={14} /></button>
+                    {!showArchived && <button className="btn-icon sm" onClick={() => openEdit(i)} title="Modifier"><Pencil size={14} /></button>}
+                    {!showArchived && <button className="btn-icon sm" onClick={() => openMsgModal(i)} title="Messagerie"><Mail size={14} /></button>}
+                    {isAdmin && <button className="btn-icon sm" onClick={() => handleArchive(i)} title={i.archive ? 'Restaurer' : 'Archiver'} style={{ color: i.archive ? 'var(--gnTx)' : 'var(--amTx)' }}>{i.archive ? <ArchiveRestore size={14} /> : <Archive size={14} />}</button>}
+                    {isAdmin && !i.archive && <button className="btn-icon sm" style={{ color:'var(--rdTx)' }} onClick={() => handleDelete(i)} title="Supprimer"><Trash2 size={14} /></button>}
                   </div>
                 </td>
               </tr>
@@ -510,14 +521,14 @@ export default function InterventionsPage() {
           subtitle={[activeSheet.client?.nom, activeSheet.client?.prenom].filter(Boolean).join(' ')}
           onClose={() => setActiveSheet(null)}
         >
-          <SheetRow icon="👁" label="Voir le détail"
+          <SheetRow icon={<Eye size={16} />} label="Voir le détail"
             onClick={() => { setActiveSheet(null); nav(`/interventions/${activeSheet.id}`) }} />
 
           {/* Statut rapide intervenant */}
           {!isAdmin && activeSheet.intervenant_id === user?.id && activeSheet.statut === 'accepte' && (
             <>
               <SheetSection label="Avancement" />
-              <SheetRow icon="▶" label="Démarrer l'intervention"
+              <SheetRow icon={<Play size={16} />} label="Démarrer l'intervention"
                 onClick={() => { setActiveSheet(null); handleQuickStatut(activeSheet.id, 'en_cours') }}
                 disabled={update.isPending} />
             </>
@@ -525,7 +536,7 @@ export default function InterventionsPage() {
           {!isAdmin && activeSheet.intervenant_id === user?.id && activeSheet.statut === 'en_cours' && (
             <>
               <SheetSection label="Avancement" />
-              <SheetRow icon="✅" label="Marquer terminée"
+              <SheetRow icon={<CheckCircle2 size={16} />} label="Marquer terminée"
                 onClick={() => { setActiveSheet(null); handleQuickStatut(activeSheet.id, 'termine') }}
                 disabled={update.isPending} />
             </>
@@ -535,9 +546,9 @@ export default function InterventionsPage() {
           {!showArchived && (
             <>
               <SheetSection label="Actions" />
-              <SheetRow icon="✏️" label="Modifier"
+              <SheetRow icon={<Pencil size={16} />} label="Modifier"
                 onClick={() => { setActiveSheet(null); openEdit(activeSheet) }} />
-              <SheetRow icon="✉️" label="Envoyer via messagerie"
+              <SheetRow icon={<Mail size={16} />} label="Envoyer via messagerie"
                 onClick={() => { setActiveSheet(null); openMsgModal(activeSheet) }} />
             </>
           )}
@@ -547,11 +558,11 @@ export default function InterventionsPage() {
             <>
               <SheetSection label="Administration" />
               <SheetRow
-                icon={activeSheet.archive ? '↩' : '📦'}
+                icon={activeSheet.archive ? <ArchiveRestore size={16} /> : <Archive size={16} />}
                 label={activeSheet.archive ? 'Restaurer' : 'Archiver'}
                 onClick={() => { setActiveSheet(null); handleArchive(activeSheet) }} />
               {!activeSheet.archive && (
-                <SheetRow icon="🗑️" label="Supprimer" danger
+                <SheetRow icon={<Trash2 size={16} />} label="Supprimer" danger
                   onClick={() => { setActiveSheet(null); handleDelete(activeSheet) }} />
               )}
             </>
@@ -563,7 +574,7 @@ export default function InterventionsPage() {
       {showMobileActions && (
         <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
           <SheetRow
-            icon="📥"
+            icon={<FileSpreadsheet size={16} />}
             label="Exporter CSV"
             sublabel={items.length === 0 ? 'Aucune intervention' : `${items.length} intervention${items.length > 1 ? 's' : ''}`}
             onClick={() => { setShowMobileActions(false); handleExport() }}
@@ -571,14 +582,14 @@ export default function InterventionsPage() {
           />
           {isAdmin && (
             <SheetRow
-              icon="📦"
+              icon={<Archive size={16} />}
               label={showArchived ? 'Masquer les archives' : 'Voir les archives'}
               onClick={() => { setShowMobileActions(false); setShowArchived(v => !v); setStatut('tous'); exitSelection() }}
             />
           )}
           {isAdmin && !selectionMode && items.length > 0 && (
             <SheetRow
-              icon="☑"
+              icon={<CheckSquare size={16} />}
               label="Mode sélection"
               sublabel="Sélectionner des interventions"
               onClick={() => { setShowMobileActions(false); setSelectionMode(true) }}
@@ -588,7 +599,7 @@ export default function InterventionsPage() {
             <>
               <SheetSection label="Zone dangereuse" />
               <SheetRow
-                icon="🗑️"
+                icon={<Trash2 size={16} />}
                 label="Vider les archives"
                 sublabel={`Supprimer les ${items.length} archive${items.length > 1 ? 's' : ''}`}
                 danger
@@ -612,7 +623,7 @@ export default function InterventionsPage() {
       {createModal && (
         <div className={`modal-overlay${createModalClosing?' is-closing':''}`} onClick={closeCreateModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header"><span className="modal-title">Nouvelle intervention</span><button className="btn-icon sm" onClick={closeCreateModal}>✕</button></div>
+            <div className="modal-header"><span className="modal-title">Nouvelle intervention</span><button className="btn-icon sm" onClick={closeCreateModal}><X size={15} /></button></div>
             <form onSubmit={submitCreate}>
               <div className="modal-body">
                 <div className="form-group">
@@ -679,9 +690,9 @@ export default function InterventionsPage() {
                 </div>
                 <div className="form-group"><label>Description</label><textarea value={createForm.description} onChange={e => setCreateForm(f=>({...f,description:e.target.value}))} placeholder="Nature de l'intervention…" /></div>
                 {isAdmin && <div className="form-group"><label>Notes admin (privées)</label><textarea value={createForm.notes_admin} onChange={e => setCreateForm(f=>({...f,notes_admin:e.target.value}))} /></div>}
-                <label style={{ display:'flex',alignItems:'center',gap:10,textTransform:'none',fontSize:14,fontWeight:500,letterSpacing:0,cursor:'pointer' }}>
+                <label style={{ display:'flex',alignItems:'center',gap:8,textTransform:'none',fontSize:14,fontWeight:500,letterSpacing:0,cursor:'pointer' }}>
                   <input type="checkbox" checked={createForm.urgence} onChange={e => setCreateForm(f=>({...f,urgence:e.target.checked}))} style={{ width:'auto',minHeight:'auto' }} />
-                  🔴 Urgente
+                  <AlertTriangle size={14} color="var(--rdTx)" /> Urgente
                 </label>
               </div>
               <div className="modal-footer">
@@ -699,7 +710,7 @@ export default function InterventionsPage() {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">Modifier {editTarget.numero}</span>
-              <button className="btn-icon sm" onClick={closeEditModal}>✕</button>
+              <button className="btn-icon sm" onClick={closeEditModal}><X size={15} /></button>
             </div>
             <form onSubmit={submitEdit}>
               <div className="modal-body">
@@ -753,7 +764,7 @@ export default function InterventionsPage() {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">Nouveau client</span>
-              <button className="btn-icon sm" onClick={() => setShowClientModal(false)}>✕</button>
+              <button className="btn-icon sm" onClick={() => setShowClientModal(false)}><X size={15} /></button>
             </div>
             <form onSubmit={submitNewClient}>
               <div className="modal-body">
@@ -818,8 +829,8 @@ export default function InterventionsPage() {
         <div className="modal-overlay" onClick={() => setMsgModal(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">✉ Envoyer via messagerie — {msgModal.inter.numero}</span>
-              <button className="btn-icon sm" onClick={() => setMsgModal(null)}>✕</button>
+              <span className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Mail size={16} /> Envoyer via messagerie — {msgModal.inter.numero}</span>
+              <button className="btn-icon sm" onClick={() => setMsgModal(null)}><X size={15} /></button>
             </div>
             <div className="modal-body">
               <div className="form-group">
@@ -847,7 +858,7 @@ export default function InterventionsPage() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setMsgModal(null)}>Annuler</button>
               <button className="btn btn-primary" onClick={handleSendMsg} disabled={sendMsg.isPending || !msgModal.text.trim()}>
-                {sendMsg.isPending ? 'Envoi…' : '✉ Envoyer'}
+                {sendMsg.isPending ? 'Envoi…' : <><Mail size={14} /> Envoyer</>}
               </button>
             </div>
           </div>

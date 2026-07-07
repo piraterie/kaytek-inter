@@ -65,7 +65,7 @@
   color-scheme:dark;
 
   /* Surfaces — bleu nuit profond avec vraie hiérarchie d'élévation */
-  --bg:#0F172A;       /* fond global — deep navy */
+  --bg:#060B18;       /* fond global — deep navy premium */
   --s0:#172136;       /* surfaces (cartes) — clairement surélevées */
   --s1:#1E2B46;       /* surfaces secondaires */
   --s2:#253556;       /* surfaces tertiaires */
@@ -218,17 +218,22 @@ textarea{resize:vertical;min-height:80px}
 
 /* ── Stat cards ──────────────────────────────────────────── */
 .stat-card{
+  position:relative;overflow:hidden;
   background:var(--s0);border:1px solid var(--b1);border-radius:var(--r2);
   padding:20px;box-shadow:var(--sh0);
   transition:box-shadow .2s,transform .2s,border-color .2s;
 }
 .stat-card:hover{box-shadow:var(--sh2);transform:translateY(-3px);border-color:var(--b2)}
-.stat-value{font-size:26px;font-weight:800;color:var(--t0);letter-spacing:-.05em;line-height:1;margin-top:12px}
-.stat-label{font-size:12px;color:var(--t2);margin-top:5px;font-weight:500;letter-spacing:.01em}
-.stat-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.stat-card.accent-blue{border-color:var(--blBd)}
+.stat-card.accent-green{border-color:var(--gnBd)}
+.stat-card.accent-amber{border-color:var(--amBd)}
+.stat-value{font-size:28px;font-weight:800;color:var(--t0);letter-spacing:-.04em;line-height:1;margin-top:14px}
+.stat-label{font-size:12px;color:var(--t2);margin-top:5px;font-weight:600;letter-spacing:.01em}
+.stat-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
 .stat-icon.blue{background:var(--blBg);color:var(--bl)}.stat-icon.green{background:var(--gnBg);color:var(--gn)}
 .stat-icon.amber{background:var(--amBg);color:var(--am)}.stat-icon.red{background:var(--rdBg);color:var(--rd)}
 .stat-icon.purple{background:var(--puBg);color:var(--pu)}
+.stat-decor{position:absolute;top:-10px;right:-10px;opacity:.06;color:var(--t0);pointer-events:none;transform:rotate(-8deg)}
 
 /* ── Pills / badges — modernes et doux ──────────────────── */
 .pill{
@@ -460,6 +465,8 @@ label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;le
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes toastIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes toastInTop{from{opacity:0;transform:translateY(-8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.spin{animation:spin .8s linear infinite}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes fadeOut{from{opacity:1}to{opacity:0}}
 @keyframes scaleIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}

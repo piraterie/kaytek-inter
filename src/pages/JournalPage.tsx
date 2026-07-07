@@ -1,5 +1,6 @@
 // src/pages/JournalPage.tsx
 import { useState, useMemo } from 'react'
+import { FileSpreadsheet, Loader2, Trash2, MoreHorizontal, Search, X, StickyNote, Pencil } from 'lucide-react'
 import { useJournal, useDeleteJournalEntry, useDeleteAllJournal, useUpdateJournalEntry, useInterventions, useDevis, useFactures, useCommissionsData } from '@/lib/hooks'
 import { useToastStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
@@ -338,7 +339,7 @@ export default function JournalPage() {
       utils.book_append_sheet(wb, wsComm, 'Commissions')
 
       writeFile(wb, `rapport-${new Date().toISOString().split('T')[0]}.xlsx`)
-      add('📊 Rapport mensuel exporté')
+      add('Rapport mensuel exporté')
     } catch (e: any) {
       add(e.message || "Erreur export rapport", 'error')
     } finally {
@@ -357,14 +358,14 @@ export default function JournalPage() {
         {/* Desktop : inchangé */}
         <div className="page-actions hide-mobile">
           <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={filtered.length === 0}>
-            📥 Export ({filtered.length})
+            <FileSpreadsheet size={14} /> Export ({filtered.length})
           </button>
           <button className="btn btn-secondary btn-sm" onClick={handleExportRapport} disabled={isExporting}>
-            {isExporting ? '⏳ Export…' : '📊 Rapport'}
+            {isExporting ? <><Loader2 size={14} className="spin" /> Export…</> : <><FileSpreadsheet size={14} /> Rapport</>}
           </button>
           <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
             onClick={handleDeleteAll} disabled={journal.length === 0 || delAll.isPending}>
-            🗑 Vider
+            <Trash2 size={14} /> Vider
           </button>
         </div>
         {/* Mobile : ligne compacte sous le titre */}
@@ -375,7 +376,7 @@ export default function JournalPage() {
               style={{ flex: 1, justifyContent: 'center' }}
               onClick={() => setShowMobileActions(true)}
             >
-              ··· Actions
+              <MoreHorizontal size={15} /> Actions
             </button>
           </div>
         </div>
@@ -416,10 +417,10 @@ export default function JournalPage() {
           ))}
         </div>
         <div className="search-bar" style={{ flex: 1, minWidth: 150, maxWidth: 260 }}>
-          <span style={{ color: 'var(--t3)', fontSize: 15 }}>🔍</span>
+          <Search size={16} color="var(--t3)" style={{ flexShrink: 0 }} />
           <input placeholder="Rechercher…" value={search} onChange={e => setSearch(e.target.value)} />
           {search && (
-            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',fontSize:16,lineHeight:1,flexShrink:0 }}>✕</button>
+            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',display:'flex',flexShrink:0 }}><X size={15} /></button>
           )}
         </div>
         <select className="btn btn-secondary btn-sm" style={{ padding: '5px 10px', width: 'auto' }} value={filterAction} onChange={e => setFilterAction(e.target.value)}>
@@ -456,7 +457,7 @@ export default function JournalPage() {
                     <span style={{ fontSize: 12, color: 'var(--blTx)', fontWeight: 500 }}>{TABLE_LABELS[j.table_name] || j.table_name}</span>
                   </div>
                   <div style={{ fontSize: 14, color: 'var(--t0)', fontWeight: 500, marginBottom: 4 }}>{resume}</div>
-                  {j.description && <div style={{ fontSize: 12, color: 'var(--am)', marginTop: 2 }}>📝 {j.description}</div>}
+                  {j.description && <div style={{ fontSize: 12, color: 'var(--am)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}><StickyNote size={11} /> {j.description}</div>}
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
                   <div style={{ fontSize: 12, color: 'var(--t2)' }}>{fmtDateShort(j.created_at)}</div>
@@ -464,8 +465,8 @@ export default function JournalPage() {
                 </div>
               </div>
               <div className="mobile-card-actions">
-                <button className="btn btn-secondary btn-sm" onClick={() => openEdit(j)}>✏ Note</button>
-                <button className="btn-icon sm" style={{ color: 'var(--rdTx)' }} onClick={() => handleDelete(j.id)}>🗑</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => openEdit(j)}><Pencil size={13} /> Note</button>
+                <button className="btn-icon sm" style={{ color: 'var(--rdTx)' }} onClick={() => handleDelete(j.id)}><Trash2 size={14} /></button>
               </div>
             </div>
           )
@@ -502,8 +503,8 @@ export default function JournalPage() {
                 </td>
                 <td>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="btn btn-secondary btn-sm" onClick={() => openEdit(j)} title="Ajouter une note">✏</button>
-                    <button className="btn-icon sm" style={{ color: 'var(--rdTx)' }} onClick={() => handleDelete(j.id)} title="Supprimer">🗑</button>
+                    <button className="btn-icon sm" onClick={() => openEdit(j)} title="Ajouter une note"><Pencil size={14} /></button>
+                    <button className="btn-icon sm" style={{ color: 'var(--rdTx)' }} onClick={() => handleDelete(j.id)} title="Supprimer"><Trash2 size={14} /></button>
                   </div>
                 </td>
               </tr>
@@ -516,14 +517,14 @@ export default function JournalPage() {
       {showMobileActions && (
         <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
           <SheetRow
-            icon="📥"
+            icon={<FileSpreadsheet size={16} />}
             label={`Exporter CSV (${filtered.length})`}
             sublabel={filtered.length === 0 ? 'Aucune entrée' : `${filtered.length} entrée${filtered.length > 1 ? 's' : ''}`}
             onClick={() => { setShowMobileActions(false); handleExport() }}
             disabled={filtered.length === 0}
           />
           <SheetRow
-            icon="📊"
+            icon={<FileSpreadsheet size={16} />}
             label="Exporter rapport Excel"
             sublabel="Synthèse mensuelle multi-onglets"
             onClick={() => { setShowMobileActions(false); handleExportRapport() }}
@@ -533,7 +534,7 @@ export default function JournalPage() {
             <>
               <SheetSection label="Zone dangereuse" />
               <SheetRow
-                icon="🗑️"
+                icon={<Trash2 size={16} />}
                 label="Vider le journal"
                 sublabel={`Supprimer les ${journal.length} entrée${journal.length > 1 ? 's' : ''}`}
                 danger
@@ -559,7 +560,7 @@ export default function JournalPage() {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">Modifier la note</span>
-              <button className="btn-icon sm" onClick={() => setEditEntry(null)}>✕</button>
+              <button className="btn-icon sm" onClick={() => setEditEntry(null)}><X size={15} /></button>
             </div>
             <div className="modal-body">
               <p style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 12 }}>

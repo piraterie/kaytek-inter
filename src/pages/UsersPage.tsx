@@ -1,5 +1,9 @@
 // src/pages/UsersPage.tsx
 import { useState, useMemo } from 'react'
+import {
+  Search, X, HardHat, Briefcase, Smartphone, Monitor, Pencil, Trash2, Shield,
+  Send, CheckCircle2, XCircle,
+} from 'lucide-react'
 import { useProfiles, useUpdateProfile } from '@/lib/hooks'
 import { useToastStore } from '@/lib/store'
 import { inviterIntervenant, supprimerUtilisateur } from '@/lib/supabase/auth'
@@ -143,10 +147,10 @@ export default function UsersPage() {
       </div>
 
       <div className="search-bar" style={{ marginBottom: 14 }}>
-        <span style={{ color:'var(--t3)',fontSize:15,flexShrink:0 }}>🔍</span>
+        <Search size={16} color="var(--t3)" style={{ flexShrink: 0 }} />
         <input placeholder="Rechercher par nom, prénom, email…" value={search} onChange={e=>setSearch(e.target.value)} />
         {search && (
-          <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',fontSize:16,lineHeight:1,flexShrink:0 }}>✕</button>
+          <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',display:'flex',flexShrink:0 }}><X size={15} /></button>
         )}
       </div>
 
@@ -174,7 +178,12 @@ export default function UsersPage() {
               <div style={{ fontSize:12,color:'var(--t2)',marginTop:2 }}>{p.email}</div>
               {p.role==='intervenant' && (
                 <div style={{ fontSize:12,color:'var(--t3)',marginTop:1 }}>
-                  {p.type_intervenant ? <span style={{ marginRight:6 }}>{p.type_intervenant==='entrepreneur'?'🏗 Entrepreneur':'👔 Salarié'}</span> : null}
+                  {p.type_intervenant ? (
+                    <span style={{ marginRight:6, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {p.type_intervenant==='entrepreneur' ? <HardHat size={11} /> : <Briefcase size={11} />}
+                      {p.type_intervenant==='entrepreneur'?'Entrepreneur':'Salarié'}
+                    </span>
+                  ) : null}
                   comm. {p.commission_pct}%
                 </div>
               )}
@@ -196,8 +205,8 @@ export default function UsersPage() {
                 </>
               )}
               <div style={{ marginLeft:'auto',display:'flex',gap:8 }}>
-                <button className="btn btn-secondary btn-sm" onClick={()=>openDevices(p)} title="Gérer les appareils">📱</button>
-                <button className="btn btn-secondary btn-sm" onClick={()=>openEdit(p)} title="Modifier">✏ Modifier</button>
+                <button className="btn-icon sm" onClick={()=>openDevices(p)} title="Gérer les appareils"><Smartphone size={14} /></button>
+                <button className="btn btn-secondary btn-sm" onClick={()=>openEdit(p)} title="Modifier"><Pencil size={13} /> Modifier</button>
                 {p.role==='intervenant'&&(
                   <button
                     className="btn-icon sm"
@@ -206,7 +215,7 @@ export default function UsersPage() {
                     disabled={delLoading===p.id}
                     title="Supprimer définitivement"
                   >
-                    {delLoading===p.id?'…':'🗑'}
+                    {delLoading===p.id?'…':<Trash2 size={14} />}
                   </button>
                 )}
               </div>
@@ -215,7 +224,7 @@ export default function UsersPage() {
         ))}
       </div>
       <div style={{ marginTop:10,padding:'12px 14px',background:'var(--blBg)',borderRadius:'var(--r2)',border:'1px solid var(--blBd)',fontSize:13,color:'var(--blTx)',display:'flex',gap:8,alignItems:'flex-start' }}>
-        🛡 RLS actif — chaque intervenant ne voit que ses interventions. Suppression = irréversible (profil + compte auth supprimés).
+        <Shield size={15} style={{ flexShrink: 0 }} /> RLS actif — chaque intervenant ne voit que ses interventions. Suppression = irréversible (profil + compte auth supprimés).
       </div>
 
       {/* Modal inviter */}
@@ -224,7 +233,7 @@ export default function UsersPage() {
           <div className="modal" onClick={e=>e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">Inviter un intervenant</span>
-              <button className="btn-icon sm" onClick={()=>setModal(false)}>✕</button>
+              <button className="btn-icon sm" onClick={()=>setModal(false)}><X size={15} /></button>
             </div>
             <form onSubmit={handleInvite}>
               <div className="modal-body">
@@ -255,8 +264,8 @@ export default function UsersPage() {
         <div className="modal-overlay" onClick={()=>setDevicesModal(false)}>
           <div className="modal" onClick={e=>e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">📱 Appareils — {devicesTarget.prenom} {devicesTarget.nom}</span>
-              <button className="btn-icon sm" onClick={()=>setDevicesModal(false)}>✕</button>
+              <span className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Smartphone size={16} /> Appareils — {devicesTarget.prenom} {devicesTarget.nom}</span>
+              <button className="btn-icon sm" onClick={()=>setDevicesModal(false)}><X size={15} /></button>
             </div>
             <div className="modal-body">
               {devicesLoading ? (
@@ -267,7 +276,7 @@ export default function UsersPage() {
                 <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
                   {devicesData.map(d=>(
                     <div key={d.id} style={{ display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,border:'1px solid var(--b1)' }}>
-                      <span style={{ fontSize:20,flexShrink:0 }}>{d.systeme_exploitation==='iOS'||d.systeme_exploitation==='Android'?'📱':'💻'}</span>
+                      <span style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--s1)', color: 'var(--t2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink:0 }}>{d.systeme_exploitation==='iOS'||d.systeme_exploitation==='Android'?<Smartphone size={15} />:<Monitor size={15} />}</span>
                       <div style={{ flex:1,minWidth:0 }}>
                         <div style={{ fontSize:13,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>
                           {d.nom_appareil||'Appareil inconnu'}
@@ -299,7 +308,7 @@ export default function UsersPage() {
           <div className="modal" onClick={e=>e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">Modifier {editTarget.prenom} {editTarget.nom}</span>
-              <button className="btn-icon sm" onClick={()=>setEditModal(false)}>✕</button>
+              <button className="btn-icon sm" onClick={()=>setEditModal(false)}><X size={15} /></button>
             </div>
             <form onSubmit={handleEdit}>
               <div className="modal-body">
@@ -393,10 +402,10 @@ export default function UsersPage() {
                   {editForm.telegram_chat_id.trim() && (
                     <div style={{ display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',marginTop:4 }}>
                       <button type="button" className="btn btn-secondary btn-sm" onClick={handleTestTelegram} disabled={tgTestLoading} style={{ display:'flex',alignItems:'center',gap:6 }}>
-                        {tgTestLoading ? '…' : '📨 Tester Telegram'}
+                        {tgTestLoading ? '…' : <><Send size={13} /> Tester Telegram</>}
                       </button>
-                      {tgTestResult==='ok' && <span style={{ fontSize:12,color:'var(--gnTx)' }}>✅ Message reçu sur Telegram</span>}
-                      {tgTestResult==='error' && <span style={{ fontSize:12,color:'var(--rdTx)' }}>❌ {tgTestError}</span>}
+                      {tgTestResult==='ok' && <span style={{ fontSize:12,color:'var(--gnTx)', display: 'flex', alignItems: 'center', gap: 5 }}><CheckCircle2 size={13} /> Message reçu sur Telegram</span>}
+                      {tgTestResult==='error' && <span style={{ fontSize:12,color:'var(--rdTx)', display: 'flex', alignItems: 'center', gap: 5 }}><XCircle size={13} /> {tgTestError}</span>}
                     </div>
                   )}
                 </div>

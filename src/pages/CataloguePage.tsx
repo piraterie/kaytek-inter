@@ -1,5 +1,6 @@
 // src/pages/CataloguePage.tsx
 import { useState } from 'react'
+import { Search, X, Pencil, Pause, Play, Info } from 'lucide-react'
 import { useAllPrestations, useCreatePrestation, useUpdatePrestation } from '@/lib/hooks'
 import { useToastStore } from '@/lib/store'
 import type { Categorie, Prestation } from '@/types'
@@ -98,14 +99,14 @@ export default function CataloguePage() {
       {/* Recherche + Filtres activité */}
       <div style={{ marginBottom: 16 }}>
         <div className="search-bar" style={{ marginBottom: 10 }}>
-          <span style={{ color: 'var(--t3)', fontSize: 15, flexShrink: 0 }}>🔍</span>
+          <Search size={16} color="var(--t3)" style={{ flexShrink: 0 }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher une prestation…"
           />
           {search && (
-            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',fontSize:16,lineHeight:1,flexShrink:0 }}>✕</button>
+            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',display:'flex',flexShrink:0 }}><X size={15} /></button>
           )}
         </div>
         <div className="filter-bar">
@@ -147,9 +148,9 @@ export default function CataloguePage() {
               </div>
             </div>
             <div className="mobile-card-actions">
-              <button className="btn btn-secondary btn-sm" onClick={() => openEdit(p)}>✏ Modifier</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => openEdit(p)}><Pencil size={13} /> Modifier</button>
               <button className="btn btn-secondary btn-sm" onClick={() => toggleActif(p)}>
-                {p.actif ? '⏸ Désactiver' : '▶ Réactiver'}
+                {p.actif ? <><Pause size={13} /> Désactiver</> : <><Play size={13} /> Réactiver</>}
               </button>
             </div>
           </div>
@@ -185,10 +186,10 @@ export default function CataloguePage() {
                 <td><span className={`pill ${p.actif ? 'pill-green' : 'pill-gray'}`}>{p.actif ? 'Actif' : 'Inactif'}</span></td>
                 <td>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="btn-icon sm" onClick={() => openEdit(p)} title="Modifier">✏</button>
+                    <button className="btn-icon sm" onClick={() => openEdit(p)} title="Modifier"><Pencil size={14} /></button>
                     <button className="btn-icon sm" onClick={() => toggleActif(p)} title={p.actif ? 'Désactiver' : 'Réactiver'}
                       style={{ color: p.actif ? 'var(--amTx)' : 'var(--gnTx)' }}>
-                      {p.actif ? '⏸' : '▶'}
+                      {p.actif ? <Pause size={14} /> : <Play size={14} />}
                     </button>
                   </div>
                 </td>
@@ -199,8 +200,8 @@ export default function CataloguePage() {
       </div>
 
       {/* Note info */}
-      <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--blBg)', border: '1px solid var(--blBd)', borderRadius: 'var(--r2)', fontSize: 12, color: 'var(--blTx)' }}>
-        ℹ Les prestations désactivées n'apparaissent plus dans le catalogue rapide des devis, mais restent liées aux devis existants.
+      <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--blBg)', border: '1px solid var(--blBd)', borderRadius: 'var(--r2)', fontSize: 12, color: 'var(--blTx)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Info size={14} style={{ flexShrink: 0 }} /> Les prestations désactivées n'apparaissent plus dans le catalogue rapide des devis, mais restent liées aux devis existants.
       </div>
 
       {/* MODAL */}
@@ -209,7 +210,7 @@ export default function CataloguePage() {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">{editing ? 'Modifier la prestation' : 'Nouvelle prestation'}</span>
-              <button className="btn-icon sm" onClick={() => setModal(false)}>✕</button>
+              <button className="btn-icon sm" onClick={() => setModal(false)}><X size={15} /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">

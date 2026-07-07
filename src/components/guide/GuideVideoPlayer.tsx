@@ -1,6 +1,7 @@
 // src/components/guide/GuideVideoPlayer.tsx
 // Lecteur vidéo avec détection automatique de complétion à 80 %.
 import { useRef, useState, useEffect } from 'react'
+import { Video, AlertTriangle, Check } from 'lucide-react'
 import { useGuideVideoUrl } from '@/lib/hooks/guide'
 import type { GuideVideo } from '@/types'
 
@@ -35,7 +36,7 @@ export default function GuideVideoPlayer({ video, sectionSlug, onComplete }: Pro
         background: 'var(--s1)', border: '2px dashed var(--b1)',
         borderRadius: 12, padding: '32px 20px', textAlign: 'center',
       }}>
-        <div style={{ fontSize: 36, marginBottom: 12 }}>🎬</div>
+        <Video size={32} style={{ marginBottom: 12, color: 'var(--t3)' }} />
         <div style={{ color: 'var(--t1)', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
           Vidéo bientôt disponible
         </div>
@@ -62,7 +63,7 @@ export default function GuideVideoPlayer({ video, sectionSlug, onComplete }: Pro
         background: 'var(--s1)', border: '2px dashed var(--b1)',
         borderRadius: 12, padding: '32px 20px', textAlign: 'center',
       }}>
-        <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+        <AlertTriangle size={32} style={{ marginBottom: 12, color: 'var(--amTx)' }} />
         <div style={{ color: 'var(--t1)', fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
           Vidéo temporairement indisponible
         </div>
@@ -90,7 +91,7 @@ export default function GuideVideoPlayer({ video, sectionSlug, onComplete }: Pro
           borderRadius: 20, padding: '4px 12px', fontSize: 11, fontWeight: 700,
           display: 'flex', alignItems: 'center', gap: 5,
         }}>
-          ✓ Vu
+          <Check size={12} /> Vu
         </div>
       )}
       {video.duree_secondes && (

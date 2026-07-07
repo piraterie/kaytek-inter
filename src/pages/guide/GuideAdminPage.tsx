@@ -1,7 +1,7 @@
 // src/pages/guide/GuideAdminPage.tsx — Guide complet pour les administrateurs
 import { useState, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { BookOpen, Search, Bell, ChevronRight, Settings } from 'lucide-react'
+import { BookOpen, Search, Bell, ChevronRight, Settings, Rocket, Check, HelpCircle } from 'lucide-react'
 import { ALL_ADMIN_SECTIONS } from '@/lib/data/guide-admin'
 import { useGuideNews } from '@/lib/hooks/guide'
 import { useCompletedSlugs } from '@/lib/hooks/guide'
@@ -119,8 +119,8 @@ export default function GuideAdminPage() {
               onMouseEnter={e => { if (!isActive) (e.currentTarget.style.background = 'var(--s1)') }}
               onMouseLeave={e => { if (!isActive) (e.currentTarget.style.background = 'none') }}
             >
-              <span style={{ fontSize: 12, color: isActive ? 'var(--blTx)' : 'var(--t3)', fontWeight: 600, minWidth: 18 }}>
-                {i === 0 ? '🚀' : isDone ? '✓' : String(i)}
+              <span style={{ fontSize: 12, color: isActive ? 'var(--blTx)' : 'var(--t3)', fontWeight: 600, minWidth: 18, display: 'inline-flex' }}>
+                {i === 0 ? <Rocket size={13} /> : isDone ? <Check size={13} /> : String(i)}
               </span>
               <span style={{ flex: 1, fontSize: 13, color: isActive ? 'var(--blTx)' : 'var(--t0)', fontWeight: isActive ? 600 : 400 }}>
                 {s.titre}
@@ -164,7 +164,7 @@ export default function GuideAdminPage() {
           <p className="page-subtitle">Toutes les fonctionnalités expliquées pas à pas.</p>
         </div>
         <button className="btn btn-secondary btn-sm" onClick={() => nav('/guide/faq')}>
-          ❓ FAQ
+          <HelpCircle size={14} /> FAQ
         </button>
       </div>
 

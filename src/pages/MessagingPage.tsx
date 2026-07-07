@@ -1,6 +1,7 @@
 // src/pages/MessagingPage.tsx
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { MessageCircle, Mail, CheckCheck, Trash2, X, ArrowLeft } from 'lucide-react'
 import { useMessages, useSendMessage, useConversations, useIsMobile, useDeleteMessage } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { uploadChatMedia } from '@/lib/supabase/storage'
@@ -46,8 +47,8 @@ function getBestAudioMime(): string | null {
 
 function formatLastMsg(msg: any): string {
   if (!msg) return ''
-  if (msg.type === 'audio' || msg.type === 'vocal') return '🎤 Message vocal'
-  if (msg.type === 'photo') return '📷 Photo'
+  if (msg.type === 'audio' || msg.type === 'vocal') return 'Message vocal'
+  if (msg.type === 'photo') return 'Photo'
   const text = msg.contenu || ''
   return text.length > 52 ? text.slice(0, 52) + '…' : text
 }
@@ -441,7 +442,7 @@ export default function MessagingPage() {
           <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' }}>
             {conversations.length === 0 && (
               <div style={{ padding: 32, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>💬</div>Aucun contact disponible
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, opacity: 0.5 }}><MessageCircle size={30} /></div>Aucun contact disponible
               </div>
             )}
             {conversations.map(c => {
@@ -511,7 +512,7 @@ export default function MessagingPage() {
                   style={{ height: '100%', overflowY: 'auto', padding: isMobile ? '10px 8px' : '14px 12px', display: 'flex', flexDirection: 'column', gap: 2, scrollbarWidth: 'none' }}>
                   {messages.length === 0 && (
                     <div style={{ textAlign: 'center', padding: 40, color: 'var(--t3)', fontSize: 13 }}>
-                      <div style={{ fontSize: 36, marginBottom: 10 }}>👋</div>Commencez la conversation
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10, opacity: 0.5 }}><MessageCircle size={34} /></div>Commencez la conversation
                     </div>
                   )}
                   {(messages as any[]).map((m, idx) => {
@@ -530,7 +531,7 @@ export default function MessagingPage() {
                         {isFirstUnread && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 4px', flexShrink: 0 }}>
                             <div style={{ flex: 1, height: 1, background: 'var(--blBd)' }} />
-                            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--blTx)', background: 'var(--blBg)', padding: '3px 12px', borderRadius: 20, border: '1px solid var(--blBd)', whiteSpace: 'nowrap' }}>✉ Nouveaux messages</span>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--blTx)', background: 'var(--blBg)', padding: '3px 12px', borderRadius: 20, border: '1px solid var(--blBd)', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Mail size={11} /> Nouveaux messages</span>
                             <div style={{ flex: 1, height: 1, background: 'var(--blBd)' }} />
                           </div>
                         )}
@@ -579,7 +580,7 @@ export default function MessagingPage() {
                             </div>
                             <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 2, paddingLeft: 4, paddingRight: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
                               <span>{new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                              {isMe && <span style={{ color: 'var(--bl)' }}>✓✓</span>}
+                              {isMe && <CheckCheck size={12} color="var(--bl)" />}
                             </div>
                           </div>
                         </div>
@@ -613,8 +614,8 @@ export default function MessagingPage() {
 
                 {recording ? (
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: 'var(--rdBg)', border: `1px solid ${isCancelActive ? 'var(--rd)' : 'var(--rdBd)'}`, borderRadius: 24, padding: '0 14px', minHeight: 38, transition: 'border-color .15s', overflow: 'hidden' }}>
-                    <span style={{ fontSize: 12, fontWeight: isCancelActive ? 700 : 400, color: isCancelActive ? 'var(--rd)' : 'var(--t3)', whiteSpace: 'nowrap', overflow: 'hidden', maxWidth: cancelProgress > 0.1 ? 110 : 0, opacity: cancelProgress, transitionProperty: 'max-width, opacity, color', transition: 'max-width .15s, opacity .15s, color .15s' }}>
-                      {isCancelActive ? '✕ Annuler' : '← Glisser'}
+                    <span style={{ fontSize: 12, fontWeight: isCancelActive ? 700 : 400, color: isCancelActive ? 'var(--rd)' : 'var(--t3)', whiteSpace: 'nowrap', overflow: 'hidden', maxWidth: cancelProgress > 0.1 ? 110 : 0, opacity: cancelProgress, transitionProperty: 'max-width, opacity, color', transition: 'max-width .15s, opacity .15s, color .15s', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {isCancelActive ? <><X size={11} /> Annuler</> : <><ArrowLeft size={11} /> Glisser</>}
                     </span>
                     <span style={{ flex: 1 }} />
                     <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--rd)', display: 'inline-block', flexShrink: 0, animation: 'pulse 1s infinite' }} />
@@ -657,7 +658,7 @@ export default function MessagingPage() {
             </>
           ) : (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)', gap: 12 }}>
-              <div style={{ fontSize: 48 }}>💬</div>
+              <MessageCircle size={44} style={{ opacity: 0.4 }} />
               <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--t2)' }}>Sélectionner une conversation</div>
               <div style={{ fontSize: 13 }}>Choisissez un contact pour commencer</div>
             </div>
@@ -679,9 +680,9 @@ export default function MessagingPage() {
       {contextMsg && (
         <DocSheet
           title="Message"
-          subtitle={contextMsg.type === 'audio' ? '🎤 Message vocal' : contextMsg.type === 'photo' ? '📷 Photo' : contextMsg.contenu?.slice(0, 55)}
+          subtitle={contextMsg.type === 'audio' ? 'Message vocal' : contextMsg.type === 'photo' ? 'Photo' : contextMsg.contenu?.slice(0, 55)}
           onClose={() => setContextMsg(null)}>
-          <SheetRow icon="🗑️" label="Supprimer le message" sublabel="Cette action est irréversible" danger
+          <SheetRow icon={<Trash2 size={16} />} label="Supprimer le message" sublabel="Cette action est irréversible" danger
             onClick={() => { setDeleteTarget(contextMsg); setContextMsg(null) }} />
         </DocSheet>
       )}

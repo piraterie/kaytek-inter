@@ -1,5 +1,9 @@
 // src/pages/CommissionsPage.tsx
 import { useState } from 'react'
+import {
+  Package, CheckCircle2, Clock, DollarSign, Building2, FileSpreadsheet,
+  AlertTriangle, Save,
+} from 'lucide-react'
 import { useCommissionsData, useMarkCommissionReceived, useUpdateInterventionMateriel, notifyUser, notifyAdmins } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 
@@ -57,7 +61,7 @@ export default function CommissionsPage() {
         materiel_payeur: materielModal.materiel_payeur,
         confirmer,
       })
-      add(confirmer ? '✅ Matériel confirmé — commission recalculée' : '💾 Matériel enregistré')
+      add(confirmer ? 'Matériel confirmé — commission recalculée' : 'Matériel enregistré')
       if (newAmount !== materielModal.original_cout) {
         const lien = '/commissions'
         if (isAdmin) {
@@ -130,11 +134,11 @@ export default function CommissionsPage() {
         onClick={() => openMaterielModal(c)}
         style={{ fontSize: 11, padding: '3px 8px', whiteSpace: 'nowrap' }}
       >
-        {hasRaw
-          ? isConfirmed
-            ? `🔩 ${eur(c.cout_pieces_raw)} ✓`
-            : `🔩 ${eur(c.cout_pieces_raw)} ⏳`
-          : '🔩 Matériel'}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Package size={12} />
+          {hasRaw ? eur(c.cout_pieces_raw) : 'Matériel'}
+          {hasRaw && (isConfirmed ? <CheckCircle2 size={12} /> : <Clock size={12} />)}
+        </span>
       </button>
     )
   }
@@ -144,7 +148,7 @@ export default function CommissionsPage() {
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }} onClick={e => { if (e.target === e.currentTarget) setMaterielModal(null) }}>
         <div className="card card-body" style={{ width: '100%', maxWidth: 380 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>🔩 Matériel — {materielModal.facture_numero}</div>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><Package size={16} /> Matériel — {materielModal.facture_numero}</div>
 
           <div className="form-group">
             <label>Montant matériel (€)</label>
@@ -175,24 +179,24 @@ export default function CommissionsPage() {
           </div>
 
           {materielModal.materiel_confirme && (
-            <div style={{ fontSize: 12, color: '#16a34a', padding: '6px 0', marginBottom: 8 }}>
-              ✅ Actuellement confirmé
+            <div style={{ fontSize: 12, color: '#16a34a', padding: '6px 0', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CheckCircle2 size={13} /> Actuellement confirmé
             </div>
           )}
           {!materielModal.materiel_confirme && materielInput.length > 0 && (
-            <div style={{ fontSize: 11, color: 'var(--amTx)', padding: '4px 0', marginBottom: 8 }}>
-              ⏳ Non confirmé — non déduit du calcul
+            <div style={{ fontSize: 11, color: 'var(--amTx)', padding: '4px 0', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Clock size={12} /> Non confirmé — non déduit du calcul
             </div>
           )}
 
           <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
             {isAdmin ? (
               <button className="btn btn-primary" onClick={() => handleSaveMateriel(true)} disabled={updateMateriel.isPending}>
-                {updateMateriel.isPending ? 'Enregistrement…' : '✅ Confirmer matériel'}
+                {updateMateriel.isPending ? 'Enregistrement…' : <><CheckCircle2 size={14} /> Confirmer matériel</>}
               </button>
             ) : (
               <button className="btn btn-primary" onClick={() => handleSaveMateriel(false)} disabled={updateMateriel.isPending}>
-                {updateMateriel.isPending ? 'Enregistrement…' : '💾 Enregistrer'}
+                {updateMateriel.isPending ? 'Enregistrement…' : <><Save size={14} /> Enregistrer</>}
               </button>
             )}
             <button className="btn btn-secondary" onClick={() => setMaterielModal(null)}>Annuler</button>
@@ -218,7 +222,7 @@ export default function CommissionsPage() {
 
         {items.length === 0 ? (
           <div className="card card-body" style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--t3)' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>💰</div>
+            <DollarSign size={30} style={{ marginBottom: 12, opacity: 0.5 }} />
             <div style={{ fontWeight: 600, color: 'var(--t1)', marginBottom: 8 }}>Aucune commission pour le moment</div>
             <div style={{ fontSize: 13 }}>Les commissions apparaissent lorsqu'une facture liée à vos interventions est payée.</div>
           </div>
@@ -226,12 +230,12 @@ export default function CommissionsPage() {
           <>
             <div className="grid-2 mb-4">
               <div className="stat-card">
-                <div className="stat-icon amber" style={{ marginBottom: 8, fontSize: 18 }}>⏳</div>
+                <div className="stat-icon amber" style={{ marginBottom: 8 }}><Clock size={17} /></div>
                 <div className="stat-value">{eur(totalPending)}</div>
                 <div className="stat-label">À recevoir</div>
               </div>
               <div className="stat-card">
-                <div className="stat-icon green" style={{ marginBottom: 8, fontSize: 18 }}>✓</div>
+                <div className="stat-icon green" style={{ marginBottom: 8 }}><CheckCircle2 size={17} /></div>
                 <div className="stat-value">{eur(totalReceived)}</div>
                 <div className="stat-label">Déjà reçu</div>
               </div>
@@ -284,7 +288,7 @@ export default function CommissionsPage() {
                     <MaterielBtn c={c} />
                     {c.recue ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span className="pill pill-green">✓ Reçue</span>
+                        <span className="pill pill-green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckCircle2 size={11} /> Reçue</span>
                         {c.recue_le && (
                           <span style={{ fontSize: 12, color: 'var(--t3)' }}>
                             le {new Date(c.recue_le).toLocaleDateString('fr-FR')}
@@ -297,7 +301,7 @@ export default function CommissionsPage() {
                         onClick={() => handleMarkReceived(c)}
                         disabled={processingId === c.id}
                       >
-                        {processingId === c.id ? 'Enregistrement…' : "✓ J'ai reçu ma commission"}
+                        {processingId === c.id ? 'Enregistrement…' : <><CheckCircle2 size={13} /> J'ai reçu ma commission</>}
                       </button>
                     )}
                   </div>
@@ -351,24 +355,24 @@ export default function CommissionsPage() {
           <h1 className="page-title">Commissions</h1>
           <p className="page-subtitle">Calculées sur les factures payées · {items.length} entrée{items.length !== 1 ? 's' : ''}</p>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={items.length === 0}>📥 CSV</button>
+        <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={items.length === 0}><FileSpreadsheet size={14} /> CSV</button>
       </div>
 
       {isAdmin && unattributedCount > 0 && (
-        <div style={{ padding:'12px 14px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:'var(--r2)',marginBottom:16,fontSize:13,color:'var(--amTx)' }}>
-          ⚠ {unattributedCount} facture{unattributedCount > 1 ? 's' : ''} payée{unattributedCount > 1 ? 's' : ''} sans intervention associée — non incluse{unattributedCount > 1 ? 's' : ''} dans les commissions.
+        <div style={{ padding:'12px 14px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:'var(--r2)',marginBottom:16,fontSize:13,color:'var(--amTx)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} /> {unattributedCount} facture{unattributedCount > 1 ? 's' : ''} payée{unattributedCount > 1 ? 's' : ''} sans intervention associée — non incluse{unattributedCount > 1 ? 's' : ''} dans les commissions.
         </div>
       )}
 
       {items.length > 0 && (
         <div className="grid-2 mb-4">
           <div className="stat-card">
-            <div className="stat-icon green" style={{ marginBottom: 8, fontSize: 16 }}>💰</div>
+            <div className="stat-icon green" style={{ marginBottom: 8 }}><DollarSign size={17} /></div>
             <div className="stat-value">{eur(totalCommAll)}</div>
             <div className="stat-label">Total commissions intervenants</div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon blue" style={{ marginBottom: 8, fontSize: 16 }}>🏢</div>
+            <div className="stat-icon blue" style={{ marginBottom: 8 }}><Building2 size={17} /></div>
             <div className="stat-value">{eur(totalResteAll)}</div>
             <div className="stat-label">Reste entreprise</div>
           </div>
@@ -377,7 +381,7 @@ export default function CommissionsPage() {
 
       {items.length === 0 ? (
         <div className="card card-body" style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--t3)' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>💰</div>
+          <DollarSign size={30} style={{ marginBottom: 12, opacity: 0.5 }} />
           <div style={{ fontWeight: 600, color: 'var(--t1)', marginBottom: 8 }}>Aucune commission pour le moment</div>
           <div style={{ fontSize: 13 }}>Les commissions apparaissent lorsqu'une facture est payée et liée à une intervention avec un intervenant assigné.</div>
         </div>
@@ -459,11 +463,11 @@ export default function CommissionsPage() {
                           </td>
                           <td>
                             {c.recue ? (
-                              <span className="pill pill-green" style={{ fontSize: 11 }}>
-                                ✓{c.recue_le ? ` ${new Date(c.recue_le).toLocaleDateString('fr-FR')}` : ''}
+                              <span className="pill pill-green" style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                <CheckCircle2 size={11} />{c.recue_le ? ` ${new Date(c.recue_le).toLocaleDateString('fr-FR')}` : ''}
                               </span>
                             ) : (
-                              <span className="pill pill-amber" style={{ fontSize: 11 }}>⏳</span>
+                              <span className="pill pill-amber" style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center' }}><Clock size={11} /></span>
                             )}
                           </td>
                         </tr>

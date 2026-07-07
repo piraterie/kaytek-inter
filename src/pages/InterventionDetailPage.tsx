@@ -1,6 +1,12 @@
 // src/pages/InterventionDetailPage.tsx
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import {
+  ArrowLeft, AlertTriangle, FileText, ClipboardList, Camera, NotebookPen,
+  DollarSign, CheckCircle2, XCircle, MessageCircle, Send, Zap, RefreshCw,
+  Receipt, Circle, Play, Package, Save, Eye, Phone, MapPin, Copy, X,
+  Loader2, Info, Check,
+} from 'lucide-react'
 import { useIntervention, useUpdateIntervention, useUploadPhoto, useCreateFacture, useDevis, useSignedPhotos } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { Lightbox } from '@/components/Lightbox'
@@ -160,28 +166,32 @@ export default function InterventionDetailPage() {
   const tabs = isAdmin
     ? ['detail','photos','cr','comm'] as const
     : ['detail','photos','cr','comm','facturation'] as const
-  const tabLabel: Record<string,string> = { detail:'📋 Détail', photos:`📷 Photos (${inter.photos?.length||0})`, cr:'📝 Compte-rendu', comm:'💰 Commission', facturation:'📄 Devis / Facture' }
+  const tabIcon: Record<string, React.ReactNode> = {
+    detail: <ClipboardList size={13} />, photos: <Camera size={13} />, cr: <NotebookPen size={13} />,
+    comm: <DollarSign size={13} />, facturation: <FileText size={13} />,
+  }
+  const tabLabel: Record<string,string> = { detail:'Détail', photos:`Photos (${inter.photos?.length||0})`, cr:'Compte-rendu', comm:'Commission', facturation:'Devis / Facture' }
 
   return (
     <div>
       <div className="flex items-center gap-3 mb-4" style={{ flexWrap:'wrap' }}>
-        <button className="btn-icon" onClick={()=>nav('/interventions')}>←</button>
+        <button className="btn-icon" onClick={()=>nav('/interventions')}><ArrowLeft size={16} /></button>
         <div>
           <h1 className="page-title">{inter.numero}</h1>
           <p className="page-subtitle">{inter.client?.nom} {inter.client?.prenom} · {inter.adresse}</p>
         </div>
         <div style={{ marginLeft:'auto',display:'flex',gap:8,flexWrap:'wrap' }}>
-          {inter.urgence && <span className="urgence-badge">🔴 URGENT</span>}
+          {inter.urgence && <span className="urgence-badge"><AlertTriangle size={11} /> URGENT</span>}
           <span className={`pill ${inter.statut==='termine'?'pill-green':inter.statut==='en_cours'?'pill-orange':inter.statut==='en_attente'?'pill-amber':'pill-gray'}`}>{inter.statut.replace('_',' ')}</span>
-          {isAdmin && <button className="btn btn-primary btn-sm" onClick={()=>nav(`/devis/nouveau?intervention=${id}`)}>📄 Créer devis</button>}
-          {peutFacturer && <button className="btn btn-primary btn-sm" onClick={()=>{ setTab('facturation') }}>📄 Facturation</button>}
+          {isAdmin && <button className="btn btn-primary btn-sm" onClick={()=>nav(`/devis/nouveau?intervention=${id}`)}><FileText size={14} /> Créer devis</button>}
+          {peutFacturer && <button className="btn btn-primary btn-sm" onClick={()=>{ setTab('facturation') }}><FileText size={14} /> Facturation</button>}
         </div>
       </div>
       {/* ─── Panel de réponse intervenant ─────────────────────────── */}
       {isAssigned && inter.statut === 'en_attente' && (
         <div className="card card-body mb-4" style={{ border:'2px solid var(--amBd)',background:'var(--amBg)' }}>
           <div style={{ display:'flex',alignItems:'flex-start',gap:12,marginBottom:14 }}>
-            <span style={{ fontSize:22,flexShrink:0 }}>📋</span>
+            <span style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(0,0,0,0.08)', color: 'var(--amTx)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink:0 }}><ClipboardList size={19} /></span>
             <div>
               <p style={{ fontWeight:700,fontSize:14,color:'var(--amTx)',marginBottom:3 }}>Nouvelle intervention vous a été assignée</p>
               <p style={{ fontSize:12,color:'var(--t2)' }}>
@@ -193,14 +203,14 @@ export default function InterventionDetailPage() {
             <div style={{ display:'flex',gap:10,flexWrap:'wrap' }}>
               <button className="btn btn-primary" onClick={handleAccepter} disabled={update.isPending}
                 style={{ background:'#16a34a',border:'none' }}>
-                ✅ Accepter
+                <CheckCircle2 size={15} /> Accepter
               </button>
               <button className="btn btn-secondary" onClick={()=>setReponseMode('refuser')}
                 style={{ color:'var(--rdTx)',borderColor:'var(--rdBd)' }}>
-                ✕ Refuser
+                <XCircle size={15} /> Refuser
               </button>
               <button className="btn btn-secondary" onClick={()=>setReponseMode('proposer')}>
-                💬 Faire une proposition
+                <MessageCircle size={15} /> Faire une proposition
               </button>
             </div>
           ) : reponseMode === 'refuser' ? (
@@ -232,7 +242,7 @@ export default function InterventionDetailPage() {
                 <button className="btn btn-secondary" onClick={()=>{setReponseMode(null);setReponseTexte('')}}>Annuler</button>
                 <button className="btn btn-primary" onClick={handleProposer}
                   disabled={!reponseTexte.trim()||reponseLoading}>
-                  {reponseLoading?'Envoi…':'📤 Envoyer la proposition'}
+                  {reponseLoading?'Envoi…':<><Send size={14} /> Envoyer la proposition</>}
                 </button>
               </div>
             </div>
@@ -248,15 +258,15 @@ export default function InterventionDetailPage() {
             style={{ width: '100%', justifyContent: 'center', gap: 8, minHeight: 48, fontWeight: 600 }}
             onClick={() => setActionsSheet(true)}
           >
-            ⚡ Actions
+            <Zap size={15} /> Actions
           </button>
         </div>
       )}
 
       <div style={{ display:'flex',borderBottom:'1px solid var(--b0)',marginBottom:16,gap:0,overflowX:'auto' }}>
         {tabs.map(t => (
-          <button key={t} onClick={()=>setTab(t)} style={{ padding:'9px 14px',fontSize:12,fontWeight:tab===t?600:400,background:'none',border:'none',borderBottom:tab===t?'2px solid var(--bl)':'2px solid transparent',color:tab===t?'var(--blTx)':'var(--t2)',cursor:'pointer',marginBottom:-1,whiteSpace:'nowrap' }}>
-            {tabLabel[t]}
+          <button key={t} onClick={()=>setTab(t)} style={{ padding:'9px 14px',fontSize:12,fontWeight:tab===t?600:400,background:'none',border:'none',borderBottom:tab===t?'2px solid var(--bl)':'2px solid transparent',color:tab===t?'var(--blTx)':'var(--t2)',cursor:'pointer',marginBottom:-1,whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5 }}>
+            {tabIcon[t]}{tabLabel[t]}
           </button>
         ))}
       </div>
@@ -269,19 +279,22 @@ export default function InterventionDetailPage() {
                 <span style={{ fontWeight:500,textAlign:'right',maxWidth:'55%' }}>{v}</span>
               </div>
             ))}
-            {isAdmin&&inter.notes_admin&&<div style={{ marginTop:12,padding:10,background:'var(--amBg)',borderRadius:7,border:'1px solid var(--amBd)',fontSize:11,color:'var(--amTx)' }}>🔒 <strong>Notes admin</strong><br/>{inter.notes_admin}</div>}
+            {isAdmin&&inter.notes_admin&&<div style={{ marginTop:12,padding:10,background:'var(--amBg)',borderRadius:7,border:'1px solid var(--amBd)',fontSize:11,color:'var(--amTx)' }}><strong>Notes admin</strong><br/>{inter.notes_admin}</div>}
           </div>
           <div className="card card-body">
             {isAdmin ? (
               <>
                 <p style={{ fontSize:12,fontWeight:600,marginBottom:12 }}>Changer le statut</p>
                 <div style={{ display:'flex',flexDirection:'column',gap:7 }}>
-                  {STATUTS.map(s => (
+                  {STATUTS.map(s => {
+                    const StatIcon = s==='termine'?CheckCircle2:s==='en_cours'?RefreshCw:s==='annule'?XCircle:s==='facture'?Receipt:Circle
+                    return (
                     <button key={s} onClick={()=>updateStatut(s)} disabled={inter.statut===s}
                       className={`btn ${inter.statut===s?'btn-primary':'btn-secondary'}`} style={{ justifyContent:'flex-start' }}>
-                      {s==='termine'?'✅':s==='en_cours'?'🔄':s==='annule'?'✕':s==='facture'?'🧾':'○'} {s.replace(/_/g,' ')}
+                      <StatIcon size={14} /> {s.replace(/_/g,' ')}
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
               </>
             ) : (
@@ -290,18 +303,18 @@ export default function InterventionDetailPage() {
                 <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
                   {inter.statut === 'accepte' && (
                     <button className="btn btn-primary" onClick={()=>updateStatut('en_cours')} disabled={update.isPending}>
-                      🔄 Démarrer l'intervention
+                      <Play size={14} /> Démarrer l'intervention
                     </button>
                   )}
                   {inter.statut === 'en_cours' && (
                     <button className="btn btn-primary" onClick={()=>updateStatut('termine')} disabled={update.isPending}
                       style={{ background:'#16a34a',border:'none' }}>
-                      ✅ Marquer terminée
+                      <CheckCircle2 size={14} /> Marquer terminée
                     </button>
                   )}
                   {inter.statut === 'termine' && (
                     <div style={{ padding:12,background:'var(--gnBg)',borderRadius:8,border:'1px solid var(--gnBd)',fontSize:13,color:'var(--gnTx)',textAlign:'center',lineHeight:1.5 }}>
-                      ✅ Intervention terminée<br/>
+                      <CheckCircle2 size={15} style={{ verticalAlign: 'text-bottom' }} /> Intervention terminée<br/>
                       <span style={{ fontSize:11,opacity:.8 }}>Rendez-vous dans l'onglet Devis / Facture</span>
                     </div>
                   )}
@@ -329,7 +342,7 @@ export default function InterventionDetailPage() {
             </select>
             <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleUpload} style={{ display:'none' }} capture="environment" />
             <button className="btn btn-primary" onClick={()=>fileRef.current?.click()} disabled={uploadPhoto.isPending}>
-              {uploadPhoto.isPending?'⏳ Upload…':'📷 Ajouter photos'}
+              {uploadPhoto.isPending?<><Loader2 size={14} className="spin" /> Upload…</>:<><Camera size={14} /> Ajouter photos</>}
             </button>
             <span style={{ fontSize:11,color:'var(--t3)' }}>Compression auto · max 15 MB</span>
           </div>
@@ -360,7 +373,7 @@ export default function InterventionDetailPage() {
             <div className="form-row">
               <div className="form-group"><label>Montant final TTC (€)</label><input type="number" step="0.01" defaultValue={inter.montant_ttc||''} onChange={e=>setCr(c=>({...c,montant_ttc:+e.target.value}))} /></div>
               <div className="form-group">
-                <label>🔩 Pièces achetées (€)</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Package size={11} /> Pièces achetées (€)</label>
                 <input type="number" step="0.01" min={0} defaultValue={inter.cout_pieces||''} placeholder="0.00"
                   onChange={e=>setCr(c=>({...c,cout_pieces:+e.target.value}))} />
                 <span style={{ fontSize:11,color:'var(--t3)',marginTop:3,display:'block' }}>Coût des pièces — déduit de la base commissionnable une fois confirmé</span>
@@ -380,13 +393,13 @@ export default function InterventionDetailPage() {
                 </div>
                 {inter.materiel_confirme && cr.cout_pieces === (inter.cout_pieces || 0) ? (
                   <div style={{ fontSize:12,color:'#16a34a',display:'flex',alignItems:'center',gap:6 }}>
-                    ✅ Confirmé le {inter.materiel_confirme_at ? new Date(inter.materiel_confirme_at).toLocaleDateString('fr-FR') : ''}
+                    <CheckCircle2 size={14} /> Confirmé le {inter.materiel_confirme_at ? new Date(inter.materiel_confirme_at).toLocaleDateString('fr-FR') : ''}
                   </div>
                 ) : inter.materiel_confirme && cr.cout_pieces !== (inter.cout_pieces || 0) ? (
-                  <div style={{ fontSize:11,color:'var(--amTx)' }}>⚠ Montant modifié — la confirmation sera réinitialisée à la sauvegarde</div>
+                  <div style={{ fontSize:11,color:'var(--amTx)', display: 'flex', alignItems: 'center', gap: 5 }}><AlertTriangle size={12} /> Montant modifié — la confirmation sera réinitialisée à la sauvegarde</div>
                 ) : isAdmin && (cr.cout_pieces > 0 || (inter.cout_pieces || 0) > 0) ? (
                   <button type="button" className="btn btn-secondary" style={{ fontSize:12 }} onClick={confirmMateriel} disabled={update.isPending}>
-                    ✅ Confirmer le matériel
+                    <CheckCircle2 size={13} /> Confirmer le matériel
                   </button>
                 ) : (
                   <div style={{ fontSize:11,color:'var(--t3)' }}>En attente de confirmation admin</div>
@@ -414,15 +427,15 @@ export default function InterventionDetailPage() {
                 })()}
               </div>
             )}
-            <button type="submit" className="btn btn-primary" disabled={update.isPending}>💾 Sauvegarder</button>
+            <button type="submit" className="btn btn-primary" disabled={update.isPending}><Save size={14} /> Sauvegarder</button>
           </form>
         </div>
       )}
       {tab==='comm' && (
         <div className="card card-body" style={{ maxWidth:420 }}>
           {!inter.montant_ttc && (
-            <div style={{ padding:'10px 14px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:8,fontSize:12,color:'var(--amTx)',marginBottom:16 }}>
-              ⚠ Renseignez le montant TTC dans l'onglet Compte-rendu pour voir les commissions.
+            <div style={{ padding:'10px 14px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:8,fontSize:12,color:'var(--amTx)',marginBottom:16, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertTriangle size={14} style={{ flexShrink: 0 }} /> Renseignez le montant TTC dans l'onglet Compte-rendu pour voir les commissions.
             </div>
           )}
           {isAdmin && inter.intervenant && (
@@ -431,13 +444,13 @@ export default function InterventionDetailPage() {
             </div>
           )}
           {(inter.cout_pieces || 0) > 0 && !inter.materiel_confirme && (
-            <div style={{ padding:'8px 12px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:6,fontSize:11,color:'var(--amTx)',marginBottom:12 }}>
-              🔩 Matériel non confirmé ({(inter.cout_pieces||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}) — non déduit de la base
+            <div style={{ padding:'8px 12px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:6,fontSize:11,color:'var(--amTx)',marginBottom:12, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Package size={12} style={{ flexShrink: 0 }} /> Matériel non confirmé ({(inter.cout_pieces||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}) — non déduit de la base
             </div>
           )}
           {[
             ['CA TTC', ttc.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}), 'var(--t0)'],
-            ...(coutPieces > 0 ? [['🔩 Matériel confirmé', `− ${coutPieces.toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}`, 'var(--rdTx)']] : []),
+            ...(coutPieces > 0 ? [['Matériel confirmé', `− ${coutPieces.toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}`, 'var(--rdTx)']] : []),
             ['Base commissionnable', base.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}), 'var(--t0)'],
             ['Pourcentage', `${commPct} %`, 'var(--blTx)'],
           ].map(([l,v,c])=>(
@@ -461,23 +474,23 @@ export default function InterventionDetailPage() {
       {tab==='facturation' && !isAdmin && (
         <div>
           {!peutFacturer && (
-            <div style={{ padding:'14px 16px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:'var(--r2)',marginBottom:12,fontSize:13,color:'var(--amTx)' }}>
-              ⚠ Vous pouvez créer un devis ou une facture uniquement quand l'intervention est <strong>terminée</strong>.
+            <div style={{ padding:'14px 16px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:'var(--r2)',marginBottom:12,fontSize:13,color:'var(--amTx)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertTriangle size={15} style={{ flexShrink: 0 }} /> Vous pouvez créer un devis ou une facture uniquement quand l'intervention est <strong>terminée</strong>.
             </div>
           )}
           {peutFacturer && canCreateDocs && (
             <div style={{ display:'flex',gap:10,marginBottom:16,flexWrap:'wrap' }}>
               <button className="btn btn-primary" onClick={()=>nav(`/devis/nouveau?intervention=${id}`)}>
-                📄 Créer un devis
+                <FileText size={14} /> Créer un devis
               </button>
               <button className="btn btn-secondary" onClick={()=>setFactureModal(true)}>
-                🧾 Créer une facture directe
+                <Receipt size={14} /> Créer une facture directe
               </button>
             </div>
           )}
           {peutFacturer && !canCreateDocs && (
-            <div style={{ padding:'12px 14px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:'var(--r2)',marginBottom:12,fontSize:13,color:'var(--amTx)' }}>
-              ⚠ L'administrateur ne vous a pas encore autorisé à créer des devis ou factures.
+            <div style={{ padding:'12px 14px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:'var(--r2)',marginBottom:12,fontSize:13,color:'var(--amTx)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertTriangle size={15} style={{ flexShrink: 0 }} /> L'administrateur ne vous a pas encore autorisé à créer des devis ou factures.
             </div>
           )}
           {/* Devis existants pour cette intervention */}
@@ -495,7 +508,7 @@ export default function InterventionDetailPage() {
                       {d.statut==='en_attente_validation'?'En attente validation':d.statut==='brouillon'?'Brouillon':d.statut}
                     </span>
                     <button className="btn btn-secondary btn-sm" onClick={()=>nav(`/devis/${d.id}/apercu`)}>
-                      👁 Aperçu
+                      <Eye size={13} /> Aperçu
                     </button>
                   </div>
                 </div>
@@ -522,19 +535,19 @@ export default function InterventionDetailPage() {
             onClose={() => setActionsSheet(false)}
           >
             {tel && (
-              <SheetRow icon="📞" label="Appeler" sublabel={tel}
+              <SheetRow icon={<Phone size={16} />} label="Appeler" sublabel={tel}
                 onClick={() => { setActionsSheet(false); window.location.href = `tel:${tel}` }} />
             )}
             {tel && (
-              <SheetRow icon="💬" label="Envoyer un SMS" sublabel={tel}
+              <SheetRow icon={<MessageCircle size={16} />} label="Envoyer un SMS" sublabel={tel}
                 onClick={() => { setActionsSheet(false); window.location.href = `sms:${tel}` }} />
             )}
             {addrFull && (
-              <SheetRow icon="📍" label="Ouvrir dans Waze" sublabel={addrFull}
+              <SheetRow icon={<MapPin size={16} />} label="Ouvrir dans Waze" sublabel={addrFull}
                 onClick={() => { setActionsSheet(false); window.open(wazeUrl, '_blank') }} />
             )}
             {addrFull && (
-              <SheetRow icon="📋" label="Copier l'adresse" sublabel={addrFull}
+              <SheetRow icon={<Copy size={16} />} label="Copier l'adresse" sublabel={addrFull}
                 onClick={async () => {
                   setActionsSheet(false)
                   try { await navigator.clipboard.writeText(addrFull); add('Adresse copiée') }
@@ -551,17 +564,18 @@ export default function InterventionDetailPage() {
           <div className="modal" onClick={e=>e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">Créer une facture</span>
-              <button className="btn-icon sm" onClick={()=>setFactureModal(false)}>✕</button>
+              <button className="btn-icon sm" onClick={()=>setFactureModal(false)}><X size={15} /></button>
             </div>
             <form onSubmit={handleCreateFacture}>
               <div className="modal-body">
                 <div style={{ padding:'10px 14px',borderRadius:'var(--r2)',fontSize:12,marginBottom:14,
                   background: user?.can_bypass_validation ? 'var(--gnBg)' : 'var(--blBg)',
                   border: user?.can_bypass_validation ? '1px solid var(--gnBd)' : '1px solid var(--blBd)',
-                  color: user?.can_bypass_validation ? 'var(--gnTx)' : 'var(--blTx)' }}>
+                  color: user?.can_bypass_validation ? 'var(--gnTx)' : 'var(--blTx)',
+                  display: 'flex', alignItems: 'center', gap: 8 }}>
                   {user?.can_bypass_validation
-                    ? '✓ La facture sera créée directement. L\'administrateur sera notifié.'
-                    : 'ℹ La facture sera soumise à validation de l\'administrateur avant d\'être active.'}
+                    ? <><Check size={14} style={{ flexShrink: 0 }} /> La facture sera créée directement. L'administrateur sera notifié.</>
+                    : <><Info size={14} style={{ flexShrink: 0 }} /> La facture sera soumise à validation de l'administrateur avant d'être active.</>}
                 </div>
                 <div className="form-group">
                   <label>Montant TTC (€) *</label>

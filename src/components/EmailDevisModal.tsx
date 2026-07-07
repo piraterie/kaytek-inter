@@ -1,6 +1,7 @@
 // src/components/EmailDevisModal.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Mail } from 'lucide-react'
 import { generateDevisPDF } from '@/lib/pdf/generator'
 import { pdfCache } from '@/lib/pdf/cache'
 import { supabase } from '@/lib/supabase/client'
@@ -76,7 +77,7 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
     // Fermer la modale immédiatement — l'utilisateur n'attend pas
     setSending(true) // évite double-clic pendant le re-render
     onClose()
-    add('📧 Envoi en cours…', 'info')
+    add('Envoi en cours…', 'info')
 
     // Envoi en arrière-plan — fire & forget
     ;(async () => {
@@ -179,14 +180,14 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
         })
 
         if (response.error) {
-          add(`❌ Impossible d'envoyer le devis`, 'error')
+          add(`Impossible d'envoyer le devis`, 'error')
         } else {
-          add(`✅ Email envoyé à ${_to}`, 'success')
+          add(`Email envoyé à ${_to}`, 'success')
           _onSent() // marque le devis comme envoyé + notifie l'intervenant
         }
       } catch (e: any) {
         console.error('[devis-email] erreur', e)
-        add(`❌ Impossible d'envoyer le devis`, 'error')
+        add(`Impossible d'envoyer le devis`, 'error')
       }
     })()
   }
@@ -214,7 +215,9 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
         onClick={e => e.stopPropagation()}
       >
         <div>
-          <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--t0)' }}>✉ Envoyer le devis par email</div>
+          <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--t0)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Mail size={18} /> Envoyer le devis par email
+          </div>
           <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 4 }}>Le PDF sera joint automatiquement</div>
         </div>
 
@@ -269,7 +272,7 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
             disabled={sending || !emailTo}
             style={{ minHeight: 44, padding: '0 20px', display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 10, fontWeight: 600, fontSize: 15 }}
           >
-            <span style={{ fontSize: 20, lineHeight: 1 }}>📧</span><span>Envoyer le devis</span>
+            <Mail size={17} /><span>Envoyer le devis</span>
           </button>
         </div>
       </div>
