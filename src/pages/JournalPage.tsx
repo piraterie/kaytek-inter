@@ -1,8 +1,9 @@
 // src/pages/JournalPage.tsx
 import { useState, useMemo } from 'react'
 import { FileSpreadsheet, Loader2, Trash2, MoreHorizontal, Search, X, StickyNote, Pencil } from 'lucide-react'
-import { useJournal, useDeleteJournalEntry, useDeleteAllJournal, useUpdateJournalEntry, useInterventions, useDevis, useFactures, useCommissionsData } from '@/lib/hooks'
-import { useToastStore } from '@/lib/store'
+import { useJournal, useDeleteJournalEntry, useDeleteAllJournal, useUpdateJournalEntry, useInterventions, useDevis, useFactures, useCommissionsData, useClients } from '@/lib/hooks'
+import { useAuthStore, useToastStore } from '@/lib/store'
+import { exportJournalPremium, exportRapportComplet } from '@/lib/exportPremium'
 import ConfirmModal from '@/components/ConfirmModal'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 import type { JournalEntry } from '@/types'
@@ -57,14 +58,6 @@ function summarize(obj: Record<string, unknown> | null | undefined): string {
   return parts.length ? parts.join(' · ') : (obj ? JSON.stringify(obj).slice(0, 60) : '—')
 }
 
-function downloadCSV(rows: string[][], filename: string) {
-  const csv = '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
-  URL.revokeObjectURL(url)
-}
-
 const eur = (n: number) => (n || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 function getPeriodStart(period: string): Date | null {
@@ -84,6 +77,7 @@ const PERIOD_LABELS: Record<string, string> = {
 }
 
 export default function JournalPage() {
+  const { user } = useAuthStore()
   const { data: journal = [], isLoading } = useJournal()
   const delOne = useDeleteJournalEntry()
   const delAll = useDeleteAllJournal()
@@ -94,6 +88,7 @@ export default function JournalPage() {
   const { data: interventions = [] } = useInterventions()
   const { data: devis = [] } = useDevis()
   const { data: factures = [] } = useFactures()
+  const { data: clients = [] } = useClients()
   const { data: commissionsData } = useCommissionsData()
   const commItems = commissionsData?.items ?? []
 
@@ -164,184 +159,23 @@ export default function JournalPage() {
     } catch (e: any) { add(e.message, 'error') }
   }
 
-  // Export journal brut existant — conservé intact
-  function handleExport() {
-    const headers = ['Date', 'Utilisateur', 'Action', 'Table', 'N° Document', 'Statut', 'Client', 'Email', 'Téléphone', 'Adresse', 'Montant TTC (€)', 'Type', 'Description', 'Note']
-    const rows = filtered.map(j => {
-      const nv = extractFields(j.new_value as any)
-      const ov = extractFields(j.old_value as any)
-      return [
-        fmtDate(j.created_at), j.user_nom || '', j.action, TABLE_LABELS[j.table_name] || j.table_name,
-        nv.numero || ov.numero, nv.statut || ov.statut, nv.client || ov.client,
-        nv.email || ov.email, nv.telephone || ov.telephone, nv.adresse || ov.adresse,
-        (nv.montant || ov.montant) ? (nv.montant || ov.montant).toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : '',
-        nv.type || ov.type, nv.description || ov.description, j.description || ''
-      ]
-    })
-    downloadCSV([headers, ...rows], `journal-${new Date().toISOString().split('T')[0]}.csv`)
+  async function handleExport() {
+    try {
+      const ctx = { user: user ? { nom: user.nom, prenom: user.prenom } : null }
+      await exportJournalPremium(filtered, ctx)
+    } catch (e: any) { add('Erreur export : ' + e.message, 'error') }
   }
 
-  // Nouveau rapport mensuel multi-onglets Excel
   async function handleExportRapport() {
     setIsExporting(true)
     try {
-      const { utils, writeFile } = await import('xlsx')
-
-      function autoWidth(ws: any, data: any[][]) {
-        const cols = (data[0] || []).map((_: any, i: number) => ({
-          wch: Math.max(...data.map(row => String(row[i] ?? '').length), 12)
-        }))
-        ws['!cols'] = cols
-      }
-
-      const wb = utils.book_new()
-
-      // ── Onglet 1 : Synthèse par mois ──────────────────────────────
-      const allDates = [
-        ...interventions.map(i => new Date(i.created_at)),
-        ...devis.map(d => new Date(d.created_at)),
-        ...factures.map(f => new Date(f.created_at)),
-      ]
-      const minDate = allDates.length ? new Date(Math.min(...allDates.map(d => d.getTime()))) : new Date()
-
-      const months: Array<{ y: number; m: number }> = []
-      const cur = new Date(minDate.getFullYear(), minDate.getMonth(), 1)
-      const nowEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
-      while (cur < nowEnd) {
-        months.push({ y: cur.getFullYear(), m: cur.getMonth() })
-        cur.setMonth(cur.getMonth() + 1)
-      }
-      months.reverse()
-
-      const syntheseData: any[][] = [
-        ['Mois', 'Interventions', 'Devis', 'Devis acceptés', 'Factures', 'Factures payées', 'CA TTC (€)', 'Commissions intervenants (€)', 'Reste entreprise (€)']
-      ]
-      for (const { y, m } of months) {
-        const mStart = new Date(y, m, 1)
-        const mEnd = new Date(y, m + 1, 1)
-        const inRange = (iso: string) => { const d = new Date(iso); return d >= mStart && d < mEnd }
-
-        const nbInter = interventions.filter(i => inRange(i.created_at)).length
-        const nbDevis = devis.filter(d => inRange(d.created_at)).length
-        const nbDevisOk = devis.filter(d => inRange(d.created_at) && d.statut === 'accepte').length
-        const nbFact = factures.filter(f => inRange(f.created_at)).length
-        const nbFactPay = factures.filter(f => f.statut_paiement === 'payee' && !!f.date_paiement && inRange(f.date_paiement)).length
-        const caFact = factures
-          .filter(f => f.statut_paiement === 'payee' && !!f.date_paiement && inRange(f.date_paiement))
-          .reduce((s, f) => s + (f.montant_ttc || 0), 0)
-        const monthComms = commItems.filter(c => !!c.date_paiement && inRange(c.date_paiement))
-        const commInt = monthComms.reduce((s, c) => s + (c.commission_intervenant || 0), 0)
-        const reste = monthComms.reduce((s, c) => s + (c.reste_entreprise || 0), 0)
-
-        const label = mStart.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
-        const labelCap = label.charAt(0).toUpperCase() + label.slice(1)
-        syntheseData.push([labelCap, nbInter, nbDevis, nbDevisOk, nbFact, nbFactPay, caFact, commInt, reste])
-      }
-
-      const wsSynthese = utils.aoa_to_sheet(syntheseData)
-      autoWidth(wsSynthese, syntheseData)
-      utils.book_append_sheet(wb, wsSynthese, 'Synthèse')
-
-      // ── Onglet 2 : Interventions ───────────────────────────────────
-      const interData: any[][] = [
-        ['N° Intervention', 'Date', 'Client', 'Téléphone', 'Adresse', 'Intervenant', 'Activité', 'Statut', 'Montant TTC (€)']
-      ]
-      for (const i of interventions) {
-        const client = i.client as any
-        const interv = i.intervenant as any
-        interData.push([
-          i.numero || '—',
-          new Date(i.created_at).toLocaleDateString('fr-FR'),
-          client ? `${client.nom || ''} ${client.prenom || ''}`.trim() : '—',
-          client?.telephone || '—',
-          i.adresse || '—',
-          interv ? `${interv.prenom || ''} ${interv.nom || ''}`.trim() : '—',
-          i.type || '—',
-          i.statut || '—',
-          i.montant_ttc || 0,
-        ])
-      }
-      const wsInter = utils.aoa_to_sheet(interData)
-      autoWidth(wsInter, interData)
-      utils.book_append_sheet(wb, wsInter, 'Interventions')
-
-      // ── Onglet 3 : Devis ──────────────────────────────────────────
-      const devisData: any[][] = [
-        ['N° Devis', 'Date', 'Client', 'Téléphone', 'Montant TTC (€)', 'Statut', 'Intervenant']
-      ]
-      for (const d of devis) {
-        const client = d.client as any
-        const interv = d.intervenant as any
-        devisData.push([
-          d.numero || '—',
-          new Date(d.created_at).toLocaleDateString('fr-FR'),
-          client ? `${client.nom || ''} ${client.prenom || ''}`.trim() : '—',
-          client?.telephone || '—',
-          d.total_ttc || 0,
-          d.statut || '—',
-          interv ? `${interv.prenom || ''} ${interv.nom || ''}`.trim() : '—',
-        ])
-      }
-      const wsDevis = utils.aoa_to_sheet(devisData)
-      autoWidth(wsDevis, devisData)
-      utils.book_append_sheet(wb, wsDevis, 'Devis')
-
-      // ── Onglet 4 : Factures ───────────────────────────────────────
-      // Retrouver l'intervenant via commissions (factures liées à une intervention)
-      const commByFactNum: Record<string, any> = {}
-      commItems.forEach(c => { if (c.facture_numero) commByFactNum[c.facture_numero] = c.intervenant })
-
-      const factData: any[][] = [
-        ['N° Facture', 'Date émission', 'Client', 'Téléphone', 'Montant TTC (€)', 'Statut paiement', 'Intervenant']
-      ]
-      for (const f of factures) {
-        const client = f.client as any
-        const interv = commByFactNum[f.numero]
-        factData.push([
-          f.numero || '—',
-          f.date_emission ? new Date(f.date_emission).toLocaleDateString('fr-FR') : '—',
-          client ? `${client.nom || ''} ${client.prenom || ''}`.trim() : '—',
-          client?.telephone || '—',
-          f.montant_ttc || 0,
-          f.statut_paiement || '—',
-          interv ? `${interv.prenom || ''} ${interv.nom || ''}`.trim() : '—',
-        ])
-      }
-      const wsFactures = utils.aoa_to_sheet(factData)
-      autoWidth(wsFactures, factData)
-      utils.book_append_sheet(wb, wsFactures, 'Factures')
-
-      // ── Onglet 5 : Commissions ────────────────────────────────────
-      const byInt: Record<string, typeof commItems> = {}
-      commItems.forEach(c => {
-        const key = c.intervenant_id || 'unknown'
-        if (!byInt[key]) byInt[key] = []
-        byInt[key].push(c)
-      })
-
-      const commData: any[][] = [
-        ['Intervenant', 'Nombre factures', 'CA TTC (€)', 'Matériel (€)', 'Base commissionnable (€)', 'Commission (€)', 'Reste entreprise (€)']
-      ]
-      for (const items of Object.values(byInt)) {
-        const interv = items[0]?.intervenant as any
-        commData.push([
-          interv ? `${interv.prenom || ''} ${interv.nom || ''}`.trim() : '—',
-          items.length,
-          items.reduce((s, c) => s + (c.montant_ttc || 0), 0),
-          items.reduce((s, c) => s + (c.cout_pieces || 0), 0),
-          items.reduce((s, c) => s + (c.base_commissionnable || 0), 0),
-          items.reduce((s, c) => s + (c.commission_intervenant || 0), 0),
-          items.reduce((s, c) => s + (c.reste_entreprise || 0), 0),
-        ])
-      }
-      const wsComm = utils.aoa_to_sheet(commData)
-      autoWidth(wsComm, commData)
-      utils.book_append_sheet(wb, wsComm, 'Commissions')
-
-      writeFile(wb, `rapport-${new Date().toISOString().split('T')[0]}.xlsx`)
-      add('Rapport mensuel exporté')
+      const ctx = { user: user ? { nom: user.nom, prenom: user.prenom } : null }
+      await exportRapportComplet({
+        devis, factures, clients, commissions: commItems, interventions, journal,
+      }, ctx)
+      add('Rapport complet exporté')
     } catch (e: any) {
-      add(e.message || "Erreur export rapport", 'error')
+      add(e.message || 'Erreur export rapport', 'error')
     } finally {
       setIsExporting(false)
     }
@@ -358,10 +192,10 @@ export default function JournalPage() {
         {/* Desktop : inchangé */}
         <div className="page-actions hide-mobile">
           <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={filtered.length === 0}>
-            <FileSpreadsheet size={14} /> Export ({filtered.length})
+            <FileSpreadsheet size={14} /> Journal ({filtered.length})
           </button>
           <button className="btn btn-secondary btn-sm" onClick={handleExportRapport} disabled={isExporting}>
-            {isExporting ? <><Loader2 size={14} className="spin" /> Export…</> : <><FileSpreadsheet size={14} /> Rapport</>}
+            {isExporting ? <><Loader2 size={14} className="spin" /> Export…</> : <><FileSpreadsheet size={14} /> Rapport complet</>}
           </button>
           <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
             onClick={handleDeleteAll} disabled={journal.length === 0 || delAll.isPending}>
@@ -518,15 +352,15 @@ export default function JournalPage() {
         <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
           <SheetRow
             icon={<FileSpreadsheet size={16} />}
-            label={`Exporter CSV (${filtered.length})`}
+            label={`Journal Excel (${filtered.length})`}
             sublabel={filtered.length === 0 ? 'Aucune entrée' : `${filtered.length} entrée${filtered.length > 1 ? 's' : ''}`}
             onClick={() => { setShowMobileActions(false); handleExport() }}
             disabled={filtered.length === 0}
           />
           <SheetRow
             icon={<FileSpreadsheet size={16} />}
-            label="Exporter rapport Excel"
-            sublabel="Synthèse mensuelle multi-onglets"
+            label="Rapport complet"
+            sublabel="Dashboard + toutes les données"
             onClick={() => { setShowMobileActions(false); handleExportRapport() }}
             disabled={isExporting}
           />

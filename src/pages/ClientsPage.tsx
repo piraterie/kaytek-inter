@@ -10,14 +10,7 @@ import { useAuthStore, useToastStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
 import { AddressAutocomplete } from '@/components/AddressAutocomplete'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
-
-function downloadCSV(rows: string[][], filename: string) {
-  const csv = '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
-  URL.revokeObjectURL(url)
-}
+import { exportClientsPremium } from '@/lib/exportPremium'
 
 const chkStyle: React.CSSProperties = { width: 18, height: 18, cursor: 'pointer', flexShrink: 0, accentColor: 'var(--bl)' }
 
@@ -151,16 +144,10 @@ export default function ClientsPage() {
     })
   }
 
-  function handleExport() {
-    const rows = [
-      ['Nom', 'Prénom', 'Téléphone', 'Email', 'Adresse', 'Type', 'Date création'],
-      ...clients.map(c => [
-        c.nom, c.prenom||'', c.telephone||'', c.email||'',
-        c.adresse_intervention||'', c.type,
-        new Date(c.created_at).toLocaleDateString('fr-FR')
-      ])
-    ]
-    downloadCSV(rows, `clients-${new Date().toISOString().split('T')[0]}.csv`)
+  async function handleExport() {
+    try {
+      await exportClientsPremium(clients, { user: user ? { nom: user.nom, prenom: user.prenom } : null })
+    } catch (e: any) { add('Erreur export : ' + e.message, 'error') }
   }
 
   return (
@@ -172,7 +159,7 @@ export default function ClientsPage() {
         </div>
         {/* Desktop : inchangé */}
         <div className="page-actions hide-mobile">
-          <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={clients.length===0}><FileSpreadsheet size={14} /> CSV</button>
+          <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={clients.length===0}><FileSpreadsheet size={14} /> Excel</button>
           {isAdmin && (
             <button
               className={`btn btn-sm ${showArchived ? 'btn-primary' : 'btn-secondary'}`}
@@ -405,7 +392,7 @@ export default function ClientsPage() {
         <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
           <SheetRow
             icon={<FileSpreadsheet size={16} />}
-            label="Exporter CSV"
+            label="Exporter Excel"
             sublabel={clients.length === 0 ? 'Aucun client' : `${clients.length} client${clients.length > 1 ? 's' : ''}`}
             onClick={() => { setShowMobileActions(false); handleExport() }}
             disabled={clients.length === 0}

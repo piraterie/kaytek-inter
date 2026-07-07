@@ -32,7 +32,15 @@ export default defineConfig({
     })
   ],
   resolve: {
-    alias: { '@': path.resolve(__dirname, './src') }
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      // Bundle UMD auto-suffisant : core-js intégré, pas d'imports externes Node.js
+      'exceljs': path.resolve(__dirname, 'node_modules/exceljs/dist/exceljs.min.js'),
+    }
+  },
+  optimizeDeps: {
+    // Pré-bundle ExcelJS via esbuild → CJS→ESM, évite les imports core-js nus dans le navigateur
+    include: ['exceljs'],
   },
   build: {
     rollupOptions: {
@@ -42,7 +50,8 @@ export default defineConfig({
           supabase: ['@supabase/supabase-js'],
           query: ['@tanstack/react-query'],
           pdf: ['@react-pdf/renderer'],
-          xlsx: ['xlsx']
+          xlsx: ['xlsx'],
+          exceljs: ['exceljs'],
         }
       }
     }

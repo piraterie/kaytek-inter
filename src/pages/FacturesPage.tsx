@@ -13,13 +13,8 @@ import { supabase } from '@/lib/supabase/client'
 import { envoyerEmail } from '@/lib/supabase/auth'
 import { getTheme } from '@/lib/themes'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
+import { exportFacturesPremium } from '@/lib/exportPremium'
 import type { Facture } from '@/types'
-
-function downloadCSV(rows: string[][], filename: string) {
-  const csv = '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url)
-}
 
 const SC: Record<string, string> = { en_attente_validation: 'pill-amber', payee: 'pill-green', impayee: 'pill-red', acompte: 'pill-purple', partiel: 'pill-orange', annulee: 'pill-gray' }
 const SL: Record<string, string> = { en_attente_validation: 'En attente', payee: 'Payée', impayee: 'Impayée', acompte: 'Acompte', partiel: 'Partielle', annulee: 'Annulée' }
@@ -302,20 +297,10 @@ export default function FacturesPage() {
     catch (e: any) { add(e.message, 'error') }
   }
 
-  function handleExportCSV() {
-    const rows = [
-      ['Numéro', 'Client', 'Activité', 'Total HT', 'Total TTC', 'Statut', 'Date émission'],
-      ...filtered.map(f => [
-        f.numero,
-        `${f.client?.nom || ''} ${f.client?.prenom || ''}`.trim(),
-        f.devis?.activite || '—',
-        String(f.montant_ht || 0),
-        String(f.montant_ttc || 0),
-        f.statut_paiement,
-        fmtDate(f.date_emission)
-      ])
-    ]
-    downloadCSV(rows, `factures-${new Date().toISOString().split('T')[0]}.csv`)
+  async function handleExportCSV() {
+    try {
+      await exportFacturesPremium(filtered, { params, user: user ? { nom: user.nom, prenom: user.prenom } : null })
+    } catch (e: any) { add('Erreur export : ' + e.message, 'error') }
   }
 
   return (
@@ -332,7 +317,7 @@ export default function FacturesPage() {
           </div>
           {/* Desktop : inchangé */}
           <div className="page-actions hide-mobile">
-            <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}><FileSpreadsheet size={14} /> CSV</button>
+            <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}><FileSpreadsheet size={14} /> Excel</button>
             {isAdmin && !selectionMode && filtered.length > 0 && (
               <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}><CheckSquare size={14} /> Sélectionner</button>
             )}
@@ -698,7 +683,7 @@ export default function FacturesPage() {
         <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
           <SheetRow
             icon={<FileSpreadsheet size={16} />}
-            label="Exporter CSV"
+            label="Exporter Excel"
             sublabel={filtered.length === 0 ? 'Aucune facture' : `${filtered.length} facture${filtered.length > 1 ? 's' : ''}`}
             onClick={() => { setShowMobileActions(false); handleExportCSV() }}
             disabled={filtered.length === 0}
