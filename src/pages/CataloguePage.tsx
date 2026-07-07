@@ -1,8 +1,8 @@
 // src/pages/CataloguePage.tsx
 import { useState } from 'react'
 import { Search, X, Pencil, Pause, Play, Info } from 'lucide-react'
-import { useAllPrestations, useCreatePrestation, useUpdatePrestation } from '@/lib/hooks'
-import { useToastStore } from '@/lib/store'
+import { useAllPrestations, useCreatePrestation, useUpdatePrestation, useSeedDefaultPrestations } from '@/lib/hooks'
+import { useToastStore, useAuthStore } from '@/lib/store'
 import type { Categorie, Prestation } from '@/types'
 
 const ACTIVITES: { value: Categorie | 'tous'; label: string }[] = [
@@ -31,9 +31,11 @@ const emptyForm = { nom: '', categorie: 'serrurerie' as Categorie, prix_conseill
 
 export default function CataloguePage() {
   const { add } = useToastStore()
+  const { isAdmin, user } = useAuthStore()
   const { data: prestations = [], isLoading } = useAllPrestations()
   const create = useCreatePrestation()
   const upd = useUpdatePrestation()
+  const seed = useSeedDefaultPrestations()
 
   const [filterAct, setFilterAct] = useState<Categorie | 'tous'>('tous')
   const [search, setSearch] = useState('')
@@ -73,6 +75,14 @@ export default function CataloguePage() {
         add('Prestation créée')
       }
       setModal(false)
+    } catch (err: any) { add(err.message, 'error') }
+  }
+
+  async function handleSeedDefaults() {
+    if (!user?.organisation_id) return
+    try {
+      const n = await seed.mutateAsync(user.organisation_id)
+      add(n > 0 ? `${n} prestation${n > 1 ? 's' : ''} par défaut ajoutée${n > 1 ? 's' : ''}` : 'Prestations par défaut déjà présentes')
     } catch (err: any) { add(err.message, 'error') }
   }
 
@@ -132,7 +142,22 @@ export default function CataloguePage() {
                 <p style={{ marginBottom: 12 }}>Aucun résultat pour « {search} »</p>
                 <button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button>
               </>
-            ) : 'Aucune prestation'}
+            ) : isAdmin() ? (
+              <>
+                <p style={{ marginBottom: 14, fontSize: 14 }}>
+                  Aucune prestation{filterAct !== 'tous' ? ` en ${ACT_LABELS[filterAct] || filterAct}` : ''}.
+                </p>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleSeedDefaults}
+                  disabled={seed.isPending}
+                >
+                  {seed.isPending ? 'Ajout en cours…' : '+ Ajouter les prestations par défaut'}
+                </button>
+              </>
+            ) : (
+              <p style={{ fontSize: 14 }}>Aucune prestation{filterAct !== 'tous' ? ` dans cette catégorie` : ''}.</p>
+            )}
           </div>
         )}
         {filtered.map(p => (
@@ -177,7 +202,22 @@ export default function CataloguePage() {
             {isLoading && <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Chargement…</td></tr>}
             {!isLoading && filtered.length === 0 && (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>
-                {search.trim() ? <><span>Aucun résultat — </span><button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button></> : 'Aucune prestation'}
+                {search.trim() ? (
+                  <><span>Aucun résultat — </span><button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button></>
+                ) : isAdmin() ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+                    <span>Aucune prestation{filterAct !== 'tous' ? ` en ${ACT_LABELS[filterAct] || filterAct}` : ''} —</span>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={handleSeedDefaults}
+                      disabled={seed.isPending}
+                    >
+                      {seed.isPending ? 'Ajout…' : '+ Ajouter les prestations par défaut'}
+                    </button>
+                  </span>
+                ) : (
+                  `Aucune prestation${filterAct !== 'tous' ? ' dans cette catégorie' : ''}`
+                )}
               </td></tr>
             )}
             {filtered.map(p => (

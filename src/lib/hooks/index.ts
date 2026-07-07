@@ -328,6 +328,21 @@ export function useUpdatePrestation() {
   })
 }
 
+export function useSeedDefaultPrestations() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (orgId: string) => {
+      const { data, error } = await supabase.rpc('seed_default_prestations', { p_org_id: orgId })
+      if (error) throw error
+      return data as number
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['prestations'] })
+      qc.invalidateQueries({ queryKey: ['prestations-all'] })
+    }
+  })
+}
+
 // ── INTERVENTIONS ────────────────────────────────────────────────
 export function useInterventions(filters?: { statut?: string; intervenant_id?: string; search?: string; showArchived?: boolean }) {
   const user = useAuthStore(s => s.user)
