@@ -4,7 +4,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   LayoutDashboard, MessagesSquare, Wrench, CalendarDays, FileText, Receipt,
-  Users, Package, DollarSign, Shield, Settings, ClipboardList,
+  Users, Package, DollarSign, Shield, Settings, ClipboardList, Handshake,
   ChevronLeft, ChevronRight, LogOut, Sun, Moon, BookOpen,
   MessageCircle, Bell, Menu, User, Smartphone, Monitor, X,
   CheckCheck, Trash2, ChevronUp, ChevronDown, AlertTriangle,
@@ -22,7 +22,7 @@ import OfflineBanner from '@/components/OfflineBanner'
 
 type NavIcon = React.ComponentType<{ size?: number; strokeWidth?: number; style?: React.CSSProperties }>
 
-const NAV: { path: string; label: string; icon: NavIcon; section: string; adminOnly?: boolean; badge?: 'messages' | 'pending' }[] = [
+const NAV: { path: string; label: string; icon: NavIcon; section: string; adminOnly?: boolean; badge?: 'messages' | 'pending' | 'partnerRequests' }[] = [
   { path: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard, section: 'Pilotage' },
   { path: '/messagerie',    label: 'Messagerie',    icon: MessagesSquare,  section: 'Pilotage', badge: 'messages' },
   { path: '/interventions', label: 'Interventions', icon: Wrench,          section: 'Terrain',  badge: 'pending' },
@@ -33,6 +33,7 @@ const NAV: { path: string; label: string; icon: NavIcon; section: string; adminO
   { path: '/catalogue',     label: 'Catalogue',     icon: Package,         section: 'Gestion', adminOnly: true },
   { path: '/commissions',   label: 'Commissions',   icon: DollarSign,      section: 'Gestion' },
   { path: '/guide',         label: 'Guide',         icon: BookOpen,        section: 'Gestion' },
+  { path: '/partenaires',   label: 'Réseau partenaires', icon: Handshake,  section: 'Administration', adminOnly: true, badge: 'partnerRequests' },
   { path: '/utilisateurs',  label: 'Utilisateurs',  icon: Shield,          section: 'Administration', adminOnly: true },
   { path: '/parametres',    label: 'Paramètres',    icon: Settings,        section: 'Administration', adminOnly: true },
   { path: '/journal',       label: 'Journal',       icon: ClipboardList,   section: 'Administration', adminOnly: true },
@@ -77,6 +78,21 @@ export default function AppLayout() {
         .eq('statut', 'en_attente')
       return count || 0
     },
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const { data: pendingPartnerRequests = 0 } = useQuery({
+    queryKey: ['partner-requests-pending-count', user?.organisation_id],
+    queryFn: async () => {
+      if (!user?.organisation_id) return 0
+      const { count } = await supabase
+        .from('partner_connections')
+        .select('*', { count: 'exact', head: true })
+        .eq('target_organisation_id', user.organisation_id)
+        .eq('status', 'pending')
+      return count || 0
+    },
+    enabled: isAdmin && !!user?.organisation_id,
     staleTime: 2 * 60 * 1000,
   })
 
@@ -284,7 +300,7 @@ export default function AppLayout() {
                 {sItems.map(item => {
                   const active = loc.pathname.startsWith(item.path)
                   const Icon = item.icon
-                  const badgeCount = item.badge === 'messages' ? unread : item.badge === 'pending' ? pendingInterventions : 0
+                  const badgeCount = item.badge === 'messages' ? unread : item.badge === 'pending' ? pendingInterventions : item.badge === 'partnerRequests' ? pendingPartnerRequests : 0
                   return (
                     <button
                       key={item.path}

@@ -30,6 +30,7 @@ const GuideAdminPage = lazy(() => import('@/pages/guide/GuideAdminPage'))
 const GuideIntervenantPage = lazy(() => import('@/pages/guide/GuideIntervenantPage'))
 const GuideFAQPage = lazy(() => import('@/pages/guide/GuideFAQPage'))
 const GuideAdminVideosPage = lazy(() => import('@/pages/guide/GuideAdminVideosPage'))
+const PartenairesPage = lazy(() => import('@/pages/PartenairesPage'))
 const PublicDocumentPage = lazy(() => import('@/pages/PublicDocumentPage'))
 const ConfidentialitePage = lazy(() => import('@/pages/ConfidentialitePage'))
 const DeleteAccountPage = lazy(() => import('@/pages/DeleteAccountPage'))
@@ -249,6 +250,7 @@ export default function App() {
         <Route path="messagerie" element={<MessagingPage />} />
         <Route path="messagerie/:userId" element={<MessagingPage />} />
         <Route path="commissions" element={<CommissionsPage />} />
+        <Route path="partenaires" element={<Guard adminOnly><PartenairesPage /></Guard>} />
         <Route path="utilisateurs" element={<Guard adminOnly><UsersPage /></Guard>} />
         <Route path="parametres" element={<Guard adminOnly><ParamsPage /></Guard>} />
         <Route path="journal" element={<Guard adminOnly><JournalPage /></Guard>} />

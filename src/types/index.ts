@@ -144,3 +144,33 @@ export interface DashboardStats {
   messages_non_lus: number
   mes_commissions_mois?: number; mes_commissions_dues?: number
 }
+
+// ── Réseau partenaires (Phase 1 — fondations + connexions) ──────────────────
+export type PartnerConnectionStatus = 'pending'|'accepted'|'refused'|'blocked'|'archived'
+
+export interface PartnerProfile {
+  id: string; organisation_id: string; created_by_profile_id?: string
+  code_partenaire: string; nom_public: string; metier?: string; ville?: string; bio?: string
+  visible_reseau: boolean; created_at: string; updated_at: string
+}
+
+export interface PartnerConnection {
+  id: string
+  requester_organisation_id: string; requester_profile_id: string
+  target_organisation_id: string; target_profile_id?: string
+  status: PartnerConnectionStatus
+  blocked_by_organisation_id?: string; message?: string
+  created_at: string; updated_at: string
+  partner_profile?: PartnerProfile | null
+}
+
+export interface PartnerConnectionEvent {
+  id: string; connection_id: string; actor_profile_id?: string; actor_organisation_id?: string
+  action: string; note?: string; created_at: string
+}
+
+export interface PartnerSearchResult {
+  organisation_id: string; code_partenaire: string; nom_public: string
+  metier?: string; ville?: string; bio?: string; contact_profile_id?: string
+  connection_status: PartnerConnectionStatus | 'none'
+}
