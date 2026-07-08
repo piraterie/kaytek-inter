@@ -3,10 +3,11 @@
 // Ne touche à aucune table cœur (clients, devis, factures, interventions,
 // messages) : uniquement partner_profiles / partner_connections /
 // partner_connection_events, isolées par leurs propres policies RLS.
+import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/store'
-import type { PartnerProfile, PartnerConnection, PartnerConnectionEvent, PartnerConnectionStatus, PartnerSearchResult } from '@/types'
+import type { PartnerProfile, PartnerConnection, PartnerConnectionEvent, PartnerConnectionStatus, PartnerSearchResult, PartnerMessage } from '@/types'
 
 const uid = () => useAuthStore.getState().user?.id
 const orgId = () => useAuthStore.getState().user?.organisation_id
@@ -124,6 +125,85 @@ export function useUpdatePartnerConnectionStatus() {
       qc.invalidateQueries({ queryKey: ['partner-connections'] })
       qc.invalidateQueries({ queryKey: ['partner-connection-events'] })
     }
+  })
+}
+
+// ── MESSAGERIE PARTENAIRE (Phase 2) ────────────────────────────────
+export function usePartnerMessages(connectionId: string | null) {
+  const qc = useQueryClient()
+  const org = orgId()
+  const query = useQuery<PartnerMessage[]>({
+    queryKey: ['partner-messages', connectionId],
+    queryFn: async () => {
+      if (!connectionId) return []
+      const { data, error } = await supabase
+        .from('partner_messages').select('*')
+        .eq('connection_id', connectionId)
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      const msgs = (data || []) as PartnerMessage[]
+      // Marquer comme lus les messages reçus (envoyés par l'autre organisation)
+      const unread = msgs.filter(m => m.sender_organisation_id !== org && !m.lu_at).map(m => m.id)
+      if (unread.length) {
+        await supabase.from('partner_messages').update({ lu_at: new Date().toISOString() }).in('id', unread)
+        qc.invalidateQueries({ queryKey: ['partner-messages-unread'] })
+      }
+      return msgs
+    },
+    enabled: !!connectionId
+  })
+
+  useEffect(() => {
+    if (!connectionId) return
+    const ch = supabase.channel(`partner-chat-${connectionId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'partner_messages', filter: `connection_id=eq.${connectionId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ['partner-messages', connectionId] })
+          qc.invalidateQueries({ queryKey: ['partner-messages-unread'] })
+        })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [connectionId, qc])
+
+  return query
+}
+
+export function useSendPartnerMessage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ connection_id, contenu }: { connection_id: string; contenu: string }) => {
+      const org = orgId(); if (!org) throw new Error("Organisation introuvable — reconnectez-vous")
+      const { error } = await supabase.from('partner_messages').insert({
+        connection_id, sender_profile_id: uid(), sender_organisation_id: org, contenu
+      })
+      if (error) throw error
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['partner-messages', vars.connection_id] })
+    }
+  })
+}
+
+// Compteur de messages non lus par connexion — pour le badge sur les cartes partenaires.
+export function usePartnerUnreadCounts() {
+  const org = orgId()
+  return useQuery<Record<string, number>>({
+    queryKey: ['partner-messages-unread', org],
+    queryFn: async () => {
+      if (!org) return {}
+      const { data, error } = await supabase
+        .from('partner_messages').select('connection_id')
+        .is('lu_at', null)
+        .neq('sender_organisation_id', org)
+      if (error) throw error
+      const counts: Record<string, number> = {}
+      for (const row of (data || []) as { connection_id: string }[]) {
+        counts[row.connection_id] = (counts[row.connection_id] || 0) + 1
+      }
+      return counts
+    },
+    enabled: !!org,
+    refetchInterval: 30_000
   })
 }
 

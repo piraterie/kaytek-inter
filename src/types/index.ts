@@ -174,3 +174,13 @@ export interface PartnerSearchResult {
   metier?: string; ville?: string; bio?: string; contact_profile_id?: string
   connection_status: PartnerConnectionStatus | 'none'
 }
+
+// ── Réseau partenaires (Phase 2 — messagerie partenaire) ─────────────────────
+export interface PartnerMessage {
+  id: string; connection_id: string
+  sender_profile_id: string; sender_organisation_id: string
+  contenu: string
+  intervention_request_id?: string
+  lu_at?: string | null
+  created_at: string; updated_at: string
+}

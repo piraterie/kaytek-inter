@@ -1,15 +1,16 @@
 // src/pages/PartenairesPage.tsx
-// Réseau partenaires — Phase 1 (fondations + connexions).
-// Messagerie partenaire et envoi d'intervention partenaire : Phases 2 et 3,
-// volontairement absentes ici (boutons grisés "Bientôt disponible").
+// Réseau partenaires — Phase 1 (fondations + connexions) + Phase 2 (messagerie).
+// Envoi d'intervention partenaire : Phase 3, volontairement absent ici
+// (bouton grisé "Bientôt disponible").
 import { useState, useMemo } from 'react'
-import { Search, X, Copy, Check, Handshake, Inbox, Send, History, ChevronDown, ChevronUp, Lock } from 'lucide-react'
+import { Search, X, Copy, Check, Handshake, Inbox, Send, History, ChevronDown, ChevronUp, Lock, MessageCircle } from 'lucide-react'
 import {
   useMyPartnerProfile, useUpsertPartnerProfile, usePartnerSearch,
   usePartnerConnections, useSendPartnerRequest, useUpdatePartnerConnectionStatus,
-  usePartnerConnectionEvents
+  usePartnerConnectionEvents, usePartnerUnreadCounts
 } from '@/lib/hooks/partners'
 import { useAuthStore, useToastStore } from '@/lib/store'
+import PartnerMessagesModal from '@/components/PartnerMessagesModal'
 import type { PartnerConnection, PartnerConnectionStatus, PartnerSearchResult } from '@/types'
 
 type Tab = 'mine' | 'received' | 'sent'
@@ -46,6 +47,8 @@ export default function PartenairesPage() {
   const [search, setSearch] = useState('')
   const { data: searchResults = [], isLoading: searchLoading } = usePartnerSearch(search)
   const [historyOpenId, setHistoryOpenId] = useState<string | null>(null)
+  const [messagesConnection, setMessagesConnection] = useState<PartnerConnection | null>(null)
+  const { data: unreadCounts = {} } = usePartnerUnreadCounts()
 
   const mine = useMemo(() => connections.filter(c => c.status === 'accepted' || c.status === 'blocked'), [connections])
   const received = useMemo(() => connections.filter(c => c.status === 'pending' && c.target_organisation_id === myOrg), [connections, myOrg])
@@ -200,7 +203,14 @@ export default function PartenairesPage() {
                 actions={
                   c.status === 'accepted' ? (
                     <>
-                      <button className="btn-icon sm" title="Message — bientôt disponible" disabled style={{ opacity: 0.4, cursor: 'not-allowed' }}>💬</button>
+                      <button className="btn btn-secondary btn-sm" title="Message" onClick={() => setMessagesConnection(c)} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <MessageCircle size={13} /> Message
+                        {(unreadCounts[c.id] || 0) > 0 && (
+                          <span style={{ minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#dc2626', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {unreadCounts[c.id] > 9 ? '9+' : unreadCounts[c.id]}
+                          </span>
+                        )}
+                      </button>
                       <button className="btn-icon sm" title="Envoyer une intervention — bientôt disponible" disabled style={{ opacity: 0.4, cursor: 'not-allowed' }}>🛠️</button>
                       <button className="btn btn-secondary btn-sm" onClick={() => handleStatusChange(c.id, 'blocked', 'Partenaire bloqué')}>Bloquer</button>
                       <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={() => handleStatusChange(c.id, 'archived', 'Connexion archivée')}>Archiver</button>
@@ -289,6 +299,11 @@ export default function PartenairesPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* ── Modal messagerie partenaire ── */}
+      {messagesConnection && (
+        <PartnerMessagesModal connection={messagesConnection} onClose={() => setMessagesConnection(null)} />
       )}
     </div>
   )
