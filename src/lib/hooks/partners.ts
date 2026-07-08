@@ -311,6 +311,41 @@ export function useUpdatePartnerInterventionStatus() {
   })
 }
 
+// Lie une intervention interne (déjà créée dans MON organisation) à la
+// demande partenaire reçue. Le trigger DB revalide que l'intervention
+// appartient bien à mon organisation et que ce champ n'a pas déjà été
+// renseigné (pas de doublon possible, même via un appel concurrent).
+export function useLinkResultingIntervention() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, resulting_intervention_id }: { id: string; resulting_intervention_id: string }) => {
+      const { error } = await supabase.from('partner_intervention_requests')
+        .update({ resulting_intervention_id }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['partner-intervention-requests'] })
+      qc.invalidateQueries({ queryKey: ['partner-intervention-events'] })
+    }
+  })
+}
+
+// Recherche un client existant de MON organisation par téléphone exact —
+// jamais de lecture cross-org, la RLS clients scope déjà à mon organisation.
+export function useFindClientByPhone(telephone: string | undefined) {
+  return useQuery<{ id: string; nom: string; prenom?: string; telephone?: string } | null>({
+    queryKey: ['client-by-phone', telephone],
+    queryFn: async () => {
+      if (!telephone) return null
+      const { data, error } = await supabase.from('clients').select('id,nom,prenom,telephone')
+        .eq('telephone', telephone).eq('archive', false).limit(1).maybeSingle()
+      if (error) throw error
+      return data
+    },
+    enabled: !!telephone
+  })
+}
+
 export function usePartnerInterventionEvents(requestId: string | null) {
   return useQuery<PartnerInterventionEvent[]>({
     queryKey: ['partner-intervention-events', requestId],

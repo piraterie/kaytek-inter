@@ -2,10 +2,10 @@
 // Réseau partenaires — Phase 1 (fondations + connexions) + Phase 2 (messagerie)
 // + Phase 3 v1 (demandes d'intervention partenaire, snapshot uniquement).
 import { useState, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   Search, X, Copy, Check, Handshake, Inbox, Send, History, ChevronDown, ChevronUp, Lock, MessageCircle,
-  Wrench, PlayCircle, CheckCircle2, Ban, MapPin, CalendarDays, Camera,
+  Wrench, PlayCircle, CheckCircle2, Ban, MapPin, CalendarDays, Camera, Eye, FilePlus2,
 } from 'lucide-react'
 import {
   useMyPartnerProfile, useUpsertPartnerProfile, usePartnerSearch,
@@ -16,6 +16,7 @@ import {
 import { useAuthStore, useToastStore } from '@/lib/store'
 import PartnerMessagesModal from '@/components/PartnerMessagesModal'
 import SendToPartnerModal from '@/components/SendToPartnerModal'
+import CreateInterventionFromPartnerRequestModal from '@/components/CreateInterventionFromPartnerRequestModal'
 import type { PartnerConnection, PartnerConnectionStatus, PartnerSearchResult, PartnerInterventionRequest } from '@/types'
 
 type Tab = 'mine' | 'received' | 'sent' | 'interventions-received' | 'interventions-sent'
@@ -56,6 +57,7 @@ export default function PartenairesPage() {
   const user = useAuthStore(s => s.user)
   const myOrg = user?.organisation_id
   const [searchParams] = useSearchParams()
+  const nav = useNavigate()
 
   const { data: myProfile, isLoading: profileLoading } = useMyPartnerProfile()
   const upsertProfile = useUpsertPartnerProfile()
@@ -81,6 +83,7 @@ export default function PartenairesPage() {
   const [completeTarget, setCompleteTarget] = useState<PartnerInterventionRequest | null>(null)
   const [completeNote, setCompleteNote] = useState('')
   const [pirHistoryOpenId, setPirHistoryOpenId] = useState<string | null>(null)
+  const [importTarget, setImportTarget] = useState<PartnerInterventionRequest | null>(null)
 
   const mine = useMemo(() => connections.filter(c => c.status === 'accepted' || c.status === 'blocked'), [connections])
   const received = useMemo(() => connections.filter(c => c.status === 'pending' && c.target_organisation_id === myOrg), [connections, myOrg])
@@ -334,16 +337,31 @@ export default function PartenairesPage() {
                 onToggleHistory={() => setPirHistoryOpenId(pirHistoryOpenId === r.id ? null : r.id)}
                 onMessage={() => { const c = findConnectionFor(r); if (c) setMessagesConnection(c) }}
                 actions={
-                  r.status === 'pending' ? (
-                    <>
-                      <button className="btn btn-primary btn-sm" onClick={() => handlePirAccept(r)}><CheckCircle2 size={13} /> Accepter</button>
-                      <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={() => setRefuseTarget(r)}><Ban size={13} /> Refuser</button>
-                    </>
-                  ) : r.status === 'accepted' ? (
-                    <button className="btn btn-primary btn-sm" onClick={() => handlePirInProgress(r)}><PlayCircle size={13} /> Marquer en cours</button>
-                  ) : r.status === 'in_progress' ? (
-                    <button className="btn btn-primary btn-sm" style={{ background: '#16a34a', border: 'none' }} onClick={() => setCompleteTarget(r)}><CheckCircle2 size={13} /> Marquer terminé</button>
-                  ) : null
+                  <>
+                    {r.status === 'pending' && (
+                      <>
+                        <button className="btn btn-primary btn-sm" onClick={() => handlePirAccept(r)}><CheckCircle2 size={13} /> Accepter</button>
+                        <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={() => setRefuseTarget(r)}><Ban size={13} /> Refuser</button>
+                      </>
+                    )}
+                    {r.status === 'accepted' && (
+                      <button className="btn btn-primary btn-sm" onClick={() => handlePirInProgress(r)}><PlayCircle size={13} /> Marquer en cours</button>
+                    )}
+                    {r.status === 'in_progress' && (
+                      <button className="btn btn-primary btn-sm" style={{ background: '#16a34a', border: 'none' }} onClick={() => setCompleteTarget(r)}><CheckCircle2 size={13} /> Marquer terminé</button>
+                    )}
+                    {(r.status === 'accepted' || r.status === 'in_progress') && (
+                      r.resulting_intervention_id ? (
+                        <button className="btn btn-secondary btn-sm" onClick={() => nav(`/interventions/${r.resulting_intervention_id}`)}>
+                          <Eye size={13} /> Voir l'intervention
+                        </button>
+                      ) : (
+                        <button className="btn btn-secondary btn-sm" onClick={() => setImportTarget(r)}>
+                          <FilePlus2 size={13} /> Créer une intervention
+                        </button>
+                      )
+                    )}
+                  </>
                 } />
             ))
         )}
@@ -417,6 +435,15 @@ export default function PartenairesPage() {
       {/* ── Modal envoyer une intervention (partenaire pré-sélectionné) ── */}
       {sendInterventionConnectionId && (
         <SendToPartnerModal presetConnectionId={sendInterventionConnectionId} onClose={() => setSendInterventionConnectionId(null)} />
+      )}
+
+      {/* ── Modal créer une intervention depuis une demande partenaire reçue ── */}
+      {importTarget && (
+        <CreateInterventionFromPartnerRequestModal
+          request={importTarget}
+          onClose={() => setImportTarget(null)}
+          onCreated={(interventionId) => nav(`/interventions/${interventionId}`)}
+        />
       )}
 
       {/* ── Modal refus demande d'intervention ── */}
