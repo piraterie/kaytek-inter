@@ -2,19 +2,36 @@
 // Phase 3 v1 — envoi d'une demande d'intervention à un partenaire accepté.
 // Ne transmet qu'un snapshot explicitement coché — jamais l'intervention
 // réelle, jamais les données internes (notes_admin, client complet, etc.).
+//
+// Deux points d'entrée :
+//  · depuis une intervention (InterventionDetailPage) : `intervention` fourni,
+//    le partenaire reste à choisir.
+//  · depuis un partenaire (PartenairesPage) : `presetConnectionId` fourni,
+//    l'intervention reste à choisir dans la liste des interventions actives.
 import { useState, useMemo } from 'react'
-import { X, MapPin, Phone, User, FileText, Euro, Camera, Send } from 'lucide-react'
+import { X, MapPin, Phone, User, FileText, Euro, Camera, Send, Wrench } from 'lucide-react'
 import { usePartnerConnections, useSendPartnerInterventionRequest } from '@/lib/hooks/partners'
+import { useInterventions } from '@/lib/hooks'
 import { useToastStore } from '@/lib/store'
 import type { Intervention } from '@/types'
 
-export default function SendToPartnerModal({ intervention, onClose }: { intervention: Intervention; onClose: () => void }) {
+export default function SendToPartnerModal({ intervention, presetConnectionId, onClose }: {
+  intervention?: Intervention; presetConnectionId?: string; onClose: () => void
+}) {
   const { add } = useToastStore()
   const { data: connections = [] } = usePartnerConnections()
   const accepted = useMemo(() => connections.filter(c => c.status === 'accepted'), [connections])
   const send = useSendPartnerInterventionRequest()
 
-  const [connectionId, setConnectionId] = useState<string>('')
+  const needsInterventionPicker = !intervention
+  const { data: myInterventions = [], isLoading: interventionsLoading } = useInterventions({ statut: 'tous', showArchived: false })
+  const [pickedInterventionId, setPickedInterventionId] = useState('')
+  const pickedIntervention = needsInterventionPicker
+    ? myInterventions.find(i => i.id === pickedInterventionId)
+    : intervention
+  const activeIntervention = pickedIntervention
+
+  const [connectionId, setConnectionId] = useState<string>(presetConnectionId || '')
   const [shareAdresse, setShareAdresse] = useState(false)
   const [shareTelephone, setShareTelephone] = useState(false)
   const [shareNomClient, setShareNomClient] = useState(false)
@@ -24,29 +41,29 @@ export default function SendToPartnerModal({ intervention, onClose }: { interven
   const [consignes, setConsignes] = useState('')
   const [sending, setSending] = useState(false)
 
-  const selected = accepted.find(c => c.id === connectionId)
-  const clientNom = [intervention.client?.prenom, intervention.client?.nom].filter(Boolean).join(' ')
-  const adresseFull = [intervention.adresse, intervention.code_postal, intervention.ville].filter(Boolean).join(' ')
-  const photoCount = intervention.photos?.length || 0
+  const selectedConnection = accepted.find(c => c.id === connectionId)
+  const clientNom = activeIntervention ? [activeIntervention.client?.prenom, activeIntervention.client?.nom].filter(Boolean).join(' ') : ''
+  const adresseFull = activeIntervention ? [activeIntervention.adresse, activeIntervention.code_postal, activeIntervention.ville].filter(Boolean).join(' ') : ''
+  const photoCount = activeIntervention?.photos?.length || 0
 
   async function handleSend() {
-    if (!connectionId || !selected || !selected.partner_profile) return
+    if (!connectionId || !selectedConnection || !selectedConnection.partner_profile || !activeIntervention) return
     setSending(true)
     try {
       await send.mutateAsync({
         connection_id: connectionId,
-        target_organisation_id: selected.partner_profile.organisation_id,
-        source_intervention_id: intervention.id,
-        type_intervention: intervention.type,
-        urgence: intervention.urgence,
-        date_souhaitee: intervention.date_prevue,
-        ville: intervention.ville,
+        target_organisation_id: selectedConnection.partner_profile.organisation_id,
+        source_intervention_id: activeIntervention.id,
+        type_intervention: activeIntervention.type,
+        urgence: activeIntervention.urgence,
+        date_souhaitee: activeIntervention.date_prevue,
+        ville: activeIntervention.ville,
         share_adresse: shareAdresse, adresse_partagee: adresseFull,
-        share_telephone: shareTelephone, telephone_client_partage: intervention.client?.telephone,
+        share_telephone: shareTelephone, telephone_client_partage: activeIntervention.client?.telephone,
         share_nom_client: shareNomClient, nom_client_partage: clientNom,
-        share_description: shareDescription, description_partagee: intervention.description,
-        share_montant: shareMontant, montant_partage: intervention.montant_ttc,
-        share_photos: sharePhotos, photos_partagees: intervention.photos?.map(p => ({ id: p.id, type: p.type })),
+        share_description: shareDescription, description_partagee: activeIntervention.description,
+        share_montant: shareMontant, montant_partage: activeIntervention.montant_ttc,
+        share_photos: sharePhotos, photos_partagees: activeIntervention.photos?.map(p => ({ id: p.id, type: p.type })),
         consignes_partagees: consignes.trim() || undefined
       })
       add('Demande envoyée au partenaire')
@@ -54,6 +71,10 @@ export default function SendToPartnerModal({ intervention, onClose }: { interven
     } catch (err: any) { add(err.message || "Erreur lors de l'envoi", 'error') }
     setSending(false)
   }
+
+  const presetPartnerName = presetConnectionId
+    ? accepted.find(c => c.id === presetConnectionId)?.partner_profile?.nom_public
+    : null
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -69,60 +90,94 @@ export default function SendToPartnerModal({ intervention, onClose }: { interven
             </p>
           ) : (
             <>
-              <div className="form-group">
-                <label>Partenaire <span className="req">*</span></label>
-                <select value={connectionId} onChange={e => setConnectionId(e.target.value)}>
-                  <option value="">— Choisir un partenaire —</option>
-                  {accepted.map(c => (
-                    <option key={c.id} value={c.id}>{c.partner_profile?.nom_public || 'Organisation partenaire'}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ marginTop: 16, marginBottom: 6, fontSize: 12, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                Informations à partager
-              </div>
-              <p style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 10 }}>
-                Toujours inclus : type de prestation, urgence, date souhaitée, ville. Le reste est optionnel.
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <ShareRow icon={<MapPin size={14} />} label="Adresse complète" value={adresseFull || '—'} checked={shareAdresse} onChange={setShareAdresse} />
-                <ShareRow icon={<Phone size={14} />} label="Téléphone client" value={intervention.client?.telephone || '—'} checked={shareTelephone} onChange={setShareTelephone} disabled={!intervention.client?.telephone} />
-                <ShareRow icon={<User size={14} />} label="Nom du client" value={clientNom || '—'} checked={shareNomClient} onChange={setShareNomClient} disabled={!clientNom} />
-                <ShareRow icon={<FileText size={14} />} label="Description" value={intervention.description || '—'} checked={shareDescription} onChange={setShareDescription} disabled={!intervention.description} />
-                <ShareRow icon={<Euro size={14} />} label="Montant" value={intervention.montant_ttc ? `${intervention.montant_ttc} €` : '—'} checked={shareMontant} onChange={setShareMontant} disabled={!intervention.montant_ttc} />
-                <ShareRow icon={<Camera size={14} />} label="Photos" value={photoCount > 0 ? `${photoCount} photo${photoCount > 1 ? 's' : ''}` : '—'} checked={sharePhotos} onChange={setSharePhotos} disabled={photoCount === 0} />
-              </div>
-
-              <div className="form-group" style={{ marginTop: 14 }}>
-                <label>Consignes pour le partenaire</label>
-                <textarea value={consignes} onChange={e => setConsignes(e.target.value)} rows={3} maxLength={500} placeholder="Ex : code d'accès, contraintes horaires…" />
-              </div>
-
-              {/* Aperçu */}
-              <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--blBg)', border: '1px solid var(--blBd)', borderRadius: 8, fontSize: 12, color: 'var(--blTx)' }}>
-                <div style={{ fontWeight: 700, marginBottom: 6 }}>Aperçu de ce qui sera envoyé</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  <span>• Type : {intervention.type || '—'} {intervention.urgence ? '(urgent)' : ''}</span>
-                  <span>• Ville : {intervention.ville || '—'}</span>
-                  <span>• Date souhaitée : {intervention.date_prevue ? new Date(intervention.date_prevue).toLocaleDateString('fr-FR') : '—'}</span>
-                  {shareAdresse && <span>• Adresse : {adresseFull}</span>}
-                  {shareTelephone && intervention.client?.telephone && <span>• Téléphone : {intervention.client.telephone}</span>}
-                  {shareNomClient && clientNom && <span>• Client : {clientNom}</span>}
-                  {shareDescription && intervention.description && <span>• Description : {intervention.description}</span>}
-                  {shareMontant && intervention.montant_ttc && <span>• Montant : {intervention.montant_ttc} €</span>}
-                  {sharePhotos && photoCount > 0 && <span>• {photoCount} photo{photoCount > 1 ? 's' : ''} (aperçu bientôt disponible)</span>}
-                  {consignes.trim() && <span>• Consignes : {consignes.trim()}</span>}
+              {needsInterventionPicker ? (
+                <div className="form-group">
+                  <label>Intervention <span className="req">*</span></label>
+                  {interventionsLoading ? (
+                    <p style={{ fontSize: 12, color: 'var(--t3)' }}>Chargement des interventions…</p>
+                  ) : myInterventions.length === 0 ? (
+                    <p style={{ fontSize: 12, color: 'var(--t3)' }}>Aucune intervention disponible.</p>
+                  ) : (
+                    <select value={pickedInterventionId} onChange={e => setPickedInterventionId(e.target.value)}>
+                      <option value="">— Choisir une intervention —</option>
+                      {myInterventions.map(i => (
+                        <option key={i.id} value={i.id}>
+                          {i.numero} — {[i.client?.nom, i.client?.prenom].filter(Boolean).join(' ') || 'Sans client'} — {i.ville || i.adresse || 'Sans adresse'}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
-              </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 10px', background: 'var(--s1)', borderRadius: 8, fontSize: 12, color: 'var(--t2)' }}>
+                  <Wrench size={13} /> {activeIntervention?.numero} — {[activeIntervention?.client?.nom, activeIntervention?.client?.prenom].filter(Boolean).join(' ')}
+                </div>
+              )}
+
+              {presetConnectionId ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 10px', background: 'var(--blBg)', border: '1px solid var(--blBd)', borderRadius: 8, fontSize: 13, color: 'var(--blTx)', fontWeight: 600 }}>
+                  Vers : {presetPartnerName || 'Organisation partenaire'}
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label>Partenaire <span className="req">*</span></label>
+                  <select value={connectionId} onChange={e => setConnectionId(e.target.value)}>
+                    <option value="">— Choisir un partenaire —</option>
+                    {accepted.map(c => (
+                      <option key={c.id} value={c.id}>{c.partner_profile?.nom_public || 'Organisation partenaire'}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {activeIntervention && (
+                <>
+                  <div style={{ marginTop: 16, marginBottom: 6, fontSize: 12, fontWeight: 600, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                    Informations à partager
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 10 }}>
+                    Toujours inclus : type de prestation, urgence, date souhaitée, ville. Le reste est optionnel.
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <ShareRow icon={<MapPin size={14} />} label="Adresse complète" value={adresseFull || '—'} checked={shareAdresse} onChange={setShareAdresse} />
+                    <ShareRow icon={<Phone size={14} />} label="Téléphone client" value={activeIntervention.client?.telephone || '—'} checked={shareTelephone} onChange={setShareTelephone} disabled={!activeIntervention.client?.telephone} />
+                    <ShareRow icon={<User size={14} />} label="Nom du client" value={clientNom || '—'} checked={shareNomClient} onChange={setShareNomClient} disabled={!clientNom} />
+                    <ShareRow icon={<FileText size={14} />} label="Description" value={activeIntervention.description || '—'} checked={shareDescription} onChange={setShareDescription} disabled={!activeIntervention.description} />
+                    <ShareRow icon={<Euro size={14} />} label="Montant" value={activeIntervention.montant_ttc ? `${activeIntervention.montant_ttc} €` : '—'} checked={shareMontant} onChange={setShareMontant} disabled={!activeIntervention.montant_ttc} />
+                    <ShareRow icon={<Camera size={14} />} label="Photos" value={photoCount > 0 ? `${photoCount} photo${photoCount > 1 ? 's' : ''}` : '—'} checked={sharePhotos} onChange={setSharePhotos} disabled={photoCount === 0} />
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: 14 }}>
+                    <label>Consignes pour le partenaire</label>
+                    <textarea value={consignes} onChange={e => setConsignes(e.target.value)} rows={3} maxLength={500} placeholder="Ex : code d'accès, contraintes horaires…" />
+                  </div>
+
+                  {/* Aperçu */}
+                  <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--blBg)', border: '1px solid var(--blBd)', borderRadius: 8, fontSize: 12, color: 'var(--blTx)' }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>Aperçu de ce qui sera envoyé</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <span>• Type : {activeIntervention.type || '—'} {activeIntervention.urgence ? '(urgent)' : ''}</span>
+                      <span>• Ville : {activeIntervention.ville || '—'}</span>
+                      <span>• Date souhaitée : {activeIntervention.date_prevue ? new Date(activeIntervention.date_prevue).toLocaleDateString('fr-FR') : '—'}</span>
+                      {shareAdresse && <span>• Adresse : {adresseFull}</span>}
+                      {shareTelephone && activeIntervention.client?.telephone && <span>• Téléphone : {activeIntervention.client.telephone}</span>}
+                      {shareNomClient && clientNom && <span>• Client : {clientNom}</span>}
+                      {shareDescription && activeIntervention.description && <span>• Description : {activeIntervention.description}</span>}
+                      {shareMontant && activeIntervention.montant_ttc && <span>• Montant : {activeIntervention.montant_ttc} €</span>}
+                      {sharePhotos && photoCount > 0 && <span>• {photoCount} photo{photoCount > 1 ? 's' : ''} (aperçu bientôt disponible)</span>}
+                      {consignes.trim() && <span>• Consignes : {consignes.trim()}</span>}
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Annuler</button>
           {accepted.length > 0 && (
-            <button type="button" className="btn btn-primary" disabled={!connectionId || sending} onClick={handleSend}>
+            <button type="button" className="btn btn-primary" disabled={!connectionId || !activeIntervention || sending} onClick={handleSend}>
               {sending ? 'Envoi…' : <><Send size={14} /> Confirmer l'envoi</>}
             </button>
           )}

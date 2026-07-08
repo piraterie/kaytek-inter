@@ -5,13 +5,14 @@ import {
   ArrowLeft, AlertTriangle, FileText, ClipboardList, Camera, NotebookPen,
   DollarSign, CheckCircle2, XCircle, MessageCircle, Send, Zap, RefreshCw,
   Receipt, Circle, Play, Package, Save, Eye, Phone, MapPin, Copy, X,
-  Loader2, Info, Check, Handshake,
+  Loader2, Info, Check, Handshake, UserCog,
 } from 'lucide-react'
-import { useIntervention, useUpdateIntervention, useUploadPhoto, useCreateFacture, useDevis, useSignedPhotos } from '@/lib/hooks'
+import { useIntervention, useUpdateIntervention, useUploadPhoto, useCreateFacture, useDevis, useSignedPhotos, useIntervenants } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { Lightbox } from '@/components/Lightbox'
 import { supabase } from '@/lib/supabase/client'
 import { DocSheet, SheetRow } from '@/components/DocSheet'
+import { CustomSelect } from '@/components/CustomSelect'
 import SendToPartnerModal from '@/components/SendToPartnerModal'
 
 const STATUTS = ['en_attente','accepte','en_cours','termine','facture','annule'] as const
@@ -34,12 +35,16 @@ export default function InterventionDetailPage() {
   const [reponseLoading, setReponseLoading] = useState(false)
   const [actionsSheet, setActionsSheet] = useState(false)
   const [partnerModal, setPartnerModal] = useState(false)
+  const [assignModal, setAssignModal] = useState(false)
+  const [assignIntervenantId, setAssignIntervenantId] = useState('')
+  const [assigning, setAssigning] = useState(false)
 
   const { data: inter, isLoading } = useIntervention(id!)
   const update = useUpdateIntervention()
   const uploadPhoto = useUploadPhoto()
   const createFacture = useCreateFacture()
   const { data: mesDevis = [] } = useDevis()
+  const { data: intervenants = [] } = useIntervenants()
   const [cr, setCr] = useState({ travail_realise:'', materiel_utilise:'', temps_passe_min:0, montant_ttc:0, cout_pieces:0, materiel_payeur: null as string | null })
   const signedPhotoUrls = useSignedPhotos(inter?.photos)
 
@@ -69,6 +74,21 @@ export default function InterventionDetailPage() {
   async function updateStatut(statut: typeof STATUTS[number]) {
     try { await update.mutateAsync({ id:id!, statut }); add(`Statut : ${statut.replace('_',' ')}`) }
     catch(e:any) { add(e.message,'error') }
+  }
+
+  function openAssignModal() {
+    setAssignIntervenantId(inter?.intervenant_id || '')
+    setAssignModal(true)
+  }
+
+  async function handleAssign() {
+    setAssigning(true)
+    try {
+      await update.mutateAsync({ id: id!, intervenant_id: assignIntervenantId || null } as any)
+      add(assignIntervenantId ? 'Intervenant assigné' : 'Intervenant retiré')
+      setAssignModal(false)
+    } catch (e: any) { add(e.message, 'error') }
+    setAssigning(false)
   }
 
   async function saveCR(e: React.FormEvent) {
@@ -186,6 +206,7 @@ export default function InterventionDetailPage() {
           {inter.urgence && <span className="urgence-badge"><AlertTriangle size={11} /> URGENT</span>}
           <span className={`pill ${inter.statut==='termine'?'pill-green':inter.statut==='en_cours'?'pill-orange':inter.statut==='en_attente'?'pill-amber':'pill-gray'}`}>{inter.statut.replace('_',' ')}</span>
           {isAdmin && <button className="btn btn-primary btn-sm" onClick={()=>nav(`/devis/nouveau?intervention=${id}`)}><FileText size={14} /> Créer devis</button>}
+          {isAdmin && <button className="btn btn-secondary btn-sm" onClick={openAssignModal}><UserCog size={14} /> {inter.intervenant ? 'Réassigner' : 'Assigner'} un intervenant</button>}
           {isAdmin && <button className="btn btn-secondary btn-sm" onClick={()=>setPartnerModal(true)}><Handshake size={14} /> Envoyer à un partenaire</button>}
           {peutFacturer && <button className="btn btn-primary btn-sm" onClick={()=>{ setTab('facturation') }}><FileText size={14} /> Facturation</button>}
         </div>
@@ -612,6 +633,43 @@ export default function InterventionDetailPage() {
 
       {partnerModal && (
         <SendToPartnerModal intervention={inter} onClose={() => setPartnerModal(false)} />
+      )}
+
+      {assignModal && (
+        <div className="modal-overlay" onClick={() => setAssignModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Assigner un intervenant</span>
+              <button className="btn-icon sm" onClick={() => setAssignModal(false)}><X size={15} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Intervenant interne</label>
+                <CustomSelect
+                  value={assignIntervenantId}
+                  placeholder="Non affecté"
+                  options={[
+                    { value: '', label: 'Non affecté' },
+                    ...intervenants.map(p => ({
+                      value: p.id,
+                      label: [p.prenom, p.nom].filter(Boolean).join(' ') || p.email || 'Intervenant sans nom'
+                    }))
+                  ]}
+                  onChange={setAssignIntervenantId}
+                />
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--t3)' }}>
+                Pour envoyer cette intervention à une organisation partenaire plutôt qu'à un intervenant interne, utilisez « Envoyer à un partenaire ».
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => setAssignModal(false)}>Annuler</button>
+              <button type="button" className="btn btn-primary" disabled={assigning} onClick={handleAssign}>
+                {assigning ? 'Enregistrement…' : 'Confirmer'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -1,14 +1,16 @@
 // src/pages/MessagingPage.tsx
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { MessageCircle, Mail, CheckCheck, Trash2, X, ArrowLeft } from 'lucide-react'
+import { MessageCircle, Mail, CheckCheck, Trash2, X, ArrowLeft, Handshake, Users } from 'lucide-react'
 import { useMessages, useSendMessage, useConversations, useIsMobile, useDeleteMessage } from '@/lib/hooks'
+import { usePartnerConnections, usePartnerUnreadCounts } from '@/lib/hooks/partners'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { uploadChatMedia } from '@/lib/supabase/storage'
 import { Lightbox } from '@/components/Lightbox'
 import { DocSheet, SheetRow } from '@/components/DocSheet'
 import ConfirmModal from '@/components/ConfirmModal'
-import type { Profile } from '@/types'
+import PartnerConversationPanel from '@/components/PartnerConversationPanel'
+import type { Profile, PartnerConnection } from '@/types'
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
 const IconCamera = () => (
@@ -192,6 +194,8 @@ export default function MessagingPage() {
   const [pendingAudio, setPendingAudio] = useState<{ blob: Blob; url: string } | null>(null)
   const [contextMsg, setContextMsg] = useState<any>(null)
   const [deleteTarget, setDeleteTarget] = useState<any>(null)
+  const [scope, setScope] = useState<'team' | 'partners'>('team')
+  const [selectedPartner, setSelectedPartner] = useState<PartnerConnection | null>(null)
 
   const msgsRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -213,6 +217,18 @@ export default function MessagingPage() {
   const { data: messages = [] } = useMessages(activeId)
   const send = useSendMessage()
   const deleteMutation = useDeleteMessage()
+
+  const { data: partnerConnectionsRaw = [] } = usePartnerConnections()
+  const acceptedPartners = partnerConnectionsRaw.filter(c => c.status === 'accepted')
+  const { data: partnerUnread = {} } = usePartnerUnreadCounts()
+  const partnerUnreadTotal = Object.values(partnerUnread).reduce((s, n) => s + n, 0)
+
+  function selectPartner(c: PartnerConnection) {
+    setSelectedPartner(c); setShowList(false)
+  }
+  function switchScope(next: 'team' | 'partners') {
+    setScope(next); setShowList(true)
+  }
 
   useEffect(() => {
     if (!activeId && conversations.length) {
@@ -433,13 +449,67 @@ export default function MessagingPage() {
 
         {/* ── LISTE CONVERSATIONS ── */}
         <div style={{ width: isMobile ? '100%' : 280, minWidth: isMobile ? '100%' : 280, display: !isAdmin || (isMobile && !showList) ? 'none' : 'flex', flexDirection: 'column', background: 'var(--s0)', borderRight: '1px solid var(--b0)' }}>
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--b0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t0)', letterSpacing: '-.02em' }}>Messages</span>
-            <span style={{ fontSize: 12, color: 'var(--t3)', background: 'var(--s2)', padding: '2px 8px', borderRadius: 20 }}>
-              {conversations.length} contact{conversations.length > 1 ? 's' : ''}
-            </span>
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--b0)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isAdmin ? 10 : 0 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t0)', letterSpacing: '-.02em' }}>Messages</span>
+              <span style={{ fontSize: 12, color: 'var(--t3)', background: 'var(--s2)', padding: '2px 8px', borderRadius: 20 }}>
+                {scope === 'team' ? conversations.length : acceptedPartners.length} contact{(scope === 'team' ? conversations.length : acceptedPartners.length) > 1 ? 's' : ''}
+              </span>
+            </div>
+            {isAdmin && (
+              <div style={{ display: 'flex', gap: 4, background: 'var(--s1)', borderRadius: 10, padding: 3 }}>
+                <button onClick={() => switchScope('team')}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '6px 8px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: scope === 'team' ? 'var(--s0)' : 'transparent', color: scope === 'team' ? 'var(--t0)' : 'var(--t3)', boxShadow: scope === 'team' ? 'var(--sh0)' : 'none' }}>
+                  <Users size={13} /> Équipe
+                </button>
+                <button onClick={() => switchScope('partners')}
+                  style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '6px 8px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: scope === 'partners' ? 'var(--s0)' : 'transparent', color: scope === 'partners' ? 'var(--t0)' : 'var(--t3)', boxShadow: scope === 'partners' ? 'var(--sh0)' : 'none' }}>
+                  <Handshake size={13} /> Partenaires
+                  {partnerUnreadTotal > 0 && (
+                    <span style={{ position: 'absolute', top: 2, right: 10, width: 7, height: 7, borderRadius: '50%', background: '#dc2626' }} />
+                  )}
+                </button>
+              </div>
+            )}
           </div>
           <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' }}>
+            {scope === 'partners' ? (
+              <>
+                {acceptedPartners.length === 0 && (
+                  <div style={{ padding: 32, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, opacity: 0.5 }}><Handshake size={30} /></div>
+                    Aucun partenaire connecté.
+                    <div style={{ marginTop: 4 }}>Rendez-vous dans Réseau partenaires pour en ajouter un.</div>
+                  </div>
+                )}
+                {acceptedPartners.map(c => {
+                  const active = selectedPartner?.id === c.id
+                  const name = c.partner_profile?.nom_public || 'Organisation partenaire'
+                  const unread = partnerUnread[c.id] || 0
+                  return (
+                    <div key={c.id} onClick={() => selectPartner(c)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid var(--b0)', background: active ? 'var(--blBg)' : 'transparent', transition: 'background .12s', minHeight: 68, WebkitTapHighlightColor: 'transparent' } as React.CSSProperties}
+                      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = 'var(--s1)' }}
+                      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}>
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <div className="avatar" style={{ width: 46, height: 46, fontSize: 15 }}>{name.slice(0, 2).toUpperCase()}</div>
+                        {unread > 0 && (
+                          <div style={{ position: 'absolute', top: -3, right: -3, minWidth: 18, height: 18, background: '#dc2626', color: '#fff', borderRadius: 9, border: '2px solid var(--s0)', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+                            {unread > 9 ? '9+' : unread}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: unread > 0 ? 700 : 500, color: active ? 'var(--blTx)' : 'var(--t0)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.partner_profile?.metier || 'Partenaire'}</div>
+                      </div>
+                      {active && unread === 0 && <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--bl)', flexShrink: 0 }} />}
+                    </div>
+                  )
+                })}
+              </>
+            ) : (
+            <>
             {conversations.length === 0 && (
               <div style={{ padding: 32, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, opacity: 0.5 }}><MessageCircle size={30} /></div>Aucun contact disponible
@@ -479,12 +549,24 @@ export default function MessagingPage() {
                 </div>
               )
             })}
+            </>
+            )}
           </div>
         </div>
 
         {/* ── ZONE CHAT ── */}
         <div style={{ flex: 1, display: isAdmin && isMobile && showList ? 'none' : 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--bg)' }}>
-          {selected ? (
+          {scope === 'partners' ? (
+            selectedPartner ? (
+              <PartnerConversationPanel connection={selectedPartner} onBack={isAdmin && isMobile ? () => setShowList(true) : undefined} />
+            ) : (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)', gap: 12 }}>
+                <Handshake size={44} style={{ opacity: 0.4 }} />
+                <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--t2)' }}>Sélectionner un partenaire</div>
+                <div style={{ fontSize: 13 }}>Choisissez un partenaire connecté pour discuter</div>
+              </div>
+            )
+          ) : selected ? (
             <>
               {/* Header */}
               <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--b0)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--s0)', flexShrink: 0, minHeight: 52 }}>

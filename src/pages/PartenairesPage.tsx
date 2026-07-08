@@ -15,6 +15,7 @@ import {
 } from '@/lib/hooks/partners'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import PartnerMessagesModal from '@/components/PartnerMessagesModal'
+import SendToPartnerModal from '@/components/SendToPartnerModal'
 import type { PartnerConnection, PartnerConnectionStatus, PartnerSearchResult, PartnerInterventionRequest } from '@/types'
 
 type Tab = 'mine' | 'received' | 'sent' | 'interventions-received' | 'interventions-sent'
@@ -73,6 +74,7 @@ export default function PartenairesPage() {
   const { data: searchResults = [], isLoading: searchLoading } = usePartnerSearch(search)
   const [historyOpenId, setHistoryOpenId] = useState<string | null>(null)
   const [messagesConnection, setMessagesConnection] = useState<PartnerConnection | null>(null)
+  const [sendInterventionConnectionId, setSendInterventionConnectionId] = useState<string | null>(null)
   const { data: unreadCounts = {} } = usePartnerUnreadCounts()
   const [refuseTarget, setRefuseTarget] = useState<PartnerInterventionRequest | null>(null)
   const [refuseNote, setRefuseNote] = useState('')
@@ -276,7 +278,9 @@ export default function PartenairesPage() {
                           </span>
                         )}
                       </button>
-                      <button className="btn-icon sm" title="Envoyer une intervention — bientôt disponible" disabled style={{ opacity: 0.4, cursor: 'not-allowed' }}>🛠️</button>
+                      <button className="btn btn-secondary btn-sm" title="Envoyer une intervention" onClick={() => setSendInterventionConnectionId(c.id)}>
+                        <Wrench size={13} /> Envoyer une intervention
+                      </button>
                       <button className="btn btn-secondary btn-sm" onClick={() => handleStatusChange(c.id, 'blocked', 'Partenaire bloqué')}>Bloquer</button>
                       <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={() => handleStatusChange(c.id, 'archived', 'Connexion archivée')}>Archiver</button>
                     </>
@@ -408,6 +412,11 @@ export default function PartenairesPage() {
       {/* ── Modal messagerie partenaire ── */}
       {messagesConnection && (
         <PartnerMessagesModal connection={messagesConnection} onClose={() => setMessagesConnection(null)} />
+      )}
+
+      {/* ── Modal envoyer une intervention (partenaire pré-sélectionné) ── */}
+      {sendInterventionConnectionId && (
+        <SendToPartnerModal presetConnectionId={sendInterventionConnectionId} onClose={() => setSendInterventionConnectionId(null)} />
       )}
 
       {/* ── Modal refus demande d'intervention ── */}
