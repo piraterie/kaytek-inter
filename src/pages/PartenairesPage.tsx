@@ -288,9 +288,19 @@ export default function PartenairesPage() {
                       <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={() => handleStatusChange(c.id, 'archived', 'Connexion archivée')}>Archiver</button>
                     </>
                   ) : c.blocked_by_organisation_id === myOrg ? (
-                    <button className="btn btn-secondary btn-sm" onClick={() => handleStatusChange(c.id, 'accepted', 'Partenaire débloqué')}>Débloquer</button>
+                    <>
+                      <button className="btn btn-secondary btn-sm" disabled title="Connexion bloquée — débloquez pour pouvoir envoyer une intervention" style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                        <Wrench size={13} /> Envoyer une intervention
+                      </button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => handleStatusChange(c.id, 'accepted', 'Partenaire débloqué')}>Débloquer</button>
+                    </>
                   ) : (
-                    <span style={{ fontSize: 12, color: 'var(--t3)' }}>Bloqué par l'autre organisation</span>
+                    <>
+                      <button className="btn btn-secondary btn-sm" disabled title="Connexion bloquée par l'autre organisation — impossible d'envoyer une intervention" style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+                        <Wrench size={13} /> Envoyer une intervention
+                      </button>
+                      <span style={{ fontSize: 12, color: 'var(--t3)' }}>Bloqué par l'autre organisation</span>
+                    </>
                   )
                 } />
             ))

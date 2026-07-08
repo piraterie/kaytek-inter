@@ -9,7 +9,8 @@
 //  · depuis un partenaire (PartenairesPage) : `presetConnectionId` fourni,
 //    l'intervention reste à choisir dans la liste des interventions actives.
 import { useState, useMemo } from 'react'
-import { X, MapPin, Phone, User, FileText, Euro, Camera, Send, Wrench } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { X, MapPin, Phone, User, FileText, Euro, Camera, Send, Wrench, Info, PlusCircle } from 'lucide-react'
 import { usePartnerConnections, useSendPartnerInterventionRequest } from '@/lib/hooks/partners'
 import { useInterventions } from '@/lib/hooks'
 import { useToastStore } from '@/lib/store'
@@ -19,7 +20,8 @@ export default function SendToPartnerModal({ intervention, presetConnectionId, o
   intervention?: Intervention; presetConnectionId?: string; onClose: () => void
 }) {
   const { add } = useToastStore()
-  const { data: connections = [] } = usePartnerConnections()
+  const nav = useNavigate()
+  const { data: connections = [], isLoading: connectionsLoading } = usePartnerConnections()
   const accepted = useMemo(() => connections.filter(c => c.status === 'accepted'), [connections])
   const send = useSendPartnerInterventionRequest()
 
@@ -84,10 +86,17 @@ export default function SendToPartnerModal({ intervention, presetConnectionId, o
           <button className="btn-icon sm" onClick={onClose}><X size={15} /></button>
         </div>
         <div className="modal-body">
-          {accepted.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--t2)', textAlign: 'center', padding: '16px 0' }}>
-              Aucun partenaire accepté pour l'instant. Rendez-vous dans Réseau partenaires pour en connecter un.
-            </p>
+          {connectionsLoading ? (
+            <p style={{ fontSize: 13, color: 'var(--t2)', textAlign: 'center', padding: '16px 0' }}>Chargement…</p>
+          ) : accepted.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '16px 0' }}>
+              <p style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 12 }}>
+                Aucun partenaire accepté pour l'instant. Connectez-vous d'abord à une organisation partenaire.
+              </p>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => { onClose(); nav('/partenaires') }}>
+                Aller sur Réseau partenaires
+              </button>
+            </div>
           ) : (
             <>
               {needsInterventionPicker ? (
@@ -96,7 +105,14 @@ export default function SendToPartnerModal({ intervention, presetConnectionId, o
                   {interventionsLoading ? (
                     <p style={{ fontSize: 12, color: 'var(--t3)' }}>Chargement des interventions…</p>
                   ) : myInterventions.length === 0 ? (
-                    <p style={{ fontSize: 12, color: 'var(--t3)' }}>Aucune intervention disponible.</p>
+                    <div style={{ padding: '12px 14px', background: 'var(--amBg)', border: '1px solid var(--amBd)', borderRadius: 8 }}>
+                      <p style={{ fontSize: 12, color: 'var(--amTx)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Info size={13} style={{ flexShrink: 0 }} /> Aucune intervention disponible à envoyer.
+                      </p>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => { onClose(); nav('/interventions', { state: { openCreate: true } }) }}>
+                        <PlusCircle size={13} /> Créer une intervention d'abord
+                      </button>
+                    </div>
                   ) : (
                     <select value={pickedInterventionId} onChange={e => setPickedInterventionId(e.target.value)}>
                       <option value="">— Choisir une intervention —</option>
@@ -174,6 +190,14 @@ export default function SendToPartnerModal({ intervention, presetConnectionId, o
             </>
           )}
         </div>
+        {accepted.length > 0 && (!connectionId || !activeIntervention) && !(needsInterventionPicker && myInterventions.length === 0) && (
+          <div style={{ padding: '0 22px 12px', fontSize: 12, color: 'var(--t3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Info size={13} style={{ flexShrink: 0 }} />
+            {!activeIntervention && !connectionId ? "Choisissez une intervention et un partenaire pour continuer."
+              : !activeIntervention ? "Choisissez une intervention pour continuer."
+              : "Choisissez un partenaire pour continuer."}
+          </div>
+        )}
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onClose}>Annuler</button>
           {accepted.length > 0 && (
