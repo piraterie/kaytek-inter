@@ -42,6 +42,10 @@ function Guard({ children, adminOnly = false, requireCanCreateDocs = false, allo
 }) {
   const { user, loading, error } = useAuthStore()
   const location = useLocation()
+  // Capturé une seule fois, au tout premier rendu (avant que le SDK Supabase ne
+  // traite/nettoie le hash de façon asynchrone) — lire window.location.hash plus
+  // tard dans le rendu (ex. après résolution de `loading`) le trouverait déjà vidé.
+  const [initialAuthHash] = useState(() => window.location.hash)
 
   if (loading) return <Loader />
   if (error) return <ErrorDisplay error={error} />
@@ -50,9 +54,8 @@ function Guard({ children, adminOnly = false, requireCanCreateDocs = false, allo
     // ici avec le token dans le hash si la redirection configurée côté Supabase (Site URL /
     // Redirect URLs) ne pointe pas vers le bon chemin — on route vers /activation plutôt
     // que de perdre le token en renvoyant vers /login.
-    const hash = window.location.hash
-    if (hash.includes('access_token') && (hash.includes('type=invite') || hash.includes('type=recovery'))) {
-      return <Navigate to={`/activation${hash}`} replace />
+    if (initialAuthHash.includes('access_token') && (initialAuthHash.includes('type=invite') || initialAuthHash.includes('type=recovery'))) {
+      return <Navigate to={`/activation${initialAuthHash}`} replace />
     }
     // Sauvegarder la destination pour redirection post-login (cas push notification)
     const target = location.pathname + location.search
