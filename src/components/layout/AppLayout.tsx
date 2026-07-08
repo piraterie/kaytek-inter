@@ -363,7 +363,7 @@ export default function AppLayout() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: 'var(--navTA)', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.prenom} {user?.nom}</div>
                     <div style={{ color: 'var(--navSec)', fontSize: 11, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {user?.role === 'admin' ? 'Administrateur' : 'Intervenant'} · {orgParams?.raison_sociale || 'Kaytek Inter'}
+                      {user?.role === 'admin' ? 'Administrateur' : user?.role === 'assistant' ? 'Assistant' : 'Intervenant'} · {orgParams?.raison_sociale || 'Kaytek Inter'}
                     </div>
                   </div>
                 </div>
