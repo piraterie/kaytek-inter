@@ -39,6 +39,7 @@ export default function InterventionsPage() {
   const { user } = useAuthStore()
   const { add } = useToastStore()
   const isAdmin = user?.role === 'admin'
+  const canManageOps = isAdmin || user?.role === 'assistant'
   const [statut, setStatut] = useState('tous')
   const [search, setSearch] = useState('')
   const [showArchived, setShowArchived] = useState(false)
@@ -143,7 +144,7 @@ export default function InterventionsPage() {
       if (createForm.adresse) payload.adresse = createForm.adresse
       if (createForm.description) payload.description = createForm.description
       if (createForm.date_prevue) payload.date_prevue = new Date(createForm.date_prevue).toISOString()
-      if (isAdmin && createForm.notes_admin) payload.notes_admin = createForm.notes_admin
+      if (canManageOps && createForm.notes_admin) payload.notes_admin = createForm.notes_admin
       await create.mutateAsync(payload)
       add('Intervention créée')
       setCreateModal(false)
@@ -171,7 +172,7 @@ export default function InterventionsPage() {
       if (editForm.montant_ttc) payload.montant_ttc = parseFloat(editForm.montant_ttc)
       if (editForm.intervenant_id) payload.intervenant_id = editForm.intervenant_id
       if (editForm.date_prevue) payload.date_prevue = new Date(editForm.date_prevue).toISOString()
-      if (isAdmin) payload.notes_admin = editForm.notes_admin
+      if (canManageOps) payload.notes_admin = editForm.notes_admin
       await update.mutateAsync(payload)
       add('Intervention mise à jour')
       setEditModal(false)
@@ -287,7 +288,7 @@ export default function InterventionsPage() {
         {/* Desktop : inchangé */}
         <div className="page-actions hide-mobile">
           <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={items.length===0}><FileSpreadsheet size={14} /> Excel</button>
-          {isAdmin && (
+          {canManageOps && (
             <button
               className={`btn btn-sm ${showArchived ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => { setShowArchived(v => !v); setStatut('tous'); exitSelection() }}
@@ -295,7 +296,7 @@ export default function InterventionsPage() {
               <Archive size={14} /> {showArchived ? 'Masquer archives' : 'Archives'}
             </button>
           )}
-          {isAdmin && !selectionMode && items.length > 0 && (
+          {canManageOps && !selectionMode && items.length > 0 && (
             <button className="btn btn-secondary" onClick={() => setSelectionMode(true)}><CheckSquare size={14} /> Sélectionner</button>
           )}
           {isAdmin && showArchived && items.length > 0 && (
@@ -304,12 +305,12 @@ export default function InterventionsPage() {
               <Trash2 size={14} /> Vider les archives
             </button>
           )}
-          {isAdmin && !showArchived && <button className="btn btn-primary" onClick={() => setCreateModal(true)}>+ Nouvelle</button>}
+          {canManageOps && !showArchived && <button className="btn btn-primary" onClick={() => setCreateModal(true)}>+ Nouvelle</button>}
         </div>
         {/* Mobile : ligne compacte sous le titre */}
         <div className="show-mobile" style={{ width: '100%' }}>
           <div style={{ display: 'flex', gap: 8 }}>
-            {isAdmin && !showArchived && (
+            {canManageOps && !showArchived && (
               <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setCreateModal(true)}>
                 + Nouvelle
               </button>
@@ -336,7 +337,7 @@ export default function InterventionsPage() {
               <Archive size={13} /> Archiver la sélection
             </button>
           )}
-          {selected.size > 0 && showArchived && (
+          {isAdmin && selected.size > 0 && showArchived && (
             <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
               onClick={handleDeleteArchivedSelected} disabled={delArchived.isPending}>
               <Trash2 size={13} /> Supprimer la sélection
@@ -418,7 +419,7 @@ export default function InterventionsPage() {
                 {!selectionMode && (
                   <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     {i.type && <span className={`pill ${ACT_PILL[i.type]||'pill-gray'}`}>{i.type}</span>}
-                    {isAdmin && i.intervenant && <span style={{ fontSize:11, color:'var(--t2)', display: 'flex', alignItems: 'center', gap: 4 }}><User size={11} /> {i.intervenant.prenom} {i.intervenant.nom}</span>}
+                    {canManageOps && i.intervenant && <span style={{ fontSize:11, color:'var(--t2)', display: 'flex', alignItems: 'center', gap: 4 }}><User size={11} /> {i.intervenant.prenom} {i.intervenant.nom}</span>}
                   </div>
                 )}
               </div>
@@ -450,7 +451,7 @@ export default function InterventionsPage() {
           <thead>
             <tr>
               {selectionMode && <th style={{ width: 40, paddingRight: 0 }}><input type="checkbox" style={chkStyle} checked={selected.size === items.length && items.length > 0} onChange={toggleSelectAll} /></th>}
-              <th>N°</th><th>Client</th>{isAdmin&&<th>Intervenant</th>}<th>Type</th><th>Date</th><th>Montant</th><th>Statut</th><th>Actions</th>
+              <th>N°</th><th>Client</th>{canManageOps&&<th>Intervenant</th>}<th>Type</th><th>Date</th><th>Montant</th><th>Statut</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -459,7 +460,7 @@ export default function InterventionsPage() {
                 {selectionMode&&<td />}
                 <td><div className="skeleton-row" style={{ height:14,width:'80%' }} /></td>
                 <td><div className="skeleton-row" style={{ height:14,width:'70%',marginBottom:4 }} /><div className="skeleton-row" style={{ height:11,width:'45%' }} /></td>
-                {isAdmin&&<td><div className="skeleton-row" style={{ height:13,width:'65%' }} /></td>}
+                {canManageOps&&<td><div className="skeleton-row" style={{ height:13,width:'65%' }} /></td>}
                 <td><div className="skeleton-row" style={{ height:20,width:70,borderRadius:999 }} /></td>
                 <td><div className="skeleton-row" style={{ height:13,width:'80%' }} /></td>
                 <td><div className="skeleton-row" style={{ height:14,width:60 }} /></td>
@@ -487,7 +488,7 @@ export default function InterventionsPage() {
                   <div className="td-bold">{i.client?.nom} {i.client?.prenom}</div>
                   <div style={{ fontSize:11,color:'var(--t3)' }}>{i.client?.telephone}</div>
                 </td>
-                {isAdmin&&<td style={{ fontSize:13 }}>{i.intervenant?.prenom} {i.intervenant?.nom}</td>}
+                {canManageOps&&<td style={{ fontSize:13 }}>{i.intervenant?.prenom} {i.intervenant?.nom}</td>}
                 <td>{i.type?<span className={`pill ${ACT_PILL[i.type]||'pill-gray'}`}>{i.type}</span>:'—'}</td>
                 <td style={{ fontSize:12 }}>{i.date_prevue?new Date(i.date_prevue).toLocaleDateString('fr-FR'):'—'}</td>
                 <td className="td-bold">{i.montant_ttc?i.montant_ttc.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}):'—'}</td>
@@ -497,7 +498,7 @@ export default function InterventionsPage() {
                     <button className="btn-icon sm" onClick={() => nav(`/interventions/${i.id}`)} title="Voir"><Eye size={14} /></button>
                     {!showArchived && <button className="btn-icon sm" onClick={() => openEdit(i)} title="Modifier"><Pencil size={14} /></button>}
                     {!showArchived && <button className="btn-icon sm" onClick={() => openMsgModal(i)} title="Messagerie"><Mail size={14} /></button>}
-                    {isAdmin && <button className="btn-icon sm" onClick={() => handleArchive(i)} title={i.archive ? 'Restaurer' : 'Archiver'} style={{ color: i.archive ? 'var(--gnTx)' : 'var(--amTx)' }}>{i.archive ? <ArchiveRestore size={14} /> : <Archive size={14} />}</button>}
+                    {canManageOps && <button className="btn-icon sm" onClick={() => handleArchive(i)} title={i.archive ? 'Restaurer' : 'Archiver'} style={{ color: i.archive ? 'var(--gnTx)' : 'var(--amTx)' }}>{i.archive ? <ArchiveRestore size={14} /> : <Archive size={14} />}</button>}
                     {isAdmin && !i.archive && <button className="btn-icon sm" style={{ color:'var(--rdTx)' }} onClick={() => handleDelete(i)} title="Supprimer"><Trash2 size={14} /></button>}
                   </div>
                 </td>
@@ -546,15 +547,15 @@ export default function InterventionsPage() {
             </>
           )}
 
-          {/* Admin */}
-          {isAdmin && (
+          {/* Admin / Assistant */}
+          {canManageOps && (
             <>
               <SheetSection label="Administration" />
               <SheetRow
                 icon={activeSheet.archive ? <ArchiveRestore size={16} /> : <Archive size={16} />}
                 label={activeSheet.archive ? 'Restaurer' : 'Archiver'}
                 onClick={() => { setActiveSheet(null); handleArchive(activeSheet) }} />
-              {!activeSheet.archive && (
+              {!activeSheet.archive && isAdmin && (
                 <SheetRow icon={<Trash2 size={16} />} label="Supprimer" danger
                   onClick={() => { setActiveSheet(null); handleDelete(activeSheet) }} />
               )}
@@ -573,14 +574,14 @@ export default function InterventionsPage() {
             onClick={() => { setShowMobileActions(false); handleExport() }}
             disabled={items.length === 0}
           />
-          {isAdmin && (
+          {canManageOps && (
             <SheetRow
               icon={<Archive size={16} />}
               label={showArchived ? 'Masquer les archives' : 'Voir les archives'}
               onClick={() => { setShowMobileActions(false); setShowArchived(v => !v); setStatut('tous'); exitSelection() }}
             />
           )}
-          {isAdmin && !selectionMode && items.length > 0 && (
+          {canManageOps && !selectionMode && items.length > 0 && (
             <SheetRow
               icon={<CheckSquare size={16} />}
               label="Mode sélection"
@@ -682,7 +683,7 @@ export default function InterventionsPage() {
                   />
                 </div>
                 <div className="form-group"><label>Description</label><textarea value={createForm.description} onChange={e => setCreateForm(f=>({...f,description:e.target.value}))} placeholder="Nature de l'intervention…" /></div>
-                {isAdmin && <div className="form-group"><label>Notes admin (privées)</label><textarea value={createForm.notes_admin} onChange={e => setCreateForm(f=>({...f,notes_admin:e.target.value}))} /></div>}
+                {canManageOps && <div className="form-group"><label>Notes admin (privées)</label><textarea value={createForm.notes_admin} onChange={e => setCreateForm(f=>({...f,notes_admin:e.target.value}))} /></div>}
                 <label style={{ display:'flex',alignItems:'center',gap:8,textTransform:'none',fontSize:14,fontWeight:500,letterSpacing:0,cursor:'pointer' }}>
                   <input type="checkbox" checked={createForm.urgence} onChange={e => setCreateForm(f=>({...f,urgence:e.target.checked}))} style={{ width:'auto',minHeight:'auto' }} />
                   <AlertTriangle size={14} color="var(--rdTx)" /> Urgente
@@ -720,7 +721,7 @@ export default function InterventionsPage() {
                 <div className="form-group"><label>Montant TTC (€)</label>
                   <input type="number" step="0.01" min="0" value={editForm.montant_ttc} onChange={e => setEditForm(f=>({...f,montant_ttc:e.target.value}))} placeholder="0.00" />
                 </div>
-                {isAdmin && (
+                {canManageOps && (
                   <div className="form-group"><label>Intervenant</label>
                     <CustomSelect
                       value={editForm.intervenant_id}
@@ -740,7 +741,7 @@ export default function InterventionsPage() {
                 <div className="form-group"><label>Date prévue</label>
                   <input type="datetime-local" value={editForm.date_prevue} onChange={e => setEditForm(f=>({...f,date_prevue:e.target.value}))} />
                 </div>
-                {isAdmin && <div className="form-group"><label>Notes admin (privées)</label><textarea value={editForm.notes_admin} onChange={e => setEditForm(f=>({...f,notes_admin:e.target.value}))} /></div>}
+                {canManageOps && <div className="form-group"><label>Notes admin (privées)</label><textarea value={editForm.notes_admin} onChange={e => setEditForm(f=>({...f,notes_admin:e.target.value}))} /></div>}
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={closeEditModal}>Annuler</button>

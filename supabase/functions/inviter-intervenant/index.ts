@@ -48,12 +48,22 @@ serve(async (req) => {
     })
 
     const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY') ?? ''
-    const { email, nom, prenom, commission_pct } = await req.json()
+    const { email, nom, prenom, commission_pct, role: requestedRole } = await req.json()
     if (!email || !nom || !prenom) return respond({ error: 'Champs email, nom et prenom obligatoires' })
+
+    // Whitelist stricte des rôles invitables — 'admin' est explicitement exclu
+    // pour empêcher toute escalade de privilèges via ce endpoint.
+    const ALLOWED_ROLES = ['intervenant', 'assistant']
+    const role = ALLOWED_ROLES.includes(requestedRole) ? requestedRole : 'intervenant'
+    if (requestedRole && !ALLOWED_ROLES.includes(requestedRole)) {
+      return respond({ error: `Rôle invalide — autorisés : ${ALLOWED_ROLES.join(', ')}` })
+    }
 
     const origin = req.headers.get('origin') || 'https://kaytek-inter.vercel.app'
     const redirectTo = `${origin}/reset-password`
-    const profileData = { nom, prenom, role: 'intervenant', commission_pct: commission_pct ?? 30, actif: true, organisation_id: organisationId }
+    const profileData = role === 'intervenant'
+      ? { nom, prenom, role, commission_pct: commission_pct ?? 30, actif: true, organisation_id: organisationId }
+      : { nom, prenom, role, actif: true, organisation_id: organisationId }
 
     // 1. Chercher si profil existe déjà
     const { data: existingProfile } = await admin.from('profiles')
@@ -71,15 +81,11 @@ serve(async (req) => {
       }
 
       // Utilisateur existant (même org ou sans org) → mise à jour profil + génération lien reset
-      // role forcé à 'intervenant' pour éviter toute escalade de privilèges
-      console.log('[DBG] profiles.update payload:', JSON.stringify({ nom, prenom, role: 'intervenant', commission_pct: commission_pct ?? 30, organisation_id: organisationId }))
-      const { error: updateErr } = await admin.from('profiles').update({
-        nom,
-        prenom,
-        role: 'intervenant',
-        commission_pct: commission_pct ?? 30,
-        organisation_id: organisationId,
-      }).eq('id', existingProfile.id)
+      // role limité à la whitelist ALLOWED_ROLES (jamais 'admin') pour éviter toute escalade de privilèges
+      const updatePayload: Record<string, unknown> = { nom, prenom, role, organisation_id: organisationId }
+      if (role === 'intervenant') updatePayload.commission_pct = commission_pct ?? 30
+      console.log('[DBG] profiles.update payload:', JSON.stringify(updatePayload))
+      const { error: updateErr } = await admin.from('profiles').update(updatePayload).eq('id', existingProfile.id)
       if (updateErr) console.error('[DBG] profiles.update error:', JSON.stringify({ message: updateErr.message, code: (updateErr as any).code, details: (updateErr as any).details, hint: (updateErr as any).hint }))
       const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
         type: 'recovery', email, options: { redirectTo }
@@ -106,10 +112,17 @@ serve(async (req) => {
         if (linkErr) return respond({ error: linkErr.message })
         actionLink = linkData.properties?.action_link ?? ''
       } else {
-        // Vraiment nouveau → generateLink crée l'auth user (déclenche trigger handle_new_user si existant)
+        // Vraiment nouveau → generateLink crée l'auth user, ce qui déclenche le trigger
+        // handle_new_user() (AFTER INSERT auth.users). Ce trigger lit organisation_id/role/
+        // nom/prenom depuis raw_user_meta_data (avec fallback org 'kaytek-inter' si absent) —
+        // on lui passe donc ces valeurs explicitement pour qu'il crée le profil dans la
+        // BONNE organisation avec le BON rôle dès la première insertion (sinon le trigger
+        // retombe sur l'org par défaut et l'insert explicite ci-dessous entre en conflit
+        // avec la ligne déjà créée par le trigger).
         console.log('[DBG] generateLink invite pour:', email)
         const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-          type: 'invite', email, options: { redirectTo }
+          type: 'invite', email,
+          options: { redirectTo, data: { nom, prenom, role, organisation_id: organisationId } }
         })
         if (linkErr) {
           console.error('[DBG] generateLink invite error:', JSON.stringify({ message: linkErr.message, code: (linkErr as any).code, details: (linkErr as any).details, hint: (linkErr as any).hint, status: (linkErr as any).status }))
@@ -117,12 +130,13 @@ serve(async (req) => {
         }
         actionLink = linkData.properties?.action_link ?? ''
 
-        // Créer le profil
+        // Filet de sécurité : si le trigger n'a pas créé la ligne (désactivé, erreur, etc.),
+        // upsert la garantit quand même — idempotent avec la ligne déjà créée par le trigger.
         const userId = linkData.user?.id
-        console.log('[DBG] profiles.insert payload:', JSON.stringify({ id: userId, email, ...profileData }))
+        console.log('[DBG] profiles.upsert payload:', JSON.stringify({ id: userId, email, ...profileData }))
         if (userId) {
-          const { error: insertErr } = await admin.from('profiles').insert({ id: userId, email, ...profileData })
-          if (insertErr) console.error('[DBG] profiles.insert error:', JSON.stringify({ message: insertErr.message, code: (insertErr as any).code, details: (insertErr as any).details, hint: (insertErr as any).hint }))
+          const { error: upsertErr } = await admin.from('profiles').upsert({ id: userId, email, ...profileData }, { onConflict: 'id' })
+          if (upsertErr) console.error('[DBG] profiles.upsert error:', JSON.stringify({ message: upsertErr.message, code: (upsertErr as any).code, details: (upsertErr as any).details, hint: (upsertErr as any).hint }))
         }
         isNew = true
       }
@@ -143,7 +157,7 @@ serve(async (req) => {
           <p style="font-size:15px;color:#374151;">Bonjour <strong>${prenom} ${nom}</strong>,</p>
           <p style="font-size:15px;color:#374151;">
             ${isNew
-              ? "Vous avez été invité(e) à rejoindre l'application <strong>Kaytek Inter</strong> en tant qu'intervenant(e)."
+              ? `Vous avez été invité(e) à rejoindre l'application <strong>Kaytek Inter</strong> en tant qu'${role === 'assistant' ? 'assistant(e)' : 'intervenant(e)'}.`
               : "Voici votre lien pour définir votre mot de passe sur <strong>Kaytek Inter</strong>."}
           </p>
           <div style="text-align:center;margin:28px 0;">

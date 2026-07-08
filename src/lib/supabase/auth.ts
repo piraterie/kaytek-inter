@@ -106,11 +106,12 @@ export async function inviterIntervenant(
   nom: string,
   prenom: string,
   commission_pct: number,
-  type_intervenant?: 'entrepreneur' | 'salarie'
+  type_intervenant?: 'entrepreneur' | 'salarie',
+  role: 'intervenant' | 'assistant' = 'intervenant'
 ) {
   try {
     const { data, error } = await supabase.functions.invoke('inviter-intervenant', {
-      body: { email, nom, prenom, commission_pct, type_intervenant }
+      body: { email, nom, prenom, commission_pct, type_intervenant, role }
     })
 
     if (error) return { error: error.message }

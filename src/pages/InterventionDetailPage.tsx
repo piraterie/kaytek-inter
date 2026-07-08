@@ -23,6 +23,8 @@ export default function InterventionDetailPage() {
   const { user } = useAuthStore()
   const { add } = useToastStore()
   const isAdmin = user?.role === 'admin'
+  const isAssistant = user?.role === 'assistant'
+  const canManageOps = isAdmin || isAssistant
   const canCreateDocs = isAdmin || user?.can_create_documents === true
   const [tab, setTab] = useState<'detail'|'photos'|'cr'|'comm'|'facturation'>('detail')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -118,9 +120,9 @@ export default function InterventionDetailPage() {
     if(fileRef.current) fileRef.current.value=''
   }
 
-  const peutFacturer = !isAdmin && inter.statut === 'termine'
+  const peutFacturer = !canManageOps && inter.statut === 'termine'
   const devisIntervention = mesDevis.filter(d => d.intervention_id === id)
-  const isAssigned = !isAdmin && inter.intervenant_id === user?.id
+  const isAssigned = !canManageOps && inter.intervenant_id === user?.id
 
   async function notifyAdminsMessage(contenu: string) {
     const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin')
@@ -187,6 +189,8 @@ export default function InterventionDetailPage() {
 
   const tabs = isAdmin
     ? ['detail','photos','cr','comm'] as const
+    : isAssistant
+    ? ['detail','photos','cr'] as const
     : ['detail','photos','cr','comm','facturation'] as const
   const tabIcon: Record<string, React.ReactNode> = {
     detail: <ClipboardList size={13} />, photos: <Camera size={13} />, cr: <NotebookPen size={13} />,
@@ -206,7 +210,7 @@ export default function InterventionDetailPage() {
           {inter.urgence && <span className="urgence-badge"><AlertTriangle size={11} /> URGENT</span>}
           <span className={`pill ${inter.statut==='termine'?'pill-green':inter.statut==='en_cours'?'pill-orange':inter.statut==='en_attente'?'pill-amber':'pill-gray'}`}>{inter.statut.replace('_',' ')}</span>
           {isAdmin && <button className="btn btn-primary btn-sm" onClick={()=>nav(`/devis/nouveau?intervention=${id}`)}><FileText size={14} /> Créer devis</button>}
-          {isAdmin && <button className="btn btn-secondary btn-sm" onClick={openAssignModal}><UserCog size={14} /> {inter.intervenant ? 'Réassigner' : 'Assigner'} un intervenant</button>}
+          {canManageOps && <button className="btn btn-secondary btn-sm" onClick={openAssignModal}><UserCog size={14} /> {inter.intervenant ? 'Réassigner' : 'Assigner'} un intervenant</button>}
           {isAdmin && <button className="btn btn-secondary btn-sm" onClick={()=>setPartnerModal(true)}><Handshake size={14} /> Envoyer à un partenaire</button>}
           {peutFacturer && <button className="btn btn-primary btn-sm" onClick={()=>{ setTab('facturation') }}><FileText size={14} /> Facturation</button>}
         </div>
@@ -303,10 +307,10 @@ export default function InterventionDetailPage() {
                 <span style={{ fontWeight:500,textAlign:'right',maxWidth:'55%' }}>{v}</span>
               </div>
             ))}
-            {isAdmin&&inter.notes_admin&&<div style={{ marginTop:12,padding:10,background:'var(--amBg)',borderRadius:7,border:'1px solid var(--amBd)',fontSize:11,color:'var(--amTx)' }}><strong>Notes admin</strong><br/>{inter.notes_admin}</div>}
+            {canManageOps&&inter.notes_admin&&<div style={{ marginTop:12,padding:10,background:'var(--amBg)',borderRadius:7,border:'1px solid var(--amBd)',fontSize:11,color:'var(--amTx)' }}><strong>Notes admin</strong><br/>{inter.notes_admin}</div>}
           </div>
           <div className="card card-body">
-            {isAdmin ? (
+            {canManageOps ? (
               <>
                 <p style={{ fontSize:12,fontWeight:600,marginBottom:12 }}>Changer le statut</p>
                 <div style={{ display:'flex',flexDirection:'column',gap:7 }}>
@@ -421,7 +425,7 @@ export default function InterventionDetailPage() {
                   </div>
                 ) : inter.materiel_confirme && cr.cout_pieces !== (inter.cout_pieces || 0) ? (
                   <div style={{ fontSize:11,color:'var(--amTx)', display: 'flex', alignItems: 'center', gap: 5 }}><AlertTriangle size={12} /> Montant modifié — la confirmation sera réinitialisée à la sauvegarde</div>
-                ) : isAdmin && (cr.cout_pieces > 0 || (inter.cout_pieces || 0) > 0) ? (
+                ) : canManageOps && (cr.cout_pieces > 0 || (inter.cout_pieces || 0) > 0) ? (
                   <button type="button" className="btn btn-secondary" style={{ fontSize:12 }} onClick={confirmMateriel} disabled={update.isPending}>
                     <CheckCircle2 size={13} /> Confirmer le matériel
                   </button>
@@ -455,7 +459,7 @@ export default function InterventionDetailPage() {
           </form>
         </div>
       )}
-      {tab==='comm' && (
+      {tab==='comm' && !isAssistant && (
         <div className="card card-body" style={{ maxWidth:420 }}>
           {!inter.montant_ttc && (
             <div style={{ padding:'10px 14px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:8,fontSize:12,color:'var(--amTx)',marginBottom:16, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -495,7 +499,7 @@ export default function InterventionDetailPage() {
           )}
         </div>
       )}
-      {tab==='facturation' && !isAdmin && (
+      {tab==='facturation' && !canManageOps && (
         <div>
           {!peutFacturer && (
             <div style={{ padding:'14px 16px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:'var(--r2)',marginBottom:12,fontSize:13,color:'var(--amTx)', display: 'flex', alignItems: 'center', gap: 8 }}>
