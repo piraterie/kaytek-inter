@@ -143,6 +143,7 @@ export interface DashboardStats {
   montant_impaye: number; commissions_dues: number; devis_en_attente: number
   messages_non_lus: number
   mes_commissions_mois?: number; mes_commissions_dues?: number
+  interventions_a_planifier?: number
 }
 
 // ── Réseau partenaires (Phase 1 — fondations + connexions) ──────────────────

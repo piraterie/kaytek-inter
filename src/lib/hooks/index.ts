@@ -31,20 +31,23 @@ export function useDashboard() {
       const startDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
       const startMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString()
       const admin = isAdm()
+      const isAssistant = user?.role === 'assistant'
       const [
         { count: todayCount },
         { data: factures },
         { data: commissionsDues },
         { count: msgs },
         { count: devisWaiting },
-        { data: mesCommissions }
+        { data: mesCommissions },
+        { count: aPlanifier },
       ] = await Promise.all([
         supabase.from('interventions').select('id', { count: 'exact', head: true }).gte('date_prevue', startDay),
         admin ? supabase.from('factures').select('montant_ttc, statut_paiement').gte('created_at', startMonth) : Promise.resolve({ data: [] }),
         admin ? supabase.from('commissions').select('commission_admin').eq('statut', 'a_payer') : Promise.resolve({ data: [] }),
         supabase.from('messages').select('id', { count: 'exact', head: true }).eq('destinataire_id', user!.id).eq('lu', false),
         admin ? supabase.from('devis').select('id', { count: 'exact', head: true }).eq('statut', 'envoye') : Promise.resolve({ count: 0 }),
-        !admin ? supabase.from('commissions').select('part_intervenant, statut').eq('intervenant_id', user!.id).gte('created_at', startMonth) : Promise.resolve({ data: [] }),
+        (!admin && !isAssistant) ? supabase.from('commissions').select('part_intervenant, statut').eq('intervenant_id', user!.id).gte('created_at', startMonth) : Promise.resolve({ data: [] }),
+        isAssistant ? supabase.from('interventions').select('id', { count: 'exact', head: true }).eq('statut', 'en_attente') : Promise.resolve({ count: 0 }),
       ])
       const fa = factures || []
       const impayees = fa.filter(f => f.statut_paiement === 'impayee')
@@ -60,6 +63,7 @@ export function useDashboard() {
         messages_non_lus: msgs || 0,
         mes_commissions_mois: myComm.reduce((s, c) => s + (c.part_intervenant || 0), 0),
         mes_commissions_dues: myComm.filter(c => c.statut === 'a_payer').reduce((s, c) => s + (c.part_intervenant || 0), 0),
+        interventions_a_planifier: aPlanifier || 0,
       }
     },
     refetchInterval: 30_000,
@@ -447,10 +451,16 @@ export function useCreateIntervention() {
         if (error.code === '23505') throw new Error('Numéro d\'intervention déjà utilisé — veuillez réessayer.')
         throw error
       }
+      const lien = `/interventions/${(result as any).id}`
       // Si un intervenant est assigné dès la création, le notifier
       if (data.intervenant_id) {
-        const lien = `/interventions/${(result as any).id}`
         notifyUser(data.intervenant_id, '🚨 Nouvelle intervention', 'Une intervention vous a été attribuée.', lien).catch(() => {})
+      }
+      // Créée par un assistant → prévenir l'admin (visibilité sur le dispatch)
+      const creator = useAuthStore.getState().user
+      if (creator?.role === 'assistant') {
+        const creatorName = `${creator.prenom || ''} ${creator.nom || ''}`.trim()
+        notifyAdmins('🆕 Intervention créée par l\'assistant', `${creatorName} a créé une nouvelle intervention.`, lien).catch(() => {})
       }
       return result
     },
@@ -473,6 +483,10 @@ export function useUpdateIntervention() {
       } else if (data.intervenant_id) {
         // Réassignation d'intervenant
         notifyUser(data.intervenant_id, '🚨 Nouvelle intervention', 'Une intervention vous a été attribuée.', lien).catch(() => {})
+        // Assignée/réassignée par un assistant → prévenir l'admin
+        if (user?.role === 'assistant') {
+          notifyAdmins('🔄 Intervention assignée par l\'assistant', `${userName} a assigné un intervenant sur une intervention.`, lien).catch(() => {})
+        }
       } else if (data.statut) {
         // Autre changement de statut → notifier l'intervenant assigné
         const { data: current } = await supabase.from('interventions').select('intervenant_id').eq('id', id).single()
@@ -1220,10 +1234,15 @@ export function useSendMessage() {
   const user = useAuthStore(s => s.user)
   return useMutation({
     mutationFn: async ({ destinataire_id, contenu, intervention_id, type = 'texte', media_url }: { destinataire_id: string; contenu: string; intervention_id?: string; type?: Message['type']; media_url?: string }) => {
-      // Sécurité : un non-admin ne peut envoyer qu'à un admin
-      if (user!.role !== 'admin') {
+      // Sécurité : un intervenant ne peut envoyer qu'à un admin ; un assistant peut
+      // écrire à l'admin ET aux intervenants (coordination opérationnelle) ; l'admin
+      // peut écrire à tout le monde.
+      if (user!.role === 'intervenant') {
         const { data: dest } = await supabase.from('profiles').select('role').eq('id', destinataire_id).single()
         if (!dest || dest.role !== 'admin') throw new Error('Vous ne pouvez envoyer des messages qu\'à l\'administrateur')
+      } else if (user!.role === 'assistant') {
+        const { data: dest } = await supabase.from('profiles').select('role').eq('id', destinataire_id).single()
+        if (!dest || (dest.role !== 'admin' && dest.role !== 'intervenant')) throw new Error('Vous ne pouvez envoyer des messages qu\'à l\'administrateur ou aux intervenants')
       }
       const org_id = orgId()
       if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
@@ -1293,9 +1312,11 @@ export function useConversations() {
   return useQuery<(Profile & { lastMessage: any; unreadCount: number })[]>({
     queryKey: ['conversations', user?.id],
     queryFn: async () => {
-      // 1. Contacts disponibles
+      // 1. Contacts disponibles — admin : tout le monde ; assistant : admin + intervenants
+      // (coordination opérationnelle) ; intervenant : admin uniquement.
       let q = supabase.from('profiles').select('*').neq('id', user!.id).eq('actif', true)
-      if (user!.role !== 'admin') q = q.eq('role', 'admin')
+      if (user!.role === 'intervenant') q = q.eq('role', 'admin')
+      else if (user!.role === 'assistant') q = q.in('role', ['admin', 'intervenant'])
       const { data: profiles } = await q.order('nom')
       const profileList = (profiles || []) as Profile[]
       if (!profileList.length) return []

@@ -24,6 +24,9 @@ export default function DashboardPage() {
   const { data: stats, isLoading } = useDashboard()
   const { data: interventions = [] } = useInterventions()
   const { data: commissions = [] } = useCommissions()
+  const isAdmin = user?.role === 'admin'
+  const isAssistant = user?.role === 'assistant'
+  const canManageOps = isAdmin || isAssistant
 
   const recent = interventions.slice(0, 5)
   const urgentes = interventions.filter(i => i.urgence && i.statut === 'en_attente').slice(0, 3)
@@ -36,11 +39,15 @@ export default function DashboardPage() {
         <p className="page-subtitle">{format(new Date(), 'EEEE d MMMM yyyy', { locale: fr })}</p>
       </div>
       <div className="grid-4 mb-4">
-        {(user?.role === 'admin' ? [
+        {(isAdmin ? [
           { l: "Interventions aujourd'hui", v: isLoading ? '…' : String(stats?.interventions_today ?? 0), ic: Wrench, c: 'blue' },
           { l: 'CA du mois', v: isLoading ? '…' : eur(stats?.ca_mois ?? 0), ic: Euro, c: 'green' },
           { l: 'Impayés', v: isLoading ? '…' : eur(stats?.montant_impaye ?? 0), ic: AlertTriangle, c: 'red' },
           { l: 'Commissions dues', v: isLoading ? '…' : eur(stats?.commissions_dues ?? 0), ic: DollarSign, c: 'amber' },
+        ] : isAssistant ? [
+          { l: 'Interventions du jour', v: isLoading ? '…' : String(stats?.interventions_today ?? 0), ic: Wrench, c: 'blue' },
+          { l: 'À planifier', v: isLoading ? '…' : String(stats?.interventions_a_planifier ?? 0), ic: Clock, c: 'amber' },
+          { l: 'Messages non lus', v: isLoading ? '…' : String(stats?.messages_non_lus ?? 0), ic: MessagesSquare, c: 'blue' },
         ] : [
           { l: "Mes interventions aujourd'hui", v: isLoading ? '…' : String(stats?.interventions_today ?? 0), ic: Wrench, c: 'blue' },
           { l: 'Mes gains ce mois', v: isLoading ? '…' : eur(stats?.mes_commissions_mois ?? 0), ic: Euro, c: 'green' },
@@ -143,10 +150,10 @@ export default function DashboardPage() {
           )}
           <div className="card card-body">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {user?.role === 'admin' && <button className="btn btn-primary" onClick={() => nav('/interventions')} style={{ justifyContent: 'center' }}><Wrench size={14} /> Nouvelle intervention</button>}
-              {user?.role === 'admin' && <button className="btn btn-secondary" onClick={() => nav('/devis/nouveau')} style={{ justifyContent: 'center' }}><FileText size={14} /> Créer un devis</button>}
+              {canManageOps && <button className="btn btn-primary" onClick={() => nav('/interventions')} style={{ justifyContent: 'center' }}><Wrench size={14} /> Nouvelle intervention</button>}
+              {isAdmin && <button className="btn btn-secondary" onClick={() => nav('/devis/nouveau')} style={{ justifyContent: 'center' }}><FileText size={14} /> Créer un devis</button>}
               <button className="btn btn-secondary" onClick={() => nav('/messagerie')} style={{ justifyContent: 'center' }}><Mail size={14} /> Messagerie</button>
-              {user?.role !== 'admin' && <button className="btn btn-secondary" onClick={() => nav('/commissions')} style={{ justifyContent: 'center' }}><DollarSign size={14} /> Mes commissions</button>}
+              {!isAdmin && !isAssistant && <button className="btn btn-secondary" onClick={() => nav('/commissions')} style={{ justifyContent: 'center' }}><DollarSign size={14} /> Mes commissions</button>}
             </div>
           </div>
         </div>
