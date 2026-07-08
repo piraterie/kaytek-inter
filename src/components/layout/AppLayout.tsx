@@ -19,20 +19,21 @@ import { useUnreadCount, useUpdateProfile, useIsMobile, useRequestNotificationPe
 import { getMyDevices, disconnectDevice, disconnectAllOtherDevices, isCurrentDevice, type DeviceRecord } from '@/lib/devices'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 import OfflineBanner from '@/components/OfflineBanner'
+import type { Role } from '@/types'
 
 type NavIcon = React.ComponentType<{ size?: number; strokeWidth?: number; style?: React.CSSProperties }>
 
-const NAV: { path: string; label: string; icon: NavIcon; section: string; adminOnly?: boolean; badge?: 'messages' | 'pending' | 'partnerRequests' }[] = [
+const NAV: { path: string; label: string; icon: NavIcon; section: string; adminOnly?: boolean; allowedRoles?: Role[]; badge?: 'messages' | 'pending' | 'partnerRequests' }[] = [
   { path: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard, section: 'Pilotage' },
   { path: '/messagerie',    label: 'Messagerie',    icon: MessagesSquare,  section: 'Pilotage', badge: 'messages' },
   { path: '/interventions', label: 'Interventions', icon: Wrench,          section: 'Terrain',  badge: 'pending' },
   { path: '/planning',      label: 'Planning',      icon: CalendarDays,    section: 'Terrain' },
-  { path: '/devis',         label: 'Devis',         icon: FileText,        section: 'Terrain' },
-  { path: '/factures',      label: 'Factures',      icon: Receipt,         section: 'Terrain' },
-  { path: '/clients',       label: 'Clients',       icon: Users,           section: 'Gestion', adminOnly: true },
+  { path: '/devis',         label: 'Devis',         icon: FileText,        section: 'Terrain', allowedRoles: ['admin','intervenant'] },
+  { path: '/factures',      label: 'Factures',      icon: Receipt,         section: 'Terrain', allowedRoles: ['admin','intervenant'] },
+  { path: '/clients',       label: 'Clients',       icon: Users,           section: 'Gestion', allowedRoles: ['admin','assistant'] },
   { path: '/catalogue',     label: 'Catalogue',     icon: Package,         section: 'Gestion', adminOnly: true },
-  { path: '/commissions',   label: 'Commissions',   icon: DollarSign,      section: 'Gestion' },
-  { path: '/guide',         label: 'Guide',         icon: BookOpen,        section: 'Gestion' },
+  { path: '/commissions',   label: 'Commissions',   icon: DollarSign,      section: 'Gestion', allowedRoles: ['admin','intervenant'] },
+  { path: '/guide',         label: 'Guide',         icon: BookOpen,        section: 'Gestion', allowedRoles: ['admin','intervenant'] },
   { path: '/partenaires',   label: 'Réseau partenaires', icon: Handshake,  section: 'Administration', adminOnly: true, badge: 'partnerRequests' },
   { path: '/utilisateurs',  label: 'Utilisateurs',  icon: Shield,          section: 'Administration', adminOnly: true },
   { path: '/parametres',    label: 'Paramètres',    icon: Settings,        section: 'Administration', adminOnly: true },
@@ -53,7 +54,10 @@ export default function AppLayout() {
   const nav = useNavigate()
   const loc = useLocation()
   const isAdmin = user?.role === 'admin'
-  const items = NAV.filter(i => !i.adminOnly || isAdmin)
+  const items = NAV.filter(i => {
+    if (i.allowedRoles) return !!user && i.allowedRoles.includes(user.role)
+    return !i.adminOnly || isAdmin
+  })
   const isMobile = useIsMobile()
 
   const [compact, setCompact] = useState(() => {

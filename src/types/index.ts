@@ -1,5 +1,5 @@
 // src/types/index.ts
-export type Role = 'admin' | 'intervenant'
+export type Role = 'admin' | 'intervenant' | 'assistant'
 export type TypeIntervenant = 'entrepreneur' | 'salarie'
 export type StatutIntervention = 'en_attente'|'accepte'|'refuse'|'en_cours'|'termine'|'annule'|'facture'
 export type StatutDevis = 'en_attente_validation'|'brouillon'|'envoye'|'accepte'|'refuse'|'expire'

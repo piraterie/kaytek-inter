@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase/client'
 import { useAuthStore, useUIStore, useParamsStore } from '@/lib/store'
 import AppLayout from '@/components/layout/AppLayout'
 import KaytekLogo from '@/components/KaytekLogo'
+import type { Role } from '@/types'
 
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'))
@@ -35,7 +36,9 @@ const PublicDocumentPage = lazy(() => import('@/pages/PublicDocumentPage'))
 const ConfidentialitePage = lazy(() => import('@/pages/ConfidentialitePage'))
 const DeleteAccountPage = lazy(() => import('@/pages/DeleteAccountPage'))
 
-function Guard({ children, adminOnly = false, requireCanCreateDocs = false }: { children: React.ReactNode; adminOnly?: boolean; requireCanCreateDocs?: boolean }) {
+function Guard({ children, adminOnly = false, requireCanCreateDocs = false, allowedRoles }: {
+  children: React.ReactNode; adminOnly?: boolean; requireCanCreateDocs?: boolean; allowedRoles?: Role[]
+}) {
   const { user, loading, error } = useAuthStore()
   const location = useLocation()
 
@@ -50,6 +53,7 @@ function Guard({ children, adminOnly = false, requireCanCreateDocs = false }: { 
     return <Navigate to="/login" replace />
   }
   if (adminOnly && user.role !== 'admin') return <Navigate to="/dashboard" replace />
+  if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/dashboard" replace />
   if (requireCanCreateDocs && user.role !== 'admin' && !user.can_create_documents) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
@@ -239,23 +243,23 @@ export default function App() {
         <Route path="interventions" element={<InterventionsPage />} />
         <Route path="planning" element={<PlanningPage />} />
         <Route path="interventions/:id" element={<InterventionDetailPage />} />
-        <Route path="devis" element={<Guard><DevisPage /></Guard>} />
-        <Route path="devis/nouveau" element={<Guard requireCanCreateDocs><DevisFormPage /></Guard>} />
+        <Route path="devis" element={<Guard allowedRoles={['admin','intervenant']}><DevisPage /></Guard>} />
+        <Route path="devis/nouveau" element={<Guard requireCanCreateDocs allowedRoles={['admin','intervenant']}><DevisFormPage /></Guard>} />
         <Route path="devis/:id/editer" element={<Guard adminOnly><DevisFormPage /></Guard>} />
-        <Route path="devis/:id/apercu" element={<Guard><DevisApercuPage /></Guard>} />
-        <Route path="factures" element={<Guard><FacturesPage /></Guard>} />
-        <Route path="clients" element={<Guard adminOnly><ClientsPage /></Guard>} />
-        <Route path="clients/:id" element={<Guard adminOnly><ClientDetailPage /></Guard>} />
+        <Route path="devis/:id/apercu" element={<Guard allowedRoles={['admin','intervenant']}><DevisApercuPage /></Guard>} />
+        <Route path="factures" element={<Guard allowedRoles={['admin','intervenant']}><FacturesPage /></Guard>} />
+        <Route path="clients" element={<Guard allowedRoles={['admin','assistant']}><ClientsPage /></Guard>} />
+        <Route path="clients/:id" element={<Guard allowedRoles={['admin','assistant']}><ClientDetailPage /></Guard>} />
         <Route path="catalogue" element={<Guard adminOnly><CataloguePage /></Guard>} />
         <Route path="messagerie" element={<MessagingPage />} />
         <Route path="messagerie/:userId" element={<MessagingPage />} />
-        <Route path="commissions" element={<CommissionsPage />} />
+        <Route path="commissions" element={<Guard allowedRoles={['admin','intervenant']}><CommissionsPage /></Guard>} />
         <Route path="partenaires" element={<Guard adminOnly><PartenairesPage /></Guard>} />
         <Route path="utilisateurs" element={<Guard adminOnly><UsersPage /></Guard>} />
         <Route path="parametres" element={<Guard adminOnly><ParamsPage /></Guard>} />
         <Route path="journal" element={<Guard adminOnly><JournalPage /></Guard>} />
         {/* ── Guide d'utilisation ─────────────────────────────────────── */}
-        <Route path="guide" element={<Guard><GuidePage /></Guard>} />
+        <Route path="guide" element={<Guard allowedRoles={['admin','intervenant']}><GuidePage /></Guard>} />
         <Route path="guide/admin/videos" element={<Guard adminOnly><GuideAdminVideosPage /></Guard>} />
         <Route path="guide/admin/:section?" element={<Guard adminOnly><GuideAdminPage /></Guard>} />
         <Route path="guide/intervenant/:section?" element={<Guard><GuideIntervenantPage /></Guard>} />
