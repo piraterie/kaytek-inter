@@ -1,19 +1,23 @@
 // src/pages/PartenairesPage.tsx
-// Réseau partenaires — Phase 1 (fondations + connexions) + Phase 2 (messagerie).
-// Envoi d'intervention partenaire : Phase 3, volontairement absent ici
-// (bouton grisé "Bientôt disponible").
+// Réseau partenaires — Phase 1 (fondations + connexions) + Phase 2 (messagerie)
+// + Phase 3 v1 (demandes d'intervention partenaire, snapshot uniquement).
 import { useState, useMemo } from 'react'
-import { Search, X, Copy, Check, Handshake, Inbox, Send, History, ChevronDown, ChevronUp, Lock, MessageCircle } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import {
+  Search, X, Copy, Check, Handshake, Inbox, Send, History, ChevronDown, ChevronUp, Lock, MessageCircle,
+  Wrench, PlayCircle, CheckCircle2, Ban, MapPin, CalendarDays, Camera,
+} from 'lucide-react'
 import {
   useMyPartnerProfile, useUpsertPartnerProfile, usePartnerSearch,
   usePartnerConnections, useSendPartnerRequest, useUpdatePartnerConnectionStatus,
-  usePartnerConnectionEvents, usePartnerUnreadCounts
+  usePartnerConnectionEvents, usePartnerUnreadCounts,
+  usePartnerInterventionRequests, useUpdatePartnerInterventionStatus, usePartnerInterventionEvents
 } from '@/lib/hooks/partners'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import PartnerMessagesModal from '@/components/PartnerMessagesModal'
-import type { PartnerConnection, PartnerConnectionStatus, PartnerSearchResult } from '@/types'
+import type { PartnerConnection, PartnerConnectionStatus, PartnerSearchResult, PartnerInterventionRequest } from '@/types'
 
-type Tab = 'mine' | 'received' | 'sent'
+type Tab = 'mine' | 'received' | 'sent' | 'interventions-received' | 'interventions-sent'
 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'En attente', accepted: 'Partenaire', refused: 'Refusée',
@@ -28,18 +32,39 @@ const EVENT_LABEL: Record<string, string> = {
   blocked: 'Connexion bloquée', archived: 'Connexion archivée'
 }
 
+const PIR_STATUS_LABEL: Record<string, string> = {
+  pending: 'En attente', accepted: 'Acceptée', refused: 'Refusée',
+  in_progress: 'En cours', completed: 'Terminée', cancelled: 'Annulée'
+}
+const PIR_STATUS_PILL: Record<string, string> = {
+  pending: 'pill-amber', accepted: 'pill-blue', refused: 'pill-red',
+  in_progress: 'pill-orange', completed: 'pill-green', cancelled: 'pill-gray'
+}
+const PIR_EVENT_LABEL: Record<string, string> = {
+  requested: 'Demande envoyée', accepted: 'Acceptée', refused: 'Refusée',
+  in_progress: 'Passée en cours', completed: 'Terminée', cancelled: 'Annulée'
+}
+
+const URL_TAB_MAP: Record<string, Tab> = {
+  'interventions-recues': 'interventions-received',
+  'interventions-envoyees': 'interventions-sent'
+}
+
 export default function PartenairesPage() {
   const { add } = useToastStore()
   const user = useAuthStore(s => s.user)
   const myOrg = user?.organisation_id
+  const [searchParams] = useSearchParams()
 
   const { data: myProfile, isLoading: profileLoading } = useMyPartnerProfile()
   const upsertProfile = useUpsertPartnerProfile()
   const { data: connections = [], isLoading: connsLoading } = usePartnerConnections()
   const sendRequest = useSendPartnerRequest()
   const updateStatus = useUpdatePartnerConnectionStatus()
+  const { data: interventionRequests = [], isLoading: pirLoading } = usePartnerInterventionRequests()
+  const updatePirStatus = useUpdatePartnerInterventionStatus()
 
-  const [tab, setTab] = useState<Tab>('mine')
+  const [tab, setTab] = useState<Tab>(() => URL_TAB_MAP[searchParams.get('tab') || ''] || 'mine')
   const [profileModal, setProfileModal] = useState(false)
   const [profileForm, setProfileForm] = useState({ nom_public: '', metier: '', ville: '', bio: '', visible_reseau: false })
   const [profileSaving, setProfileSaving] = useState(false)
@@ -49,10 +74,48 @@ export default function PartenairesPage() {
   const [historyOpenId, setHistoryOpenId] = useState<string | null>(null)
   const [messagesConnection, setMessagesConnection] = useState<PartnerConnection | null>(null)
   const { data: unreadCounts = {} } = usePartnerUnreadCounts()
+  const [refuseTarget, setRefuseTarget] = useState<PartnerInterventionRequest | null>(null)
+  const [refuseNote, setRefuseNote] = useState('')
+  const [completeTarget, setCompleteTarget] = useState<PartnerInterventionRequest | null>(null)
+  const [completeNote, setCompleteNote] = useState('')
+  const [pirHistoryOpenId, setPirHistoryOpenId] = useState<string | null>(null)
 
   const mine = useMemo(() => connections.filter(c => c.status === 'accepted' || c.status === 'blocked'), [connections])
   const received = useMemo(() => connections.filter(c => c.status === 'pending' && c.target_organisation_id === myOrg), [connections, myOrg])
   const sent = useMemo(() => connections.filter(c => c.status === 'pending' && c.requester_organisation_id === myOrg), [connections, myOrg])
+  const pirReceived = useMemo(() => interventionRequests.filter(r => r.target_organisation_id === myOrg), [interventionRequests, myOrg])
+  const pirSent = useMemo(() => interventionRequests.filter(r => r.source_organisation_id === myOrg), [interventionRequests, myOrg])
+
+  function findConnectionFor(r: PartnerInterventionRequest) {
+    return connections.find(c => c.id === r.connection_id) || null
+  }
+
+  async function handlePirAccept(r: PartnerInterventionRequest) {
+    try { await updatePirStatus.mutateAsync({ id: r.id, status: 'accepted' }); add('Demande acceptée') }
+    catch (err: any) { add(err.message || 'Erreur', 'error') }
+  }
+  async function handlePirRefuse() {
+    if (!refuseTarget || !refuseNote.trim()) return
+    try {
+      await updatePirStatus.mutateAsync({ id: refuseTarget.id, status: 'refused', note_refus: refuseNote.trim() })
+      add('Demande refusée'); setRefuseTarget(null); setRefuseNote('')
+    } catch (err: any) { add(err.message || 'Erreur', 'error') }
+  }
+  async function handlePirInProgress(r: PartnerInterventionRequest) {
+    try { await updatePirStatus.mutateAsync({ id: r.id, status: 'in_progress' }); add('Intervention en cours') }
+    catch (err: any) { add(err.message || 'Erreur', 'error') }
+  }
+  async function handlePirComplete() {
+    if (!completeTarget) return
+    try {
+      await updatePirStatus.mutateAsync({ id: completeTarget.id, status: 'completed', compte_rendu: completeNote.trim() || undefined })
+      add('Intervention marquée terminée'); setCompleteTarget(null); setCompleteNote('')
+    } catch (err: any) { add(err.message || 'Erreur', 'error') }
+  }
+  async function handlePirCancel(r: PartnerInterventionRequest) {
+    try { await updatePirStatus.mutateAsync({ id: r.id, status: 'cancelled' }); add('Demande annulée') }
+    catch (err: any) { add(err.message || 'Erreur', 'error') }
+  }
 
   function openProfileModal() {
     setProfileForm({
@@ -184,10 +247,12 @@ export default function PartenairesPage() {
       )}
 
       {/* ── Onglets ── */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14, borderBottom: '1px solid var(--b1)' }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14, borderBottom: '1px solid var(--b1)', flexWrap: 'wrap' }}>
         <TabButton icon={Handshake} label="Mes partenaires" count={mine.length} active={tab === 'mine'} onClick={() => setTab('mine')} />
         <TabButton icon={Inbox} label="Demandes reçues" count={received.length} active={tab === 'received'} onClick={() => setTab('received')} />
         <TabButton icon={Send} label="Demandes envoyées" count={sent.length} active={tab === 'sent'} onClick={() => setTab('sent')} />
+        <TabButton icon={Wrench} label="Interventions reçues" count={pirReceived.filter(r => r.status === 'pending').length} active={tab === 'interventions-received'} onClick={() => setTab('interventions-received')} />
+        <TabButton icon={Wrench} label="Interventions envoyées" count={0} active={tab === 'interventions-sent'} onClick={() => setTab('interventions-sent')} />
       </div>
 
       <div className="card">
@@ -255,6 +320,45 @@ export default function PartenairesPage() {
                 } />
             ))
         )}
+
+        {!pirLoading && tab === 'interventions-received' && (
+          pirReceived.length === 0
+            ? <Empty text="Aucune demande d'intervention reçue." />
+            : pirReceived.map(r => (
+              <PartnerInterventionRow key={r.id} r={r}
+                historyOpen={pirHistoryOpenId === r.id}
+                onToggleHistory={() => setPirHistoryOpenId(pirHistoryOpenId === r.id ? null : r.id)}
+                onMessage={() => { const c = findConnectionFor(r); if (c) setMessagesConnection(c) }}
+                actions={
+                  r.status === 'pending' ? (
+                    <>
+                      <button className="btn btn-primary btn-sm" onClick={() => handlePirAccept(r)}><CheckCircle2 size={13} /> Accepter</button>
+                      <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={() => setRefuseTarget(r)}><Ban size={13} /> Refuser</button>
+                    </>
+                  ) : r.status === 'accepted' ? (
+                    <button className="btn btn-primary btn-sm" onClick={() => handlePirInProgress(r)}><PlayCircle size={13} /> Marquer en cours</button>
+                  ) : r.status === 'in_progress' ? (
+                    <button className="btn btn-primary btn-sm" style={{ background: '#16a34a', border: 'none' }} onClick={() => setCompleteTarget(r)}><CheckCircle2 size={13} /> Marquer terminé</button>
+                  ) : null
+                } />
+            ))
+        )}
+
+        {!pirLoading && tab === 'interventions-sent' && (
+          pirSent.length === 0
+            ? <Empty text="Aucune demande d'intervention envoyée." />
+            : pirSent.map(r => (
+              <PartnerInterventionRow key={r.id} r={r}
+                historyOpen={pirHistoryOpenId === r.id}
+                onToggleHistory={() => setPirHistoryOpenId(pirHistoryOpenId === r.id ? null : r.id)}
+                onMessage={() => { const c = findConnectionFor(r); if (c) setMessagesConnection(c) }}
+                actions={
+                  (r.status === 'pending' || r.status === 'accepted') ? (
+                    <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={() => handlePirCancel(r)}><Ban size={13} /> Annuler</button>
+                  ) : null
+                } />
+            ))
+        )}
       </div>
 
       {/* ── Modal profil ── */}
@@ -304,6 +408,54 @@ export default function PartenairesPage() {
       {/* ── Modal messagerie partenaire ── */}
       {messagesConnection && (
         <PartnerMessagesModal connection={messagesConnection} onClose={() => setMessagesConnection(null)} />
+      )}
+
+      {/* ── Modal refus demande d'intervention ── */}
+      {refuseTarget && (
+        <div className="modal-overlay" onClick={() => { setRefuseTarget(null); setRefuseNote('') }}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Refuser la demande</span>
+              <button className="btn-icon sm" onClick={() => { setRefuseTarget(null); setRefuseNote('') }}><X size={15} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Motif du refus <span className="req">*</span></label>
+                <textarea value={refuseNote} onChange={e => setRefuseNote(e.target.value)} rows={3} autoFocus placeholder="Ex : indisponible sur cette période…" />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => { setRefuseTarget(null); setRefuseNote('') }}>Annuler</button>
+              <button type="button" className="btn btn-primary" style={{ background: '#dc2626', border: 'none' }} disabled={!refuseNote.trim() || updatePirStatus.isPending} onClick={handlePirRefuse}>
+                Confirmer le refus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal clôture demande d'intervention ── */}
+      {completeTarget && (
+        <div className="modal-overlay" onClick={() => { setCompleteTarget(null); setCompleteNote('') }}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Marquer terminée</span>
+              <button className="btn-icon sm" onClick={() => { setCompleteTarget(null); setCompleteNote('') }}><X size={15} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Compte-rendu (optionnel)</label>
+                <textarea value={completeNote} onChange={e => setCompleteNote(e.target.value)} rows={3} placeholder="Travail réalisé, remarques…" />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={() => { setCompleteTarget(null); setCompleteNote('') }}>Annuler</button>
+              <button type="button" className="btn btn-primary" style={{ background: '#16a34a', border: 'none' }} disabled={updatePirStatus.isPending} onClick={handlePirComplete}>
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -372,6 +524,67 @@ function ConnectionRow({ c, myOrg, actions, historyOpen, onToggleHistory }: {
           {events.map(e => (
             <div key={e.id} style={{ fontSize: 12, color: 'var(--t2)' }}>
               {EVENT_LABEL[e.action] || e.action} · {new Date(e.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Demandes d'intervention partenaire (Phase 3 v1) ──────────────────────────
+// Ne rend jamais source_intervention_id — uniquement le snapshot partagé.
+function PartnerInterventionRow({ r, actions, historyOpen, onToggleHistory, onMessage }: {
+  r: PartnerInterventionRequest; actions: React.ReactNode
+  historyOpen: boolean; onToggleHistory: () => void; onMessage: () => void
+}) {
+  const p = r.partner_profile
+  const { data: events = [] } = usePartnerInterventionEvents(historyOpen ? r.id : null)
+  const photoCount = r.photos_partagees?.length || 0
+
+  return (
+    <div style={{ borderBottom: '1px solid var(--b0)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px', flexWrap: 'wrap' }}>
+        <div className="avatar" style={{ width: 34, height: 34, fontSize: 12, marginTop: 2 }}>{(p?.nom_public || '?').slice(0, 2)}</div>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t0)' }}>{p?.nom_public || 'Organisation partenaire'}</span>
+            {r.urgence && <span className="urgence-badge">URGENT</span>}
+            <span className={`pill ${PIR_STATUS_PILL[r.status]}`}>{PIR_STATUS_LABEL[r.status]}</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--t2)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {r.type_intervention && <span>{r.type_intervention}</span>}
+            {r.ville && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><MapPin size={11} /> {r.ville}</span>}
+            {r.date_souhaitee && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><CalendarDays size={11} /> {new Date(r.date_souhaitee).toLocaleDateString('fr-FR')}</span>}
+            {photoCount > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><Camera size={11} /> {photoCount} photo{photoCount > 1 ? 's' : ''} partagée{photoCount > 1 ? 's' : ''} — aperçu bientôt disponible</span>}
+          </div>
+          {(r.adresse_partagee || r.telephone_client_partage || r.nom_client_partage) && (
+            <div style={{ fontSize: 12, color: 'var(--t2)', marginTop: 4 }}>
+              {r.nom_client_partage && <div>Client : {r.nom_client_partage}</div>}
+              {r.telephone_client_partage && <div>Tél. : {r.telephone_client_partage}</div>}
+              {r.adresse_partagee && <div>Adresse : {r.adresse_partagee}</div>}
+            </div>
+          )}
+          {r.description_partagee && <div style={{ fontSize: 12, color: 'var(--t2)', marginTop: 4 }}>{r.description_partagee}</div>}
+          {r.montant_partage != null && <div style={{ fontSize: 12, color: 'var(--t1)', fontWeight: 600, marginTop: 4 }}>{r.montant_partage} €</div>}
+          {r.consignes_partagees && <div style={{ fontSize: 12, color: 'var(--amTx)', marginTop: 4, fontStyle: 'italic' }}>Consignes : {r.consignes_partagees}</div>}
+          {r.status === 'refused' && r.note_refus && <div style={{ fontSize: 12, color: 'var(--rdTx)', marginTop: 4 }}>Motif du refus : {r.note_refus}</div>}
+          {r.status === 'completed' && r.compte_rendu && <div style={{ fontSize: 12, color: 'var(--gnTx)', marginTop: 4 }}>Compte-rendu : {r.compte_rendu}</div>}
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary btn-sm" onClick={onMessage}><MessageCircle size={13} /> Message</button>
+          {actions}
+        </div>
+        <button className="btn-icon sm" title="Historique" onClick={onToggleHistory}>
+          <History size={13} /> {historyOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+        </button>
+      </div>
+      {historyOpen && (
+        <div style={{ padding: '0 16px 14px 62px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {events.length === 0 && <span style={{ fontSize: 12, color: 'var(--t3)' }}>Aucun événement</span>}
+          {events.map(e => (
+            <div key={e.id} style={{ fontSize: 12, color: 'var(--t2)' }}>
+              {PIR_EVENT_LABEL[e.action] || e.action} · {new Date(e.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
             </div>
           ))}
         </div>

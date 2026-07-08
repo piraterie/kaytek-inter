@@ -5,13 +5,14 @@ import {
   ArrowLeft, AlertTriangle, FileText, ClipboardList, Camera, NotebookPen,
   DollarSign, CheckCircle2, XCircle, MessageCircle, Send, Zap, RefreshCw,
   Receipt, Circle, Play, Package, Save, Eye, Phone, MapPin, Copy, X,
-  Loader2, Info, Check,
+  Loader2, Info, Check, Handshake,
 } from 'lucide-react'
 import { useIntervention, useUpdateIntervention, useUploadPhoto, useCreateFacture, useDevis, useSignedPhotos } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { Lightbox } from '@/components/Lightbox'
 import { supabase } from '@/lib/supabase/client'
 import { DocSheet, SheetRow } from '@/components/DocSheet'
+import SendToPartnerModal from '@/components/SendToPartnerModal'
 
 const STATUTS = ['en_attente','accepte','en_cours','termine','facture','annule'] as const
 
@@ -32,6 +33,7 @@ export default function InterventionDetailPage() {
   const [reponseTexte, setReponseTexte] = useState('')
   const [reponseLoading, setReponseLoading] = useState(false)
   const [actionsSheet, setActionsSheet] = useState(false)
+  const [partnerModal, setPartnerModal] = useState(false)
 
   const { data: inter, isLoading } = useIntervention(id!)
   const update = useUpdateIntervention()
@@ -184,6 +186,7 @@ export default function InterventionDetailPage() {
           {inter.urgence && <span className="urgence-badge"><AlertTriangle size={11} /> URGENT</span>}
           <span className={`pill ${inter.statut==='termine'?'pill-green':inter.statut==='en_cours'?'pill-orange':inter.statut==='en_attente'?'pill-amber':'pill-gray'}`}>{inter.statut.replace('_',' ')}</span>
           {isAdmin && <button className="btn btn-primary btn-sm" onClick={()=>nav(`/devis/nouveau?intervention=${id}`)}><FileText size={14} /> Créer devis</button>}
+          {isAdmin && <button className="btn btn-secondary btn-sm" onClick={()=>setPartnerModal(true)}><Handshake size={14} /> Envoyer à un partenaire</button>}
           {peutFacturer && <button className="btn btn-primary btn-sm" onClick={()=>{ setTab('facturation') }}><FileText size={14} /> Facturation</button>}
         </div>
       </div>
@@ -605,6 +608,10 @@ export default function InterventionDetailPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {partnerModal && (
+        <SendToPartnerModal intervention={inter} onClose={() => setPartnerModal(false)} />
       )}
     </div>
   )

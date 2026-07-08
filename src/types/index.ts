@@ -184,3 +184,47 @@ export interface PartnerMessage {
   lu_at?: string | null
   created_at: string; updated_at: string
 }
+
+// ── Réseau partenaires (Phase 3 v1 — demandes d'intervention) ────────────────
+export type PartnerInterventionStatus = 'pending'|'accepted'|'refused'|'in_progress'|'completed'|'cancelled'
+
+export interface PartnerPhotoMeta { id: string; type?: string }
+
+export interface PartnerInterventionRequest {
+  id: string
+  connection_id: string
+  source_organisation_id: string; source_profile_id: string
+  target_organisation_id: string; target_profile_id?: string
+  // Présent uniquement côté émetteur pour son propre usage interne —
+  // ne jamais afficher côté partenaire (voir composants UI).
+  source_intervention_id?: string
+  status: PartnerInterventionStatus
+  type_intervention?: string
+  urgence: boolean
+  date_souhaitee?: string
+  ville?: string
+  adresse_partagee?: string
+  telephone_client_partage?: string
+  nom_client_partage?: string
+  description_partagee?: string
+  consignes_partagees?: string
+  montant_partage?: number
+  photos_partagees?: PartnerPhotoMeta[] | null
+  share_adresse: boolean
+  share_telephone: boolean
+  share_nom_client: boolean
+  share_description: boolean
+  share_montant: boolean
+  share_photos: boolean
+  note_refus?: string
+  compte_rendu?: string
+  resulting_intervention_id?: string
+  created_at: string; updated_at: string
+  partner_profile?: PartnerProfile | null
+}
+
+export interface PartnerInterventionEvent {
+  id: string; request_id: string
+  actor_profile_id?: string; actor_organisation_id?: string
+  action: string; note?: string; created_at: string
+}

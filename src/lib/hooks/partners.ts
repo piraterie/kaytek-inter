@@ -7,7 +7,7 @@ import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/lib/store'
-import type { PartnerProfile, PartnerConnection, PartnerConnectionEvent, PartnerConnectionStatus, PartnerSearchResult, PartnerMessage } from '@/types'
+import type { PartnerProfile, PartnerConnection, PartnerConnectionEvent, PartnerConnectionStatus, PartnerSearchResult, PartnerMessage, PartnerInterventionRequest, PartnerInterventionStatus, PartnerInterventionEvent, PartnerPhotoMeta } from '@/types'
 
 const uid = () => useAuthStore.getState().user?.id
 const orgId = () => useAuthStore.getState().user?.organisation_id
@@ -204,6 +204,126 @@ export function usePartnerUnreadCounts() {
     },
     enabled: !!org,
     refetchInterval: 30_000
+  })
+}
+
+// ── DEMANDES D'INTERVENTION PARTENAIRE (Phase 3 v1) ────────────────
+// Snapshot uniquement — jamais de lecture directe de `interventions`,
+// `clients` etc. d'une autre organisation. source_intervention_id
+// n'est jamais exposé au partenaire par l'UI (voir composants).
+export function usePartnerInterventionRequests() {
+  const org = orgId()
+  return useQuery<PartnerInterventionRequest[]>({
+    queryKey: ['partner-intervention-requests', org],
+    queryFn: async () => {
+      if (!org) return []
+      const { data, error } = await supabase
+        .from('partner_intervention_requests')
+        .select('*')
+        .or(`source_organisation_id.eq.${org},target_organisation_id.eq.${org}`)
+        .order('updated_at', { ascending: false })
+      if (error) throw error
+      const rows = (data || []) as PartnerInterventionRequest[]
+      const otherOrgIds = Array.from(new Set(rows.map(r =>
+        r.source_organisation_id === org ? r.target_organisation_id : r.source_organisation_id
+      )))
+      if (otherOrgIds.length === 0) return rows
+      const { data: profiles } = await supabase.from('partner_profiles').select('*').in('organisation_id', otherOrgIds)
+      const byOrg = new Map((profiles || []).map((p: any) => [p.organisation_id, p as PartnerProfile]))
+      return rows.map(r => ({
+        ...r,
+        partner_profile: byOrg.get(r.source_organisation_id === org ? r.target_organisation_id : r.source_organisation_id) || null
+      }))
+    },
+    enabled: !!org,
+    refetchInterval: 30_000
+  })
+}
+
+export interface SendPartnerInterventionPayload {
+  connection_id: string
+  target_organisation_id: string
+  target_profile_id?: string
+  source_intervention_id?: string
+  type_intervention?: string
+  urgence: boolean
+  date_souhaitee?: string
+  ville?: string
+  share_adresse: boolean; adresse_partagee?: string
+  share_telephone: boolean; telephone_client_partage?: string
+  share_nom_client: boolean; nom_client_partage?: string
+  share_description: boolean; description_partagee?: string
+  share_montant: boolean; montant_partage?: number
+  share_photos: boolean; photos_partagees?: PartnerPhotoMeta[]
+  consignes_partagees?: string
+}
+
+export function useSendPartnerInterventionRequest() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: SendPartnerInterventionPayload) => {
+      const org = orgId(); if (!org) throw new Error("Organisation introuvable — reconnectez-vous")
+      const { error } = await supabase.from('partner_intervention_requests').insert({
+        connection_id: payload.connection_id,
+        source_organisation_id: org,
+        source_profile_id: uid(),
+        target_organisation_id: payload.target_organisation_id,
+        target_profile_id: payload.target_profile_id || null,
+        source_intervention_id: payload.source_intervention_id || null,
+        type_intervention: payload.type_intervention || null,
+        urgence: payload.urgence,
+        date_souhaitee: payload.date_souhaitee || null,
+        ville: payload.ville || null,
+        share_adresse: payload.share_adresse,
+        adresse_partagee: payload.share_adresse ? (payload.adresse_partagee || null) : null,
+        share_telephone: payload.share_telephone,
+        telephone_client_partage: payload.share_telephone ? (payload.telephone_client_partage || null) : null,
+        share_nom_client: payload.share_nom_client,
+        nom_client_partage: payload.share_nom_client ? (payload.nom_client_partage || null) : null,
+        share_description: payload.share_description,
+        description_partagee: payload.share_description ? (payload.description_partagee || null) : null,
+        share_montant: payload.share_montant,
+        montant_partage: payload.share_montant ? (payload.montant_partage ?? null) : null,
+        share_photos: payload.share_photos,
+        photos_partagees: payload.share_photos ? (payload.photos_partagees || null) : null,
+        consignes_partagees: payload.consignes_partagees || null
+      })
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['partner-intervention-requests'] })
+  })
+}
+
+export function useUpdatePartnerInterventionStatus() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, status, note_refus, compte_rendu }: { id: string; status: PartnerInterventionStatus; note_refus?: string; compte_rendu?: string }) => {
+      const payload: Record<string, unknown> = { status }
+      if (note_refus !== undefined) payload.note_refus = note_refus
+      if (compte_rendu !== undefined) payload.compte_rendu = compte_rendu
+      const { error } = await supabase.from('partner_intervention_requests').update(payload).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['partner-intervention-requests'] })
+      qc.invalidateQueries({ queryKey: ['partner-intervention-events'] })
+    }
+  })
+}
+
+export function usePartnerInterventionEvents(requestId: string | null) {
+  return useQuery<PartnerInterventionEvent[]>({
+    queryKey: ['partner-intervention-events', requestId],
+    queryFn: async () => {
+      if (!requestId) return []
+      const { data, error } = await supabase
+        .from('partner_intervention_events').select('*')
+        .eq('request_id', requestId)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!requestId
   })
 }
 
