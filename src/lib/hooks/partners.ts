@@ -11,6 +11,7 @@ import type { PartnerProfile, PartnerConnection, PartnerConnectionEvent, Partner
 
 const uid = () => useAuthStore.getState().user?.id
 const orgId = () => useAuthStore.getState().user?.organisation_id
+const isAdm = () => useAuthStore.getState().user?.role === 'admin'
 
 // ── MON PROFIL PARTENAIRE ────────────────────────────────────────
 export function useMyPartnerProfile() {
@@ -88,7 +89,9 @@ export function usePartnerConnections() {
         partner_profile: byOrg.get(r.requester_organisation_id === org ? r.target_organisation_id : r.requester_organisation_id) || null
       }))
     },
-    enabled: !!org,
+    // Réseau partenaires réservé à l'admin — assistant/intervenant ne doivent
+    // jamais charger ces données, même hors affichage (voir SEC-05).
+    enabled: !!org && isAdm(),
     refetchInterval: 30_000
   })
 }
@@ -202,7 +205,7 @@ export function usePartnerUnreadCounts() {
       }
       return counts
     },
-    enabled: !!org,
+    enabled: !!org && isAdm(),
     refetchInterval: 30_000
   })
 }

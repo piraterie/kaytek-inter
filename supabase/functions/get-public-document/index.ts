@@ -49,21 +49,26 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Récupère le document
+    // Récupère le document — le champ organisation_id est systématiquement
+    // demandé et revérifié contre link.organisation_id ci-dessous : la policy
+    // INSERT de document_public_links ne garantit pas à elle seule que
+    // document_id appartient réellement à l'organisation du lien (voir
+    // migration SEC-03), donc cette fonction ne doit jamais faire confiance
+    // aveuglément à un lien existant sans revérifier l'appartenance.
     let document = null
     if (link.document_type === 'devis') {
       const { data } = await supabase
         .from('devis')
-        .select('id, numero, statut, modele_id, lignes, remise_pct, remise_montant, total_ht, tva_montant, total_ttc, notes, valide_jusqu_au, created_at, activite, signature_client, signature_url, signe_le, signe_par, signature_date, client:clients(nom, prenom, telephone, email, adresse_intervention), intervenant:profiles!intervenant_id(prenom, nom)')
+        .select('id, numero, statut, modele_id, lignes, remise_pct, remise_montant, total_ht, tva_montant, total_ttc, notes, valide_jusqu_au, created_at, activite, signature_client, signature_url, signe_le, signe_par, signature_date, organisation_id, client:clients(nom, prenom, telephone, email, adresse_intervention), intervenant:profiles!intervenant_id(prenom, nom)')
         .eq('id', link.document_id)
-        .single()
+        .maybeSingle()
       document = data
     } else if (link.document_type === 'facture') {
       const { data } = await supabase
         .from('factures')
-        .select('id, numero, statut_paiement, montant_ht, tva_montant, montant_ttc, date_emission, date_echeance, date_paiement, mode_paiement, notes, client:clients(nom, prenom, telephone, email, adresse_intervention), devis:devis(modele_id, lignes, remise_pct, total_ht, tva_montant, total_ttc, activite, notes)')
+        .select('id, numero, statut_paiement, montant_ht, tva_montant, montant_ttc, date_emission, date_echeance, date_paiement, mode_paiement, notes, organisation_id, client:clients(nom, prenom, telephone, email, adresse_intervention), devis:devis(modele_id, lignes, remise_pct, total_ht, tva_montant, total_ttc, activite, notes)')
         .eq('id', link.document_id)
-        .single()
+        .maybeSingle()
       document = data
     }
 
@@ -72,6 +77,16 @@ Deno.serve(async (req) => {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
+
+    // Vérification cross-organisation : le document doit appartenir à la
+    // même organisation que le lien public, même si un ancien lien ou une
+    // incohérence de données pointait ailleurs.
+    if ((document as any).organisation_id !== link.organisation_id) {
+      return new Response(JSON.stringify({ error: 'Document introuvable' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    delete (document as any).organisation_id
 
     // Récupère les paramètres de l'organisation (logo, nom entreprise, etc.)
     const { data: params } = await supabase

@@ -7,14 +7,12 @@ const VAPID_PRIVATE_KEY    = Deno.env.get('VAPID_PRIVATE_KEY')!
 const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const SUPABASE_ANON_KEY    = Deno.env.get('SUPABASE_ANON_KEY')!
-const INTERNAL_PUSH_SECRET = Deno.env.get('INTERNAL_PUSH_SECRET') ?? ''
 
 // ── [BOOT] Vérification des secrets au démarrage ──────────────────
 console.log('[send-push] BOOT — VAPID_PUBLIC_KEY présente :', !!VAPID_PUBLIC_KEY, '— longueur :', VAPID_PUBLIC_KEY?.length ?? 0)
 console.log('[send-push] BOOT — VAPID_PRIVATE_KEY présente :', !!VAPID_PRIVATE_KEY, '— longueur :', VAPID_PRIVATE_KEY?.length ?? 0)
 console.log('[send-push] BOOT — SUPABASE_URL :', SUPABASE_URL ?? '(vide)')
 console.log('[send-push] BOOT — SERVICE_KEY présente :', !!SUPABASE_SERVICE_KEY)
-console.log('[send-push] BOOT — INTERNAL_PUSH_SECRET présente :', !!INTERNAL_PUSH_SECRET)
 
 try {
   webpush.setVapidDetails('mailto:castryludovic@gmail.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
@@ -28,30 +26,62 @@ const cors = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-internal-secret',
 }
 
+const svc = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { persistSession: false } })
+
+// Secret interne partagé trigger_push_on_notification() ↔ send-push, stocké
+// dans Supabase Vault (jamais en clair dans le code/les migrations — voir
+// migration 20260708000008_internal_push_secret_vault.sql). Lu à la demande,
+// jamais codé en dur ni conservé comme variable d'environnement de fonction.
+async function getInternalSecret(): Promise<string | null> {
+  const { data, error } = await svc.rpc('get_internal_push_secret')
+  if (error) {
+    console.error('[send-push] Impossible de lire le secret interne (Vault) :', error.message)
+    return null
+  }
+  return (data as string) ?? null
+}
+
 // Deux chemins d'authentification :
 //   Chemin 1 — appel interne depuis le trigger DB :
-//     header X-Internal-Secret = INTERNAL_PUSH_SECRET (secret partagé, jamais exposé publiquement)
+//     header X-Internal-Secret = secret stocké dans Supabase Vault
 //   Chemin 2 — appel frontend authentifié :
-//     header Authorization = Bearer <JWT utilisateur valide>
+//     header Authorization = Bearer <JWT utilisateur valide>, et le
+//     destinataire (user_id) doit appartenir à la même organisation que
+//     l'appelant — sinon refusé (protection anti cross-organisation).
 // La clé anon dans Authorization n'est PAS acceptée comme authentification.
-async function requireAuth(req: Request): Promise<boolean> {
-  // Chemin 1 — secret interne (trigger DB)
-  // Guard : INTERNAL_PUSH_SECRET doit être configuré et non vide
+async function requireAuth(req: Request, targetUserId: string): Promise<{ ok: boolean; reason?: string }> {
+  // Chemin 1 — secret interne (trigger DB), portée déjà limitée par la
+  // notification déjà insérée en base (organisation déjà correcte).
   const internalSecret = req.headers.get('x-internal-secret')
-  if (INTERNAL_PUSH_SECRET && internalSecret === INTERNAL_PUSH_SECRET) return true
+  if (internalSecret) {
+    const expected = await getInternalSecret()
+    if (expected && internalSecret === expected) return { ok: true }
+  }
 
-  // Chemin 2 — JWT utilisateur valide (frontend)
+  // Chemin 2 — JWT utilisateur valide (frontend), avec vérification stricte
+  // que le destinataire appartient à la même organisation que l'appelant.
   const auth = req.headers.get('Authorization')
-  if (!auth?.startsWith('Bearer ')) return false
+  if (!auth?.startsWith('Bearer ')) return { ok: false, reason: 'JWT absent et secret interne invalide' }
   try {
     const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: auth } },
       auth: { autoRefreshToken: false, persistSession: false },
     })
     const { data: { user } } = await client.auth.getUser()
-    return !!user
+    if (!user) return { ok: false, reason: 'JWT invalide' }
+
+    const { data: callerProfile } = await svc.from('profiles').select('organisation_id').eq('id', user.id).maybeSingle()
+    if (!callerProfile?.organisation_id) return { ok: false, reason: 'Profil appelant introuvable' }
+
+    const { data: targetProfile } = await svc.from('profiles').select('organisation_id').eq('id', targetUserId).maybeSingle()
+    if (!targetProfile?.organisation_id) return { ok: false, reason: 'Destinataire introuvable' }
+
+    if (targetProfile.organisation_id !== callerProfile.organisation_id) {
+      return { ok: false, reason: 'Destinataire hors organisation de l\'appelant' }
+    }
+    return { ok: true }
   } catch {
-    return false
+    return { ok: false, reason: 'Erreur de vérification du JWT' }
   }
 }
 
@@ -63,14 +93,6 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     console.log(`[send-push][${requestId}] OPTIONS preflight → 200`)
     return new Response('ok', { headers: cors })
-  }
-
-  const authed = await requireAuth(req)
-  if (!authed) {
-    console.warn(`[send-push][${requestId}] Requête non autorisée — JWT invalide et secret interne absent ou incorrect`)
-    return new Response(JSON.stringify({ error: 'Non autorisé' }), {
-      status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
-    })
   }
 
   try {
@@ -90,8 +112,16 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'user_id requis' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } })
     }
 
+    const authResult = await requireAuth(req, user_id)
+    if (!authResult.ok) {
+      console.warn(`[send-push][${requestId}] Requête refusée — ${authResult.reason}`)
+      return new Response(JSON.stringify({ error: 'Non autorisé' }), {
+        status: 401, headers: { ...cors, 'Content-Type': 'application/json' },
+      })
+    }
+
     // ── [2] Connexion Supabase + lecture des souscriptions ────────
-    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    const sb = svc
     console.log(`[send-push][${requestId}] [2] Recherche push_subscriptions pour user_id = ${user_id}`)
 
     const { data: subs, error: subsErr } = await sb
