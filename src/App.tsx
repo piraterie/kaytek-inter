@@ -10,6 +10,7 @@ import type { Role } from '@/types'
 
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'))
+const ActivationPage = lazy(() => import('@/pages/ActivationPage'))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const InterventionsPage = lazy(() => import('@/pages/InterventionsPage'))
 const InterventionDetailPage = lazy(() => import('@/pages/InterventionDetailPage'))
@@ -45,6 +46,14 @@ function Guard({ children, adminOnly = false, requireCanCreateDocs = false, allo
   if (loading) return <Loader />
   if (error) return <ErrorDisplay error={error} />
   if (!user) {
+    // Filet de sécurité : un lien d'invitation/réinitialisation Supabase peut atterrir
+    // ici avec le token dans le hash si la redirection configurée côté Supabase (Site URL /
+    // Redirect URLs) ne pointe pas vers le bon chemin — on route vers /activation plutôt
+    // que de perdre le token en renvoyant vers /login.
+    const hash = window.location.hash
+    if (hash.includes('access_token') && (hash.includes('type=invite') || hash.includes('type=recovery'))) {
+      return <Navigate to={`/activation${hash}`} replace />
+    }
     // Sauvegarder la destination pour redirection post-login (cas push notification)
     const target = location.pathname + location.search
     if (target && target !== '/' && !target.startsWith('/login')) {
@@ -234,6 +243,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/activation" element={<ActivationPage />} />
       <Route path="/d/:token" element={<PublicDocumentPage />} />
       <Route path="/confidentialite" element={<ConfidentialitePage />} />
       <Route path="/delete-account" element={<DeleteAccountPage />} />

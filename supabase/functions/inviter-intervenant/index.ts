@@ -59,8 +59,8 @@ serve(async (req) => {
       return respond({ error: `Rôle invalide — autorisés : ${ALLOWED_ROLES.join(', ')}` })
     }
 
-    const origin = req.headers.get('origin') || 'https://kaytek-inter.vercel.app'
-    const redirectTo = `${origin}/reset-password`
+    const origin = req.headers.get('origin') || 'https://app.kaytekinter.fr'
+    const redirectTo = `${origin}/activation`
     const profileData = role === 'intervenant'
       ? { nom, prenom, role, commission_pct: commission_pct ?? 30, actif: true, organisation_id: organisationId }
       : { nom, prenom, role, actif: true, organisation_id: organisationId }
