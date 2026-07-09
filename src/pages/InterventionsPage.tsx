@@ -6,7 +6,7 @@ import {
   MapPin, Calendar, User, Eye, Pencil, Mail, Play, CheckCircle2, MoreHorizontal,
   AlertTriangle,
 } from 'lucide-react'
-import { useInterventions, useCreateIntervention, useUpdateIntervention, useDeleteIntervention, useArchiveIntervention, useBulkArchiveInterventions, useDeleteArchivedInterventions, useClients, useIntervenants, useProfiles, useSendMessage, useCreateClient } from '@/lib/hooks'
+import { useInterventions, useCreateIntervention, useUpdateIntervention, useDeleteIntervention, useArchiveIntervention, useBulkArchiveInterventions, useDeleteArchivedInterventions, useClients, useIntervenants, useProfiles, useSendMessage, useCreateClient, checkInterventionLinks } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { CustomSelect } from '@/components/CustomSelect'
 import { AddressAutocomplete } from '@/components/AddressAutocomplete'
@@ -53,7 +53,7 @@ export default function InterventionsPage() {
   }, [])
   const [editModal, setEditModal] = useState(false)
   const [editTarget, setEditTarget] = useState<Intervention | null>(null)
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; action: () => void } | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; action: () => void; confirmLabel?: string; secondaryLabel?: string; onSecondary?: () => void } | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectionMode, setSelectionMode] = useState(false)
   const [activeSheet, setActiveSheet] = useState<Intervention | null>(null)
@@ -180,14 +180,39 @@ export default function InterventionsPage() {
     } catch(err: any) { add('Erreur : ' + err.message, 'error') }
   }
 
-  function handleDelete(i: Intervention) {
-    setConfirmDialog({
-      message: `Supprimer l'intervention ${i.numero} ?\nCette action est irréversible.`,
-      action: async () => {
-        try { await del.mutateAsync(i.id); add('Intervention supprimée') }
-        catch(err: any) { add('Erreur : ' + err.message, 'error') }
-      }
-    })
+  async function handleDelete(i: Intervention) {
+    const doDelete = async () => {
+      try { await del.mutateAsync(i.id); add('Intervention supprimée') }
+      catch(err: any) { add('Erreur : ' + err.message, 'error') }
+    }
+
+    let links: Awaited<ReturnType<typeof checkInterventionLinks>>
+    try { links = await checkInterventionLinks(i.id) }
+    catch { links = { devis: 0, factures: 0, commissions: 0, commissionReceipts: 0, messages: 0 } }
+
+    const photosCount = i.photos?.length || 0
+    const parts: string[] = []
+    if (links.devis > 0) parts.push(`${links.devis} devis`)
+    if (links.factures > 0) parts.push(`${links.factures} facture${links.factures > 1 ? 's' : ''}`)
+    if (links.commissions > 0) parts.push(`${links.commissions} commission${links.commissions > 1 ? 's' : ''}`)
+    if (links.commissionReceipts > 0) parts.push(`${links.commissionReceipts} justificatif${links.commissionReceipts > 1 ? 's' : ''} de commission`)
+    if (photosCount > 0) parts.push(`${photosCount} photo${photosCount > 1 ? 's' : ''}`)
+    if (links.messages > 0) parts.push(`${links.messages} message${links.messages > 1 ? 's' : ''}`)
+
+    if (parts.length > 0) {
+      setConfirmDialog({
+        message: `⚠️ Cette intervention est liée à : ${parts.join(', ')}.\n\nLa supprimer effacera définitivement les commissions/justificatifs et les photos liés, et retirera le lien depuis les devis/factures/messages concernés.\n\nL'archivage est recommandé à la place : l'intervention et tout son historique restent conservés, hors de la liste active.`,
+        confirmLabel: 'Supprimer quand même',
+        secondaryLabel: 'Archiver à la place',
+        onSecondary: () => handleArchive(i),
+        action: doDelete
+      })
+    } else {
+      setConfirmDialog({
+        message: `Supprimer l'intervention ${i.numero} ?\nCette action est irréversible.`,
+        action: doDelete
+      })
+    }
   }
 
   function handleArchive(i: Intervention) {
@@ -610,6 +635,9 @@ export default function InterventionsPage() {
           message={confirmDialog.message}
           onConfirm={confirmDialog.action}
           onCancel={() => setConfirmDialog(null)}
+          confirmLabel={confirmDialog.confirmLabel}
+          secondaryLabel={confirmDialog.secondaryLabel}
+          onSecondary={confirmDialog.onSecondary}
         />
       )}
 

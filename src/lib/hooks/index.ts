@@ -19,6 +19,7 @@ import type { Intervention, Devis, Facture, Client, Commission, Message, Profile
 
 const uid = () => useAuthStore.getState().user?.id
 const isAdm = () => useAuthStore.getState().user?.role === 'admin'
+const canManageOps = () => ['admin', 'assistant'].includes(useAuthStore.getState().user?.role || '')
 const orgId = () => useAuthStore.getState().user?.organisation_id
 
 // ── DASHBOARD ────────────────────────────────────────────────────
@@ -356,7 +357,7 @@ export function useInterventions(filters?: { statut?: string; intervenant_id?: s
       let q = supabase.from('interventions')
         .select('*, client:clients(id,nom,prenom,telephone,ville_intervention), intervenant:profiles!intervenant_id(id,nom,prenom,email,commission_pct), photos(id,url,type)')
         .order('created_at', { ascending: false })
-      if (!isAdm()) q = q.eq('intervenant_id', user!.id)
+      if (!canManageOps()) q = q.eq('intervenant_id', user!.id)
       if (filters?.statut && filters.statut !== 'tous') q = q.eq('statut', filters.statut)
       if (filters?.intervenant_id) q = q.eq('intervenant_id', filters.intervenant_id)
       if (filters?.search) q = q.or(`description.ilike.%${filters.search}%,adresse.ilike.%${filters.search}%`)
@@ -507,6 +508,25 @@ export function useDeleteIntervention() {
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['interventions'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
   })
+}
+// Vérifie si une intervention a des enregistrements liés avant suppression physique
+// (devis/factures gardent un lien nullable, mais commissions/justificatifs/photos
+// sont supprimés en cascade — on veut avertir avant de perdre ces données).
+export async function checkInterventionLinks(interventionId: string) {
+  const [devis, factures, commissions, commissionReceipts, messages] = await Promise.all([
+    supabase.from('devis').select('id', { count: 'exact', head: true }).eq('intervention_id', interventionId),
+    supabase.from('factures').select('id', { count: 'exact', head: true }).eq('intervention_id', interventionId),
+    supabase.from('commissions').select('id', { count: 'exact', head: true }).eq('intervention_id', interventionId),
+    supabase.from('commission_receipts').select('id', { count: 'exact', head: true }).eq('intervention_id', interventionId),
+    supabase.from('messages').select('id', { count: 'exact', head: true }).eq('intervention_id', interventionId),
+  ])
+  return {
+    devis: devis.count || 0,
+    factures: factures.count || 0,
+    commissions: commissions.count || 0,
+    commissionReceipts: commissionReceipts.count || 0,
+    messages: messages.count || 0,
+  }
 }
 export function useUploadPhoto() {
   const qc = useQueryClient()
