@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/lib/store'
 import { signIn, resetPassword } from '@/lib/supabase/auth'
 import { supabase } from '@/lib/supabase/client'
+import { fetchSubscriptionBlocked } from '@/lib/subscription'
 import {
   isBiometricAvailable, hasBiometricRegistered, getBiometricEmail,
   authenticateWithBiometric, registerBiometric, clearBiometric,
@@ -53,7 +54,7 @@ export default function LoginPage() {
     return () => clearInterval(interval)
   }, [])
 
-  const { setUser } = useAuthStore()
+  const { setUser, setSubscriptionBlocked } = useAuthStore()
   const nav = useNavigate()
 
   const bioAvailable  = isBiometricAvailable()
@@ -93,7 +94,7 @@ export default function LoginPage() {
     try {
       const result = await signIn(email, pw)
       if (!result) { setErr('Erreur de connexion inattendue'); setLoading(false); return }
-      const { profile, error } = result
+      const { profile, error, subscriptionBlocked } = result
       if (error) {
         // Incrémenter le compteur d'échecs sauf pour l'erreur appareils
         const isDeviceLimit = error.includes("appareils autorisés")
@@ -114,6 +115,7 @@ export default function LoginPage() {
 
       // Connexion réussie — réinitialiser le compteur
       clearBF()
+      setSubscriptionBlocked(!!subscriptionBlocked)
       activateSession(profile)
 
       if (bioAvailable && !bioRegistered) {
@@ -159,6 +161,7 @@ export default function LoginPage() {
       }
 
       setUser(profile)
+      setSubscriptionBlocked(await fetchSubscriptionBlocked())
       redirectAfterLogin()
     } catch {
       setErr('Authentification échouée. Utilisez votre mot de passe.')

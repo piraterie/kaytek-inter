@@ -4,14 +4,16 @@ import { persist } from 'zustand/middleware'
 import type { Profile, ParametresEntreprise } from '@/types'
 
 export const useAuthStore = create<{
-  user: Profile | null; loading: boolean; error: string | null
+  user: Profile | null; loading: boolean; error: string | null; subscriptionBlocked: boolean
   setUser: (u: Profile | null) => void; setLoading: (v: boolean) => void; setError: (e: string | null) => void
+  setSubscriptionBlocked: (v: boolean) => void
   isAdmin: () => boolean
 }>((set, get) => ({
-  user: null, loading: true, error: null,
+  user: null, loading: true, error: null, subscriptionBlocked: false,
   setUser: u => set({ user: u }),
   setLoading: v => set({ loading: v }),
   setError: e => set({ error: e }),
+  setSubscriptionBlocked: v => set({ subscriptionBlocked: v }),
   isAdmin: () => get().user?.role === 'admin'
 }))
 

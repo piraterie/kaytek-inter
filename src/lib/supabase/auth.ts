@@ -1,6 +1,7 @@
 // src/lib/supabase/auth.ts
 import { supabase } from './client'
 import { registerDevice } from '@/lib/devices'
+import { fetchSubscriptionBlocked } from '@/lib/subscription'
 
 export async function signIn(email: string, password: string) {
   try {
@@ -37,7 +38,9 @@ export async function signIn(email: string, password: string) {
       }
     }
 
-    return { profile, error: null }
+    const subscriptionBlocked = await fetchSubscriptionBlocked()
+
+    return { profile, error: null, subscriptionBlocked }
   } catch (err: any) {
     console.error('Erreur signIn:', err)
     return { profile: null, error: err.message || 'Erreur de connexion' }

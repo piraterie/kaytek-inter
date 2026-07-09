@@ -4,6 +4,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore, useUIStore, useParamsStore } from '@/lib/store'
+import { fetchSubscriptionBlocked } from '@/lib/subscription'
 import AppLayout from '@/components/layout/AppLayout'
 import KaytekLogo from '@/components/KaytekLogo'
 import type { Role } from '@/types'
@@ -40,7 +41,7 @@ const DeleteAccountPage = lazy(() => import('@/pages/DeleteAccountPage'))
 function Guard({ children, adminOnly = false, requireCanCreateDocs = false, allowedRoles }: {
   children: React.ReactNode; adminOnly?: boolean; requireCanCreateDocs?: boolean; allowedRoles?: Role[]
 }) {
-  const { user, loading, error } = useAuthStore()
+  const { user, loading, error, subscriptionBlocked } = useAuthStore()
   const location = useLocation()
   // Capturé une seule fois, au tout premier rendu (avant que le SDK Supabase ne
   // traite/nettoie le hash de façon asynchrone) — lire window.location.hash plus
@@ -64,6 +65,7 @@ function Guard({ children, adminOnly = false, requireCanCreateDocs = false, allo
     }
     return <Navigate to="/login" replace />
   }
+  if (subscriptionBlocked) return <SubscriptionBlockedScreen role={user.role} />
   if (adminOnly && user.role !== 'admin') return <Navigate to="/dashboard" replace />
   if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/dashboard" replace />
   if (requireCanCreateDocs && user.role !== 'admin' && !user.can_create_documents) return <Navigate to="/dashboard" replace />
@@ -85,8 +87,8 @@ function ErrorDisplay({ error }: { error: string }) {
       <div style={{ width: 40, height: 40, background: '#ef4444', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>⚠️</div>
       <p style={{ color: 'var(--t1)', fontSize: 14, fontWeight: 600 }}>Erreur de chargement</p>
       <p style={{ color: 'var(--t2)', fontSize: 13, maxWidth: 400, textAlign: 'center' }}>{error}</p>
-      <button 
-        onClick={() => window.location.reload()} 
+      <button
+        onClick={() => window.location.reload()}
         style={{ marginTop: 10, padding: '8px 16px', background: 'var(--bl)', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}
       >
         Réessayer
@@ -95,8 +97,39 @@ function ErrorDisplay({ error }: { error: string }) {
   )
 }
 
+function SubscriptionBlockedScreen({ role }: { role: string }) {
+  const nav = useNavigate()
+  const { setUser, setSubscriptionBlocked } = useAuthStore()
+  const message = role === 'admin'
+    ? "L'abonnement de votre organisation est inactif ou a expiré. Merci de le régulariser pour continuer à utiliser Kaytek Inter."
+    : "L'abonnement de votre organisation n'est plus actif. Merci de contacter votre administrateur pour régulariser la situation."
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    // Navigation explicite plutôt que de compter sur onAuthStateChange (même
+    // pattern que AppLayout.handleSignOut) — évite de dépendre du listener.
+    setUser(null)
+    setSubscriptionBlocked(false)
+    nav('/login', { replace: true })
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: 'var(--bg)', flexDirection: 'column', gap: 14, padding: 24 }}>
+      <div style={{ width: 40, height: 40, background: '#f59e0b', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🔒</div>
+      <p style={{ color: 'var(--t1)', fontSize: 14, fontWeight: 600 }}>Abonnement inactif</p>
+      <p style={{ color: 'var(--t2)', fontSize: 13, maxWidth: 400, textAlign: 'center' }}>{message}</p>
+      <button
+        onClick={handleSignOut}
+        style={{ marginTop: 10, padding: '8px 16px', background: 'var(--bl)', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+      >
+        Se déconnecter
+      </button>
+    </div>
+  )
+}
+
 export default function App() {
-  const { setUser, setLoading, setError } = useAuthStore()
+  const { setUser, setLoading, setError, setSubscriptionBlocked } = useAuthStore()
   const { theme } = useUIStore()
   const { setParams } = useParamsStore()
   const qc = useQueryClient()
@@ -171,6 +204,10 @@ export default function App() {
             setUser(profile)
           }
 
+          if (isMounted) {
+            setSubscriptionBlocked(await fetchSubscriptionBlocked())
+          }
+
           const { data: params, error: paramsError } = await supabase
             .from('parametres_entreprise')
             .select('*')
@@ -215,6 +252,8 @@ export default function App() {
 
           if (profile) setUser(profile)
 
+          setSubscriptionBlocked(await fetchSubscriptionBlocked())
+
           const { data: params, error: paramsError } = await supabase
             .from('parametres_entreprise')
             .select('*')
@@ -230,6 +269,7 @@ export default function App() {
       if (event === 'SIGNED_OUT') {
         setUser(null)
         setParams(null)
+        setSubscriptionBlocked(false)
         qc.clear()
       }
     })
@@ -239,7 +279,7 @@ export default function App() {
       clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
-  }, [initDone, setUser, setLoading, setError, setParams, qc])
+  }, [initDone, setUser, setLoading, setError, setSubscriptionBlocked, setParams, qc])
 
   return (
     <Suspense fallback={<Loader />}>
