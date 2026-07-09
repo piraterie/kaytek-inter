@@ -134,7 +134,6 @@ export default function App() {
   const { setParams } = useParamsStore()
   const qc = useQueryClient()
   const nav = useNavigate()
-  const [initDone, setInitDone] = useState(false)
 
   // Listener SW — reçoit NAVIGATE depuis push-sw.js quand l'app est déjà ouverte
   useEffect(() => {
@@ -153,8 +152,6 @@ export default function App() {
   }, [theme])
 
   useEffect(() => {
-    if (initDone) return
-
     let isMounted = true
     let timeoutId: NodeJS.Timeout
 
@@ -227,7 +224,6 @@ export default function App() {
         clearTimeout(timeoutId)
         if (isMounted) {
           setLoading(false)
-          setInitDone(true)
         }
       }
     }
@@ -279,7 +275,7 @@ export default function App() {
       clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
-  }, [initDone, setUser, setLoading, setError, setSubscriptionBlocked, setParams, qc])
+  }, [])
 
   return (
     <Suspense fallback={<Loader />}>
