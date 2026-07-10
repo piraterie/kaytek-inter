@@ -1,7 +1,7 @@
 // src/lib/store.ts
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Profile, ParametresEntreprise } from '@/types'
+import type { Profile, ParametresEntreprisePublic } from '@/types'
 
 export const useAuthStore = create<{
   user: Profile | null; loading: boolean; error: string | null; subscriptionBlocked: boolean
@@ -28,8 +28,10 @@ export const useUIStore = create(persist<{
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }), { name: 'kaytek-ui', partialize: (s: any) => ({ theme: s.theme }) } as any))
 
+// Paramètres publics uniquement (jamais iban/bic) — branding/UI générale,
+// accessible à tout rôle. Voir usePublicParametres()/useParametres().
 export const useParamsStore = create<{
-  params: ParametresEntreprise | null; setParams: (p: ParametresEntreprise) => void
+  params: ParametresEntreprisePublic | null; setParams: (p: ParametresEntreprisePublic) => void
 }>((set) => ({ params: null, setParams: p => set({ params: p }) }))
 
 export type ToastType = 'success'|'error'|'info'|'warning'

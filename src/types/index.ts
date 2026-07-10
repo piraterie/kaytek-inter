@@ -48,6 +48,11 @@ export interface ParametresEntreprise {
   email_paiement_recu: boolean; email_new_intervention: boolean; updated_at: string
 }
 
+// Sous-ensemble non sensible de ParametresEntreprise (vue
+// parametres_entreprise_public) — jamais iban/bic. Accessible à tout
+// membre de l'organisation, quel que soit le rôle.
+export type ParametresEntreprisePublic = Omit<ParametresEntreprise, 'iban' | 'bic'>
+
 export interface Client {
   id: string; type: string; nom: string; prenom?: string; raison_sociale?: string
   telephone?: string; email?: string; adresse_intervention?: string

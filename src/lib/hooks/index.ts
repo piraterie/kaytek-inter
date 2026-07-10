@@ -15,7 +15,7 @@ import { supabase } from '@/lib/supabase/client'
 import { uploadPhoto as uploadPhotoStorage } from '@/lib/supabase/storage'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { pdfCache } from '@/lib/pdf/cache'
-import type { Intervention, Devis, Facture, Client, Commission, Message, Profile, Prestation, ParametresEntreprise, DashboardStats, JournalEntry } from '@/types'
+import type { Intervention, Devis, Facture, Client, Commission, Message, Profile, Prestation, ParametresEntreprise, ParametresEntreprisePublic, DashboardStats, JournalEntry } from '@/types'
 
 const uid = () => useAuthStore.getState().user?.id
 const isAdm = () => useAuthStore.getState().user?.role === 'admin'
@@ -110,11 +110,29 @@ export function useUpdateProfile() {
 }
 
 // ── PARAMETRES ───────────────────────────────────────────────────
+// Version complète (iban/bic inclus) — réservée admin par RLS
+// (params_select_admin). Pour tout autre rôle, retourne null : utiliser
+// usePublicParametres() pour les champs non sensibles.
 export function useParametres() {
   return useQuery<ParametresEntreprise | null>({
     queryKey: ['parametres'],
     queryFn: async () => {
       const { data, error } = await supabase.from('parametres_entreprise').select('*').maybeSingle()
+      if (error) throw error
+      return data
+    },
+    staleTime: 1000 * 60 * 10
+  })
+}
+// Version publique (sans iban/bic) — accessible à tout membre de
+// l'organisation via la vue parametres_entreprise_public. À utiliser
+// pour l'UI générale, les mentions légales du PDF (SIRET/TVA/RC Pro
+// sont publiques), et REQUIRED_PARAMS, quel que soit le rôle.
+export function usePublicParametres() {
+  return useQuery<ParametresEntreprisePublic | null>({
+    queryKey: ['parametres-public'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('parametres_entreprise_public').select('*').maybeSingle()
       if (error) throw error
       return data
     },
@@ -140,15 +158,17 @@ export function useUpdateParametres() {
   })
 }
 
-export const REQUIRED_PARAMS: Array<{ field: keyof ParametresEntreprise; label: string }> = [
+export const REQUIRED_PARAMS: Array<{ field: keyof ParametresEntreprisePublic; label: string }> = [
   { field: 'raison_sociale', label: 'Raison sociale' },
   { field: 'email',          label: 'Email entreprise' },
   { field: 'telephone',      label: 'Téléphone' },
   { field: 'adresse',        label: 'Adresse' },
 ]
 
+// Champs non sensibles uniquement (raison_sociale/email/telephone/
+// adresse) : doit fonctionner pour tous les rôles, pas seulement admin.
 export function useParamsCompletion() {
-  const { data: params, isLoading } = useParametres()
+  const { data: params, isLoading } = usePublicParametres()
   if (isLoading) {
     return { isComplete: true, missingFields: [] as typeof REQUIRED_PARAMS, isLoaded: false }
   }

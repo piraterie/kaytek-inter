@@ -206,7 +206,7 @@ export default function App() {
           }
 
           const { data: params, error: paramsError } = await supabase
-            .from('parametres_entreprise')
+            .from('parametres_entreprise_public')
             .select('*')
             .single()
 
@@ -251,7 +251,7 @@ export default function App() {
           setSubscriptionBlocked(await fetchSubscriptionBlocked())
 
           const { data: params, error: paramsError } = await supabase
-            .from('parametres_entreprise')
+            .from('parametres_entreprise_public')
             .select('*')
             .single()
 

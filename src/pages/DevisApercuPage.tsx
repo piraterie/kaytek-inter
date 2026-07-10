@@ -1,7 +1,7 @@
 // src/pages/DevisApercuPage.tsx
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useDevisById, useParametres, useUpdateDevis, useDevisToFacture, useDuplicateDevis, useCreatePublicLink, useIsMobile, notifyUser, notifyAdmins } from '@/lib/hooks'
+import { useDevisById, useParametres, usePublicParametres, useUpdateDevis, useDevisToFacture, useDuplicateDevis, useCreatePublicLink, useIsMobile, notifyUser, notifyAdmins } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import SignatureModal from '@/components/SignatureModal'
 import EmailDevisModal from '@/components/EmailDevisModal'
@@ -10,10 +10,16 @@ export default function DevisApercuPage() {
   const { id } = useParams<{ id: string }>()
   const nav = useNavigate()
   const { user } = useAuthStore()
+  const isAdmin = user?.role === 'admin'
   const { add } = useToastStore()
   const containerRef = useRef<HTMLDivElement>(null)
   const { data: devis, isLoading, refetch } = useDevisById(id || '')
-  const { data: params } = useParametres()
+  // Admin : IBAN/BIC inclus (RLS admin-only). Non-admin : jamais
+  // iban/bic, uniquement les mentions publiques (SIRET/TVA/RC Pro
+  // restent affichées sur le PDF, légalement obligatoires).
+  const { data: dbParams } = useParametres()
+  const { data: publicParams } = usePublicParametres()
+  const params = isAdmin ? (dbParams || publicParams) : publicParams
   const updDevis = useUpdateDevis()
   const toFacture = useDevisToFacture()
   const dup = useDuplicateDevis()
@@ -124,7 +130,6 @@ export default function DevisApercuPage() {
 
   const eur = (n: number) => (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
   const statut = devis.statut
-  const isAdmin = user?.role === 'admin'
   const isSigned = !!(devis as any).signature_client
   const canSign = !isAdmin && ['brouillon', 'envoye'].includes(statut) && !isSigned
   const canFacture = isAdmin && (statut === 'accepte' || isSigned)
