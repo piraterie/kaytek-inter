@@ -745,10 +745,10 @@ function buildTelegramMessage(titre: string, contenu: string, lien?: string): st
 }
 
 export async function notifyAdmins(titre: string, contenu: string, lien?: string) {
-  const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin')
-  if (!admins?.length) return
   const org_id = orgId()
   if (!org_id) return
+  const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin').eq('organisation_id', org_id)
+  if (!admins?.length) return
   const msg = buildTelegramMessage(titre, contenu, lien)
   for (const admin of admins) {
     let telegramSent = false
@@ -858,7 +858,7 @@ export function useMarkNotificationRead() {
 export function useMarkAllNotificationsRead() {
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
-  return useMutation({
+  return useMutation<void, Error, void>({
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ['notifications', user?.id] })
       const prev = qc.getQueryData<any[]>(['notifications', user?.id])
@@ -914,7 +914,7 @@ export function useDeleteNotification() {
 export function useDeleteAllReadNotifications() {
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
-  return useMutation({
+  return useMutation<void, Error, void>({
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ['notifications', user?.id] })
       const prev = qc.getQueryData<any[]>(['notifications', user?.id])
@@ -1273,7 +1273,7 @@ export function useSendMessage() {
       if (error) throw error
       // Telegram en priorité — push uniquement si Telegram non configuré ou échoue
       const senderName = `${user!.prenom || ''} ${user!.nom || ''}`.trim() || 'Kaytek'
-      const pushContenu = type === 'texte' ? contenu : type === 'audio' || type === 'vocal' ? '🎤 Message vocal' : '📷 Photo'
+      const pushContenu = type === 'texte' ? contenu : type === 'audio' ? '🎤 Message vocal' : '📷 Photo'
       const telegramMsg = [
         '💬 NOUVEAU MESSAGE',
         `${senderName} vous a envoyé un message.`,
@@ -1423,7 +1423,7 @@ export function usePushSubscription() {
       if (!sub) {
         sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: b64urlToUint8(VAPID_PUBLIC_KEY),
+          applicationServerKey: b64urlToUint8(VAPID_PUBLIC_KEY) as BufferSource,
         })
         localStorage.setItem(VAPID_KEY_STORE, VAPID_PUBLIC_KEY)
       }
@@ -1527,7 +1527,7 @@ export function useDeleteJournalEntry() {
 
 export function useDeleteAllJournal() {
   const qc = useQueryClient()
-  return useMutation({
+  return useMutation<void, Error, void>({
     mutationFn: async () => {
       const org_id = orgId()
       if (!org_id) throw new Error('Organisation introuvable — reconnectez-vous')

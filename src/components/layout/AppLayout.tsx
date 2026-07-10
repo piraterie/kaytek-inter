@@ -21,7 +21,7 @@ import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 import OfflineBanner from '@/components/OfflineBanner'
 import type { Role } from '@/types'
 
-type NavIcon = React.ComponentType<{ size?: number; strokeWidth?: number; style?: React.CSSProperties }>
+type NavIcon = React.ComponentType<{ size?: number | string; strokeWidth?: number | string; style?: React.CSSProperties }>
 
 const NAV: { path: string; label: string; icon: NavIcon; section: string; adminOnly?: boolean; allowedRoles?: Role[]; badge?: 'messages' | 'pending' | 'partnerRequests' }[] = [
   { path: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard, section: 'Pilotage' },

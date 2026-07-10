@@ -16,10 +16,12 @@ export function isSubscriptionAccessAllowed(status: string | null, trialEndsAt: 
 
 // Aucune ligne renvoyée par la RPC = organisation sans abonnement lié
 // (pré-Stripe, ex. kaytek-inter) = jamais bloquée.
+type SubscriptionStatusRow = { subscription_status: string | null; trial_ends_at: string | null }
+
 export async function fetchSubscriptionBlocked(): Promise<boolean> {
   const { data } = await supabase
     .rpc('get_my_organisation_subscription_status')
-    .maybeSingle()
+    .maybeSingle<SubscriptionStatusRow>()
 
   return !!data && !isSubscriptionAccessAllowed(data.subscription_status, data.trial_ends_at)
 }

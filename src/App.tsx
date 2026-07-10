@@ -153,7 +153,7 @@ export default function App() {
 
   useEffect(() => {
     let isMounted = true
-    let timeoutId: NodeJS.Timeout
+    let timeoutId: ReturnType<typeof setTimeout>
 
     const initAuth = async () => {
       setLoading(true)
