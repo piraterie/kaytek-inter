@@ -109,7 +109,7 @@ serve(async (req) => {
     const rangeFrom = new Date(target.getTime() - win.bufferMin * 60_000)
     const rangeTo   = new Date(target.getTime() + win.bufferMin * 60_000)
 
-    const { data: interventions, error } = await sb
+    const { data: candidates, error } = await sb
       .from('interventions')
       .select(`
         id, numero, adresse, ville, date_prevue, statut, urgence, organisation_id,
@@ -127,7 +127,30 @@ serve(async (req) => {
       continue
     }
 
-    if (!interventions?.length) continue
+    if (!candidates?.length) continue
+
+    // Réservation atomique anti-doublon : seules les lignes encore à NULL
+    // au moment de cet UPDATE sont réellement "gagnées" par cet appel — un
+    // appel concurrent (double-clic, overlap) qui aurait lu les mêmes
+    // candidates ne pourra plus les revendiquer une fois marquées ici,
+    // AVANT tout envoi Telegram/push/notification (pas après).
+    const candidateIds = candidates.map(c => c.id)
+    const { data: claimed, error: claimError } = await sb
+      .from('interventions')
+      .update({ [win.key]: now.toISOString() })
+      .in('id', candidateIds)
+      .eq('organisation_id', callerOrgId)
+      .is(win.key, null)
+      .select('id')
+
+    if (claimError) {
+      console.error(`[send-reminders][${win.label}] Erreur réservation:`, claimError.message)
+      continue
+    }
+    if (!claimed?.length) continue
+
+    const claimedIds = new Set(claimed.map(c => c.id))
+    const interventions = candidates.filter(c => claimedIds.has(c.id))
 
     for (const iv of interventions) {
       // Garde-fou supplémentaire : ignore toute ligne qui ne serait pas
@@ -208,13 +231,10 @@ serve(async (req) => {
         })
       }
 
-      // ── Marquer ce rappel comme envoyé ─────────────────────────
-      await sb
-        .from('interventions')
-        .update({ [win.key]: now.toISOString() })
-        .eq('id', iv.id)
-        .eq('organisation_id', callerOrgId)
-
+      // Déjà marqué envoyé lors de la réservation atomique ci-dessus —
+      // plus besoin d'un second UPDATE ici (c'était l'origine de la
+      // condition de course : marquer APRÈS l'envoi laissait une fenêtre
+      // où un appel concurrent pouvait relire la même ligne à NULL).
       totalSent++
       totalResults.push({ window: win.label, id: iv.id, client: clientName })
     }
