@@ -516,7 +516,11 @@ export function useUpdateIntervention() {
         }
       }
     },
-    onSuccess: (_: any, v: any) => { qc.invalidateQueries({ queryKey: ['interventions'] }); qc.invalidateQueries({ queryKey: ['intervention', v.id] }) }
+    onSuccess: (_: any, v: any) => {
+      qc.invalidateQueries({ queryKey: ['interventions'] })
+      qc.invalidateQueries({ queryKey: ['intervention', v.id] })
+      qc.invalidateQueries({ queryKey: ['interventions-pending-count'] })
+    }
   })
 }
 export function useDeleteIntervention() {
@@ -526,7 +530,14 @@ export function useDeleteIntervention() {
       const { error } = await supabase.from('interventions').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['interventions'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['interventions'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['interventions-pending-count'] })
+      // Nettoyage des notifications orphelines (cross-user) géré côté DB par un trigger ;
+      // on invalide localement pour refléter la suppression immédiatement.
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+    }
   })
 }
 // Vérifie si une intervention a des enregistrements liés avant suppression physique
@@ -652,7 +663,13 @@ export function useDeleteDevis() {
       const { error } = await supabase.from('devis').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['devis'] })
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['devis'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      // Nettoyage des notifications orphelines (cross-user) géré côté DB par un trigger ;
+      // on invalide localement pour refléter la suppression immédiatement.
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+    }
   })
 }
 export function useDeleteAllDevis() {
@@ -664,7 +681,11 @@ export function useDeleteAllDevis() {
       if (error) throw error
       if (!data || data.length === 0) throw new Error('Suppression refusée — droits insuffisants ou devis introuvables')
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['devis'] })
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['devis'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+    }
   })
 }
 export function useDuplicateDevis() {
@@ -838,6 +859,17 @@ export function useMyNotifications() {
         const n = payload.new
         if (n?.titre) add(`${n.titre}${n.contenu ? ' — ' + n.contenu : ''}`, 'info')
       })
+      // Suppression côté DB (par ce user sur un autre appareil, ou par le
+      // trigger de nettoyage en cascade quand l'élément lié est supprimé)
+      .on('postgres_changes', {
+        event: 'DELETE', schema: 'public', table: 'notifications',
+        filter: `user_id=eq.${user.id}`
+      }, () => qc.invalidateQueries({ queryKey: ['notifications', user.id] }))
+      // Marquage lu/non-lu depuis un autre appareil
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'notifications',
+        filter: `user_id=eq.${user.id}`
+      }, () => qc.invalidateQueries({ queryKey: ['notifications', user.id] }))
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [user?.id])
@@ -1039,7 +1071,11 @@ export function useDeleteFacture() {
       const { error } = await supabase.from('factures').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['factures'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['factures'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['commissions-data'] })
+    }
   })
 }
 export function useDeleteAllFactures() {
@@ -1051,7 +1087,11 @@ export function useDeleteAllFactures() {
       if (error) throw error
       if (!data || data.length === 0) throw new Error('Suppression refusée — droits insuffisants ou factures introuvables')
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['factures'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }) }
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['factures'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['commissions-data'] })
+    }
   })
 }
 
@@ -1329,6 +1369,7 @@ export function useDeleteMessage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['messages'] })
       qc.invalidateQueries({ queryKey: ['conversations'] })
+      qc.invalidateQueries({ queryKey: ['unread'] })
     },
   })
 }
@@ -1507,6 +1548,15 @@ export function useUnreadCount() {
             showMessageNotification(name)
           }
         })
+      // Suppression d'un message non lu (par l'expéditeur ou un autre appareil) → recalcul immédiat du badge
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: `destinataire_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ['unread', user.id] })
+          qc.invalidateQueries({ queryKey: ['conversations', user.id] })
+        })
+      // Message marqué lu depuis un autre appareil
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `destinataire_id=eq.${user.id}` },
+        () => qc.invalidateQueries({ queryKey: ['unread', user.id] }))
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [user, qc])

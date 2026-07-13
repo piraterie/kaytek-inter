@@ -214,22 +214,89 @@ export function usePartnerUnreadCounts() {
 // Snapshot uniquement — jamais de lecture directe de `interventions`,
 // `clients` etc. d'une autre organisation. source_intervention_id
 // n'est jamais exposé au partenaire par l'UI (voir composants).
+//
+// Masquage par statut (RLS, cf. migrations 20260714000002 /
+// 20260715000009) : la RLS de `partner_intervention_requests` ne
+// laisse la CIBLE lire la ligne brute (donc les colonnes
+// confidentielles) que lorsque status IN ('accepted','in_progress',
+// 'completed'). Tant que status = 'pending' ou 'refused', une
+// sélection brute de la cible sur ces lignes renvoie 0 ligne — c'est
+// voulu, pas un bug. Pour que la cible voie quand même qu'une demande
+// existe (et puisse décider), on complète avec un APERÇU explicitement
+// non-confidentiel via la RPC get_partner_requests_preview (jamais
+// d'adresse/téléphone/nom client/photos/consignes/source_intervention_id
+// dans ces lignes-là — vérifié côté DB, pas seulement côté UI).
+// La source garde toujours l'accès complet à ses propres demandes,
+// quel que soit le statut (RLS : current_org_id() = source_organisation_id).
 export function usePartnerInterventionRequests() {
   const org = orgId()
+  const qc = useQueryClient()
+
+  useEffect(() => {
+    if (!org) return
+    const ch = supabase.channel(`partner-intervention-requests-${org}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'partner_intervention_requests' },
+        () => qc.invalidateQueries({ queryKey: ['partner-intervention-requests', org] }))
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [org, qc])
+
   return useQuery<PartnerInterventionRequest[]>({
     queryKey: ['partner-intervention-requests', org],
     queryFn: async () => {
       if (!org) return []
-      const { data, error } = await supabase
+
+      // 1. Lignes visibles en brut par la RLS : toutes nos propres
+      //    demandes envoyées (quel que soit leur statut) + les demandes
+      //    reçues déjà acceptées/en cours/terminées.
+      const { data: fullRows, error: fullErr } = await supabase
         .from('partner_intervention_requests')
         .select('*')
         .or(`source_organisation_id.eq.${org},target_organisation_id.eq.${org}`)
         .order('updated_at', { ascending: false })
-      if (error) throw error
-      const rows = (data || []) as PartnerInterventionRequest[]
+      if (fullErr) throw fullErr
+
+      // 2. Aperçu masqué pour nos demandes reçues encore pending/refused
+      //    (la RLS bloque leur lecture brute tant qu'elles ne sont pas
+      //    acceptées — voir commentaire ci-dessus).
+      const [{ data: pendingPreview, error: pendingErr }, { data: refusedPreview, error: refusedErr }] = await Promise.all([
+        supabase.rpc('get_partner_requests_preview', { p_status: 'pending' }),
+        supabase.rpc('get_partner_requests_preview', { p_status: 'refused' }),
+      ])
+      if (pendingErr) throw pendingErr
+      if (refusedErr) throw refusedErr
+
+      const fullIds = new Set((fullRows || []).map((r: any) => r.id))
+      const previewRows = [...(pendingPreview || []), ...(refusedPreview || [])]
+        .filter((r: any) => !fullIds.has(r.id))
+        .map((r: any): PartnerInterventionRequest => ({
+          id: r.id,
+          connection_id: r.connection_id,
+          source_organisation_id: r.source_organisation_id,
+          source_profile_id: '',
+          target_organisation_id: org,
+          status: r.status,
+          type_intervention: r.type_intervention ?? undefined,
+          urgence: r.urgence,
+          date_souhaitee: r.date_souhaitee ?? undefined,
+          ville: r.ville ?? undefined,
+          description_partagee: r.description_partagee ?? undefined,
+          montant_partage: r.montant_partage ?? undefined,
+          note_refus: r.note_refus ?? undefined,
+          created_at: r.created_at,
+          updated_at: r.updated_at ?? r.created_at,
+          // Explicitement absentes de l'aperçu — jamais transmises par la
+          // RPC tant que la demande n'est pas acceptée.
+          share_adresse: false, share_telephone: false, share_nom_client: false,
+          share_description: r.description_partagee != null, share_montant: r.montant_partage != null, share_photos: false,
+        }))
+
+      const rows = [...(fullRows || []), ...previewRows] as PartnerInterventionRequest[]
+      rows.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''))
+
       const otherOrgIds = Array.from(new Set(rows.map(r =>
         r.source_organisation_id === org ? r.target_organisation_id : r.source_organisation_id
-      )))
+      ).filter(Boolean)))
       if (otherOrgIds.length === 0) return rows
       const { data: profiles } = await supabase.from('partner_profiles').select('*').in('organisation_id', otherOrgIds)
       const byOrg = new Map((profiles || []).map((p: any) => [p.organisation_id, p as PartnerProfile]))
@@ -297,6 +364,12 @@ export function useSendPartnerInterventionRequest() {
   })
 }
 
+// Transitions accessibles directement via RLS (pir_update) : la CIBLE
+// accepted → in_progress / in_progress → completed (elle a alors déjà
+// accès en lecture, donc aussi en écriture), et la SOURCE pour toute
+// annulation (elle a toujours accès complet, quel que soit le statut).
+// Ne PAS utiliser pour pending → accepted/refused : voir
+// useRespondToPartnerInterventionRequest ci-dessous.
 export function useUpdatePartnerInterventionStatus() {
   const qc = useQueryClient()
   return useMutation({
@@ -308,6 +381,48 @@ export function useUpdatePartnerInterventionStatus() {
       if (error) throw error
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['partner-intervention-requests'] })
+      qc.invalidateQueries({ queryKey: ['partner-intervention-events'] })
+    }
+  })
+}
+
+// Réponse (accepter/refuser) à une demande PENDING par l'organisation
+// CIBLE — la seule transition que la RLS ne peut pas gérer en direct :
+// Postgres exige qu'une ligne soit lisible via la policy SELECT pour
+// être modifiable par UPDATE, or la cible n'a délibérément PAS accès
+// en lecture brute à une ligne pending/refused (c'est le masquage —
+// voir usePartnerInterventionRequests ci-dessus). La RPC
+// respond_to_partner_intervention_request (SECURITY DEFINER) revalide
+// donc elle-même, côté DB : appelant = admin de son organisation,
+// organisation appelante = target_organisation_id de la ligne (jamais
+// la source), statut actuel = 'pending' (une demande déjà tranchée ne
+// peut pas être re-répondue), motif de refus obligatoire si refusée.
+// Le trigger d'état existant (partner_intervention_requests_before_update)
+// s'exécute quand même en plus (défense en profondeur).
+export function useRespondToPartnerInterventionRequest() {
+  const qc = useQueryClient()
+  const org = orgId()
+  return useMutation({
+    mutationFn: async ({ id, response, note_refus }: { id: string; response: 'accepted' | 'refused'; note_refus?: string }) => {
+      const { data, error } = await supabase.rpc('respond_to_partner_intervention_request', {
+        p_id: id,
+        p_response: response,
+        p_note_refus: note_refus ?? null,
+      })
+      if (error) throw error
+      return (Array.isArray(data) ? data[0] : data) as PartnerInterventionRequest | undefined
+    },
+    onSuccess: (row) => {
+      // Écrase immédiatement l'entrée en cache avec la ligne renvoyée par
+      // la RPC (déjà masquée côté DB si refusée) — évite d'attendre le
+      // refetch réseau pour qu'un statut 'refused' cesse d'exposer des
+      // champs confidentiels résiduels dans le cache local.
+      if (row) {
+        qc.setQueriesData<PartnerInterventionRequest[]>({ queryKey: ['partner-intervention-requests', org] }, (old) =>
+          (old || []).map(r => r.id === row.id ? { ...r, ...row } : r)
+        )
+      }
       qc.invalidateQueries({ queryKey: ['partner-intervention-requests'] })
       qc.invalidateQueries({ queryKey: ['partner-intervention-events'] })
     }

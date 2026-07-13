@@ -227,6 +227,7 @@ export default function DevisPage() {
 
   const eur = (n?: number | null) => n ? n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) : '—'
   const fmtDate = (s: string) => new Date(s).toLocaleDateString('fr-FR')
+  const fmtDateTime = (s: string) => new Date(s).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
   const colCount = (isAdmin ? 9 : 8) + (selectionMode ? 1 : 0)
 
   return (
@@ -470,7 +471,7 @@ export default function DevisPage() {
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtDate(d.created_at)}</span>
+                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtDateTime(d.created_at)}</span>
                     {d.activite && (
                       <span className={`pill ${ACT_PILL[d.activite] || 'pill-gray'}`} style={{ fontSize: 10 }}>
                         {d.activite}
@@ -576,7 +577,7 @@ export default function DevisPage() {
                   <td style={{ fontWeight: 700, color: 'var(--t0)' }}>{eur(d.total_ttc)}</td>
                   <td><span className={`pill ${SC[d.statut] || 'pill-gray'}`}>{SL[d.statut] || d.statut}</span></td>
                   {isAdmin && <td style={{ fontSize: 12 }}>{d.intervenant?.nom ? `${d.intervenant.prenom} ${d.intervenant.nom}` : '—'}</td>}
-                  <td style={{ fontSize: 12 }}>{fmtDate(d.created_at)}</td>
+                  <td style={{ fontSize: 12 }}>{fmtDateTime(d.created_at)}</td>
                   <td style={{ fontSize: 12 }}>
                     {d.valide_jusqu_au ? (
                       <span style={{ color: expired ? 'var(--rdTx)' : expiresSoon ? 'var(--amTx)' : 'var(--t2)', fontWeight: expired || expiresSoon ? 600 : 400, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -644,7 +645,7 @@ export default function DevisPage() {
               />
             </>
           )}
-          {isAdmin && ['accepte', 'envoye'].includes(activeSheet.statut) && (
+          {(isAdmin || user?.can_create_documents === true) && ['accepte', 'envoye'].includes(activeSheet.statut) && (
             <>
               <SheetSection label="Conversion" />
               <SheetRow

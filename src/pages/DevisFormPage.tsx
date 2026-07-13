@@ -2,13 +2,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import SignatureModal from '@/components/SignatureModal'
-import { useCreateDevis, useUpdateDevis, useDevisById, useClients, useProfiles, usePrestations, useCreatePrestation, useParametres, usePublicParametres } from '@/lib/hooks'
+import { useCreateDevis, useUpdateDevis, useDevisById, useClients, useProfiles, usePrestations, useCreatePrestation, useParametres, usePublicParametres, useCreateClient, useCreateIntervention } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
 import { pdfCache } from '@/lib/pdf/cache'
 import { uploadPdf } from '@/lib/supabase/storage'
-import { THEMES } from '@/lib/themes'
 import { CustomSelect } from '@/components/CustomSelect'
+import { AddressAutocomplete } from '@/components/AddressAutocomplete'
 import type { Categorie, LigneDevis } from '@/types'
 
 const newLine = (): LigneDevis => ({ id: crypto.randomUUID(), description: '', quantite: 1, prix_ht: 0, tva_pct: 10, total_ht: 0, total_ttc: 0 })
@@ -17,10 +17,6 @@ const calc = (l: LigneDevis): LigneDevis => {
   const total_ht = Math.round(l.quantite * l.prix_ht * 100) / 100
   return { ...l, total_ht, total_ttc: Math.round(total_ht * (1 + l.tva_pct / 100) * 100) / 100 }
 }
-
-const MODELES = Object.entries(THEMES).map(([id, t]) => ({
-  id: Number(id), label: t.label, color: t.primary, accent: t.accent,
-}))
 
 const CAT_ICON: Record<string, string> = {
   serrurerie: '🔒', plomberie: '🔧', electricite: '⚡', vitrerie: '🪟', chauffagiste: '🔥'
@@ -68,7 +64,14 @@ export default function DevisFormPage() {
   const create = useCreateDevis()
   const update = useUpdateDevis()
   const createPrestation = useCreatePrestation()
+  const createClient = useCreateClient()
+  const createIntervention = useCreateIntervention()
   const interventionId = sp.get('intervention') || ''
+  const [showClientModal, setShowClientModal] = useState(false)
+  const [clientForm, setClientForm] = useState({ type: 'particulier', nom: '', prenom: '', telephone: '', email: '', adresse_intervention: '' })
+  const [showRdvModal, setShowRdvModal] = useState(false)
+  const [rdvForm, setRdvForm] = useState({ adresse: '', date_prevue: '' })
+  const [rdvLoading, setRdvLoading] = useState(false)
 
   const [form, setForm] = useState({
     client_id: '', intervenant_id: user?.id || '', activite: 'serrurerie' as Categorie,
@@ -124,6 +127,7 @@ export default function DevisFormPage() {
 
   // Derived
   const modeIntervenant = user?.role !== 'admin'
+  const canElevated = isAdmin || user?.can_create_documents === true
   const displayClient = form.client_id ? (clients.find(c => c.id === form.client_id) || null) : clientFromIntervention
   const step1Done = !!form.client_id
   const step2Done = lignes.filter(l => l.description.trim()).length > 0
@@ -147,6 +151,49 @@ export default function DevisFormPage() {
 
   function updLine(i: number, f: keyof LigneDevis, v: string | number) {
     setLignes(ls => ls.map((l, idx) => idx === i ? calc({ ...l, [f]: v }) : l))
+  }
+
+  async function submitNewClient(e: React.FormEvent) {
+    e.preventDefault()
+    if (!clientForm.nom.trim()) { add('Le nom est requis', 'warning'); return }
+    try {
+      const newClient = await createClient.mutateAsync(clientForm as any)
+      setForm(f => ({ ...f, client_id: (newClient as any).id }))
+      setClientExpanded(false)
+      add(`Client ${clientForm.nom} créé et sélectionné`)
+      setShowClientModal(false)
+      setClientForm({ type: 'particulier', nom: '', prenom: '', telephone: '', email: '', adresse_intervention: '' })
+    } catch (err: any) { add('Erreur : ' + err.message, 'error') }
+  }
+
+  function openRdvModal() {
+    setRdvForm({ adresse: displayClient?.adresse_intervention || '', date_prevue: '' })
+    setShowRdvModal(true)
+  }
+
+  async function submitRdv(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.client_id) { add('Sélectionnez un client', 'warning'); return }
+    setRdvLoading(true)
+    try {
+      const payload: any = {
+        client_id: form.client_id,
+        type: form.activite,
+        description: form.notes || '',
+        adresse: rdvForm.adresse || '',
+      }
+      if (form.intervenant_id) payload.intervenant_id = form.intervenant_id
+      if (rdvForm.date_prevue) payload.date_prevue = new Date(rdvForm.date_prevue).toISOString()
+      const newIntervention: any = await createIntervention.mutateAsync(payload)
+      if (isEdit && id) {
+        await update.mutateAsync({ id, intervention_id: newIntervention.id } as any)
+      } else {
+        setForm(f => ({ ...f, intervention_id: newIntervention.id }))
+      }
+      add('Rendez-vous créé et lié au devis')
+      setShowRdvModal(false)
+      nav(`/interventions/${newIntervention.id}`)
+    } catch (err: any) { add('Erreur : ' + err.message, 'error') } finally { setRdvLoading(false) }
   }
 
   function addFromCat(pid: string) {
@@ -276,9 +323,20 @@ export default function DevisFormPage() {
               <span style={{ color: 'var(--bl)', fontWeight: 600 }}>
                 {existing.statut === 'brouillon' ? 'Brouillon' : existing.statut === 'envoye' ? 'Envoyé' : existing.statut}
               </span>
+              {existing.created_at && (
+                <>
+                  {' · '}
+                  <span style={{ color: 'var(--t3)' }}>
+                    Créé le {new Date(existing.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </>
+              )}
             </p>
           )}
         </div>
+        {canElevated && !form.intervention_id && form.client_id && (
+          <button type="button" className="btn btn-secondary btn-sm" onClick={openRdvModal} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>📅 RDV</button>
+        )}
       </div>
 
       {/* ── Stepper ───────────────────────────────────────── */}
@@ -340,37 +398,49 @@ export default function DevisFormPage() {
                   {displayClient.telephone && <div style={{ fontSize: 12, color: 'var(--t2)', marginTop: 2 }}>📞 {displayClient.telephone}</div>}
                   {displayClient.email && <div style={{ fontSize: 12, color: 'var(--t2)', marginTop: 1 }}>✉ {displayClient.email}</div>}
                 </div>
-                {!modeIntervenant && (
-                  <button type="button" onClick={() => setClientExpanded(v => !v)} className="btn-icon sm" title="Changer le client" style={{ flexShrink: 0 }}>✏</button>
-                )}
+                <button type="button" onClick={() => setClientExpanded(v => !v)} className="btn-icon sm" title="Changer le client" style={{ flexShrink: 0 }}>✏</button>
               </div>
-              {clientExpanded && !modeIntervenant && (
+              {clientExpanded && (
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--b0)' }}>
                   <div className="form-group" style={{ margin: 0 }}>
                     <label>Client</label>
-                    <CustomSelect
-                      value={form.client_id}
-                      placeholder="Sélectionner un client…"
-                      options={clients.map(c => ({ value: c.id, label: [c.nom, c.prenom].filter(Boolean).join(' ') + (c.telephone ? ` · ${c.telephone}` : '') }))}
-                      onChange={v => { setForm(f => ({ ...f, client_id: v })); if (v) setClientExpanded(false) }}
-                    />
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <CustomSelect
+                          value={form.client_id}
+                          placeholder="Sélectionner un client…"
+                          options={clients.map(c => ({ value: c.id, label: [c.nom, c.prenom].filter(Boolean).join(' ') + (c.telephone ? ` · ${c.telephone}` : '') }))}
+                          onChange={v => { setForm(f => ({ ...f, client_id: v })); if (v) setClientExpanded(false) }}
+                        />
+                      </div>
+                      {canElevated && (
+                        <button type="button" className="btn btn-secondary" onClick={() => setShowClientModal(true)} title="Créer un nouveau client" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>+ Nouveau</button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
             </div>
-          ) : modeIntervenant ? (
+          ) : interventionId && !clientFromIntervention ? (
             <div style={{ padding: '10px 12px', background: 'var(--s1)', borderRadius: 'var(--r)', fontSize: 13, border: '1px solid var(--b1)', minHeight: 44, display: 'flex', alignItems: 'center', color: 'var(--t3)' }}>
-              {interventionId ? 'Chargement…' : '—'}
+              Chargement…
             </div>
           ) : (
             <div className="form-group" style={{ margin: 0 }}>
               <label>Client <span className="req">*</span></label>
-              <CustomSelect
-                value={form.client_id}
-                placeholder="Sélectionner un client…"
-                options={clients.map(c => ({ value: c.id, label: [c.nom, c.prenom].filter(Boolean).join(' ') + (c.telephone ? ` · ${c.telephone}` : '') }))}
-                onChange={v => setForm(f => ({ ...f, client_id: v }))}
-              />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <CustomSelect
+                    value={form.client_id}
+                    placeholder="Sélectionner un client…"
+                    options={clients.map(c => ({ value: c.id, label: [c.nom, c.prenom].filter(Boolean).join(' ') + (c.telephone ? ` · ${c.telephone}` : '') }))}
+                    onChange={v => setForm(f => ({ ...f, client_id: v }))}
+                  />
+                </div>
+                {canElevated && (
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowClientModal(true)} title="Créer un nouveau client" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>+ Nouveau</button>
+                )}
+              </div>
             </div>
           )}
 
@@ -608,31 +678,12 @@ export default function DevisFormPage() {
                 {[form.remise_pct > 0 && `Remise ${form.remise_pct}%`, form.notes.trim() && 'Notes'].filter(Boolean).join(' · ')}
               </span>
             )}
-            {!showOptions && <span style={{ fontSize: 11, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Modèle PDF, conditions, remise…</span>}
+            {!showOptions && <span style={{ fontSize: 11, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Conditions, remise…</span>}
           </div>
           <span style={{ fontSize: 14, color: 'var(--t3)', flexShrink: 0 }}>{showOptions ? '∧' : '∨'}</span>
         </button>
         {showOptions && (
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--b0)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {!modeIntervenant && (
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>Modèle PDF</div>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
-                  {MODELES.map(m => (
-                    <div key={m.id} onClick={() => setForm(f => ({ ...f, modele_id: m.id }))} style={{ cursor: 'pointer', borderRadius: 8, overflow: 'hidden', border: form.modele_id === m.id ? '3px solid var(--bl)' : '3px solid transparent', transition: 'border .15s' }}>
-                      <div style={{ width: 72, height: 44, background: m.color, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                        <span style={{ color: '#fff', fontSize: 8, fontWeight: 700, textAlign: 'center', lineHeight: 1.3 }}>DEVIS{'\n'}KAYTEK</span>
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: m.accent }} />
-                      </div>
-                      <div style={{ background: 'var(--s1)', textAlign: 'center', fontSize: 9, padding: '3px 4px', color: form.modele_id === m.id ? 'var(--blTx)' : 'var(--t2)', fontWeight: form.modele_id === m.id ? 600 : 400 }}>{m.label}</div>
-                    </div>
-                  ))}
-                </div>
-                <button className="btn btn-secondary btn-sm" onClick={handlePreview} disabled={pdfLoading}>
-                  {pdfLoading ? 'Génération...' : '👁 Aperçu PDF du modèle'}
-                </button>
-              </div>
-            )}
             <div className="form-group" style={{ margin: 0 }}>
               <label>Remise (%)</label>
               <input type="number" inputMode="decimal" min={0} max={100} value={remiseStr}
@@ -796,6 +847,97 @@ export default function DevisFormPage() {
                 }}
               >+ Ajouter cette prestation</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════
+          MODALE — NOUVEAU CLIENT
+         ══════════════════════════════════════════════════ */}
+      {showClientModal && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }} onClick={() => setShowClientModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Nouveau client</span>
+              <button className="btn-icon sm" onClick={() => setShowClientModal(false)}>✕</button>
+            </div>
+            <form onSubmit={submitNewClient}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Nom <span className="req">*</span></label>
+                  <input autoFocus value={clientForm.nom} onChange={e => setClientForm(f => ({ ...f, nom: e.target.value }))} placeholder="Nom du client" />
+                </div>
+                <div className="form-group">
+                  <label>Prénom</label>
+                  <input value={clientForm.prenom} onChange={e => setClientForm(f => ({ ...f, prenom: e.target.value }))} placeholder="Prénom (optionnel)" />
+                </div>
+                <div className="form-group">
+                  <label>Téléphone</label>
+                  <input type="tel" value={clientForm.telephone} onChange={e => setClientForm(f => ({ ...f, telephone: e.target.value }))} placeholder="06 00 00 00 00" />
+                </div>
+                <div className="form-group">
+                  <label>Email</label>
+                  <input type="email" value={clientForm.email} onChange={e => setClientForm(f => ({ ...f, email: e.target.value }))} placeholder="email@exemple.fr (optionnel)" />
+                </div>
+                <div className="form-group">
+                  <label>Adresse d'intervention</label>
+                  <AddressAutocomplete
+                    value={clientForm.adresse_intervention}
+                    onChange={v => setClientForm(f => ({ ...f, adresse_intervention: v }))}
+                    onSelect={s => setClientForm(f => ({ ...f, adresse_intervention: s.label }))}
+                    placeholder="Adresse complète (optionnel)"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowClientModal(false)}>Annuler</button>
+                <button type="submit" className="btn btn-primary" disabled={createClient.isPending}>
+                  {createClient.isPending ? 'Création…' : 'Créer et sélectionner'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════
+          MODALE — RDV / INTERVENTION DEPUIS LE DEVIS
+         ══════════════════════════════════════════════════ */}
+      {showRdvModal && (
+        <div className="modal-overlay" onClick={() => setShowRdvModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Créer un RDV</span>
+              <button className="btn-icon sm" onClick={() => setShowRdvModal(false)}>✕</button>
+            </div>
+            <form onSubmit={submitRdv}>
+              <div className="modal-body">
+                <div style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 14 }}>
+                  {displayClient?.nom} {displayClient?.prenom}
+                  {displayClient?.telephone && ` · ${displayClient.telephone}`}
+                </div>
+                <div className="form-group">
+                  <label>Adresse</label>
+                  <AddressAutocomplete
+                    value={rdvForm.adresse}
+                    onChange={v => setRdvForm(f => ({ ...f, adresse: v }))}
+                    onSelect={s => setRdvForm(f => ({ ...f, adresse: s.label }))}
+                    placeholder="Adresse complète"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Date prévue</label>
+                  <input type="datetime-local" value={rdvForm.date_prevue} onChange={e => setRdvForm(f => ({ ...f, date_prevue: e.target.value }))} />
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--t3)' }}>
+                  Activité et description reprises automatiquement du devis.
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowRdvModal(false)}>Annuler</button>
+                <button type="submit" className="btn btn-primary" disabled={rdvLoading}>{rdvLoading ? 'Création…' : 'Créer le RDV'}</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

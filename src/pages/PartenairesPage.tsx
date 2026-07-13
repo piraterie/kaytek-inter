@@ -11,7 +11,7 @@ import {
   useMyPartnerProfile, useUpsertPartnerProfile, usePartnerSearch,
   usePartnerConnections, useSendPartnerRequest, useUpdatePartnerConnectionStatus,
   usePartnerConnectionEvents, usePartnerUnreadCounts,
-  usePartnerInterventionRequests, useUpdatePartnerInterventionStatus, usePartnerInterventionEvents
+  usePartnerInterventionRequests, useUpdatePartnerInterventionStatus, useRespondToPartnerInterventionRequest, usePartnerInterventionEvents
 } from '@/lib/hooks/partners'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import PartnerMessagesModal from '@/components/PartnerMessagesModal'
@@ -66,6 +66,7 @@ export default function PartenairesPage() {
   const updateStatus = useUpdatePartnerConnectionStatus()
   const { data: interventionRequests = [], isLoading: pirLoading } = usePartnerInterventionRequests()
   const updatePirStatus = useUpdatePartnerInterventionStatus()
+  const respondPir = useRespondToPartnerInterventionRequest()
 
   const [tab, setTab] = useState<Tab>(() => URL_TAB_MAP[searchParams.get('tab') || ''] || 'mine')
   const [profileModal, setProfileModal] = useState(false)
@@ -95,14 +96,18 @@ export default function PartenairesPage() {
     return connections.find(c => c.id === r.connection_id) || null
   }
 
+  // Accepter/refuser une demande pending passe par la RPC dédiée
+  // (respond_to_partner_intervention_request), pas par updatePirStatus :
+  // la RLS ne peut pas gérer cette transition en direct côté cible tant
+  // que la demande reste masquée (voir commentaire dans partners.ts).
   async function handlePirAccept(r: PartnerInterventionRequest) {
-    try { await updatePirStatus.mutateAsync({ id: r.id, status: 'accepted' }); add('Demande acceptée') }
+    try { await respondPir.mutateAsync({ id: r.id, response: 'accepted' }); add('Demande acceptée') }
     catch (err: any) { add(err.message || 'Erreur', 'error') }
   }
   async function handlePirRefuse() {
     if (!refuseTarget || !refuseNote.trim()) return
     try {
-      await updatePirStatus.mutateAsync({ id: refuseTarget.id, status: 'refused', note_refus: refuseNote.trim() })
+      await respondPir.mutateAsync({ id: refuseTarget.id, response: 'refused', note_refus: refuseNote.trim() })
       add('Demande refusée'); setRefuseTarget(null); setRefuseNote('')
     } catch (err: any) { add(err.message || 'Erreur', 'error') }
   }
@@ -350,8 +355,8 @@ export default function PartenairesPage() {
                   <>
                     {r.status === 'pending' && (
                       <>
-                        <button className="btn btn-primary btn-sm" onClick={() => handlePirAccept(r)}><CheckCircle2 size={13} /> Accepter</button>
-                        <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={() => setRefuseTarget(r)}><Ban size={13} /> Refuser</button>
+                        <button className="btn btn-primary btn-sm" onClick={() => handlePirAccept(r)} disabled={respondPir.isPending}><CheckCircle2 size={13} /> Accepter</button>
+                        <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={() => setRefuseTarget(r)} disabled={respondPir.isPending}><Ban size={13} /> Refuser</button>
                       </>
                     )}
                     {r.status === 'accepted' && (
@@ -472,7 +477,7 @@ export default function PartenairesPage() {
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={() => { setRefuseTarget(null); setRefuseNote('') }}>Annuler</button>
-              <button type="button" className="btn btn-primary" style={{ background: '#dc2626', border: 'none' }} disabled={!refuseNote.trim() || updatePirStatus.isPending} onClick={handlePirRefuse}>
+              <button type="button" className="btn btn-primary" style={{ background: '#dc2626', border: 'none' }} disabled={!refuseNote.trim() || respondPir.isPending} onClick={handlePirRefuse}>
                 Confirmer le refus
               </button>
             </div>
@@ -609,6 +614,11 @@ function PartnerInterventionRow({ r, actions, historyOpen, onToggleHistory, onMe
               {r.nom_client_partage && <div>Client : {r.nom_client_partage}</div>}
               {r.telephone_client_partage && <div>Tél. : {r.telephone_client_partage}</div>}
               {r.adresse_partagee && <div>Adresse : {r.adresse_partagee}</div>}
+            </div>
+          )}
+          {r.status === 'pending' && (
+            <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4, fontStyle: 'italic', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Lock size={11} /> Coordonnées client masquées jusqu'à votre décision
             </div>
           )}
           {r.description_partagee && <div style={{ fontSize: 12, color: 'var(--t2)', marginTop: 4 }}>{r.description_partagee}</div>}

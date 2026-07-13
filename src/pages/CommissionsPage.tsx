@@ -4,7 +4,7 @@ import {
   Package, CheckCircle2, Clock, DollarSign, Building2, FileSpreadsheet,
   AlertTriangle, Save,
 } from 'lucide-react'
-import { useCommissionsData, useMarkCommissionReceived, useUpdateInterventionMateriel, notifyUser, notifyAdmins } from '@/lib/hooks'
+import { useCommissionsData, useMarkCommissionReceived, useUpdateInterventionMateriel, useIntervenants, notifyUser, notifyAdmins } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { exportCommissionsPremium } from '@/lib/exportPremium'
 
@@ -27,11 +27,53 @@ export default function CommissionsPage() {
   const { data: commissionsData, isLoading, error } = useCommissionsData()
   const items = commissionsData?.items ?? []
   const unattributedCount = commissionsData?.unattributedCount ?? 0
+  const { data: intervenants = [] } = useIntervenants()
   const markReceived = useMarkCommissionReceived()
   const updateMateriel = useUpdateInterventionMateriel()
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [materielModal, setMaterielModal] = useState<MaterielModal | null>(null)
   const [materielInput, setMaterielInput] = useState('')
+
+  // ── Filtres ────────────────────────────────────────────────────
+  const [filterIntervenantId, setFilterIntervenantId] = useState('tous')
+  const [filterStatut, setFilterStatut] = useState<'tous' | 'a_recevoir' | 'recue'>('tous')
+  const [filterDateFrom, setFilterDateFrom] = useState('')
+  const [filterDateTo, setFilterDateTo] = useState('')
+
+  const filteredItems = items.filter(c => {
+    if (isAdmin && filterIntervenantId !== 'tous' && c.intervenant_id !== filterIntervenantId) return false
+    if (filterStatut === 'a_recevoir' && c.recue) return false
+    if (filterStatut === 'recue' && !c.recue) return false
+    if (filterDateFrom && (!c.date_paiement || c.date_paiement < filterDateFrom)) return false
+    if (filterDateTo && (!c.date_paiement || c.date_paiement > filterDateTo + 'T23:59:59')) return false
+    return true
+  })
+  const filtersActive = filterIntervenantId !== 'tous' || filterStatut !== 'tous' || !!filterDateFrom || !!filterDateTo
+
+  function renderFilterBar() {
+    return (
+      <div className="filter-bar" style={{ marginBottom: 14 }}>
+        {isAdmin && (
+          <select value={filterIntervenantId} onChange={e => setFilterIntervenantId(e.target.value)} style={{ width: 'auto', minWidth: 160 }}>
+            <option value="tous">Tous les intervenants</option>
+            {intervenants.filter(p => p.actif !== false).map(p => (
+              <option key={p.id} value={p.id}>{[p.prenom, p.nom].filter(Boolean).join(' ') || p.email}</option>
+            ))}
+          </select>
+        )}
+        <button className={`btn btn-sm ${filterStatut === 'tous' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilterStatut('tous')}>Toutes</button>
+        <button className={`btn btn-sm ${filterStatut === 'a_recevoir' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilterStatut('a_recevoir')}>À recevoir</button>
+        <button className={`btn btn-sm ${filterStatut === 'recue' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilterStatut('recue')}>Reçue</button>
+        <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} style={{ width: 'auto' }} title="Depuis le" />
+        <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} style={{ width: 'auto' }} title="Jusqu'au" />
+        {filtersActive && (
+          <button className="btn btn-secondary btn-sm" onClick={() => { setFilterIntervenantId('tous'); setFilterStatut('tous'); setFilterDateFrom(''); setFilterDateTo('') }}>
+            Réinitialiser
+          </button>
+        )}
+      </div>
+    )
+  }
 
   function openMaterielModal(c: any) {
     setMaterielInput(c.cout_pieces_raw ? String(c.cout_pieces_raw) : '')
@@ -203,8 +245,8 @@ export default function CommissionsPage() {
 
   // ── VUE INTERVENANT ──────────────────────────────────────────────
   if (!isAdmin) {
-    const pending = items.filter(c => !c.recue)
-    const received = items.filter(c => c.recue)
+    const pending = filteredItems.filter(c => !c.recue)
+    const received = filteredItems.filter(c => c.recue)
     const totalPending = pending.reduce((s, c) => s + c.commission_intervenant, 0)
     const totalReceived = received.reduce((s, c) => s + c.commission_intervenant, 0)
 
@@ -223,6 +265,7 @@ export default function CommissionsPage() {
           </div>
         ) : (
           <>
+            {renderFilterBar()}
             <div className="grid-2 mb-4">
               <div className="stat-card">
                 <div className="stat-icon amber" style={{ marginBottom: 8 }}><Clock size={17} /></div>
@@ -236,8 +279,13 @@ export default function CommissionsPage() {
               </div>
             </div>
 
+            {filteredItems.length === 0 && (
+              <div className="card card-body" style={{ textAlign: 'center', padding: '30px 24px', color: 'var(--t3)' }}>
+                Aucune commission ne correspond aux filtres sélectionnés.
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {items.map(c => (
+              {filteredItems.map(c => (
                 <div key={c.id} className="card card-body" style={{ borderLeft: c.recue ? '3px solid var(--gnBd)' : '3px solid var(--amBd)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 12 }}>
                     <div>
@@ -313,18 +361,18 @@ export default function CommissionsPage() {
 
   // ── VUE ADMIN ────────────────────────────────────────────────────
   const byIntervenant: Record<string, typeof items> = {}
-  items.forEach(c => {
+  filteredItems.forEach(c => {
     const key = c.intervenant_id || 'unknown'
     if (!byIntervenant[key]) byIntervenant[key] = []
     byIntervenant[key].push(c)
   })
 
-  const totalCommAll = items.reduce((s, c) => s + c.commission_intervenant, 0)
-  const totalResteAll = items.reduce((s, c) => s + c.reste_entreprise, 0)
+  const totalCommAll = filteredItems.reduce((s, c) => s + c.commission_intervenant, 0)
+  const totalResteAll = filteredItems.reduce((s, c) => s + c.reste_entreprise, 0)
 
   async function handleExportCSV() {
     try {
-      await exportCommissionsPremium(items, { user: user ? { nom: user.nom, prenom: user.prenom } : null })
+      await exportCommissionsPremium(filteredItems, { user: user ? { nom: user.nom, prenom: user.prenom } : null })
     } catch (e: any) { add('Erreur export : ' + e.message, 'error') }
   }
 
@@ -333,9 +381,9 @@ export default function CommissionsPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Commissions</h1>
-          <p className="page-subtitle">Calculées sur les factures payées · {items.length} entrée{items.length !== 1 ? 's' : ''}</p>
+          <p className="page-subtitle">Calculées sur les factures payées · {filteredItems.length} entrée{filteredItems.length !== 1 ? 's' : ''}{filtersActive ? ` (sur ${items.length})` : ''}</p>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={items.length === 0}><FileSpreadsheet size={14} /> Excel</button>
+        <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filteredItems.length === 0}><FileSpreadsheet size={14} /> Excel</button>
       </div>
 
       {isAdmin && unattributedCount > 0 && (
@@ -344,7 +392,9 @@ export default function CommissionsPage() {
         </div>
       )}
 
-      {items.length > 0 && (
+      {items.length > 0 && renderFilterBar()}
+
+      {filteredItems.length > 0 && (
         <div className="grid-2 mb-4">
           <div className="stat-card">
             <div className="stat-icon green" style={{ marginBottom: 8 }}><DollarSign size={17} /></div>
@@ -364,6 +414,10 @@ export default function CommissionsPage() {
           <DollarSign size={30} style={{ marginBottom: 12, opacity: 0.5 }} />
           <div style={{ fontWeight: 600, color: 'var(--t1)', marginBottom: 8 }}>Aucune commission pour le moment</div>
           <div style={{ fontSize: 13 }}>Les commissions apparaissent lorsqu'une facture est payée et liée à une intervention avec un intervenant assigné.</div>
+        </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="card card-body" style={{ textAlign: 'center', padding: '30px 24px', color: 'var(--t3)' }}>
+          Aucune commission ne correspond aux filtres sélectionnés.
         </div>
       ) : (
         Object.entries(byIntervenant).map(([intId, comms]) => {
