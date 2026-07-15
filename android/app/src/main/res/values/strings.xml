@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Kaytek Inter</string>
+    <string name="title_activity_main">Kaytek Inter</string>
+    <string name="package_name">com.kaytekinter.app</string>
+    <string name="custom_url_scheme">com.kaytekinter.app</string>
+</resources>

@@ -34,8 +34,13 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      'exceljs': path.resolve(__dirname, 'node_modules/exceljs/dist/es5/exceljs.browser.js'),
+      // Bundle UMD auto-suffisant : core-js intégré, pas d'imports externes Node.js
+      'exceljs': path.resolve(__dirname, 'node_modules/exceljs/dist/exceljs.min.js'),
     }
+  },
+  optimizeDeps: {
+    // Pré-bundle ExcelJS via esbuild → CJS→ESM, évite les imports core-js nus dans le navigateur
+    include: ['exceljs'],
   },
   build: {
     rollupOptions: {

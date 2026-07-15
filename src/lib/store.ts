@@ -4,16 +4,36 @@ import { persist } from 'zustand/middleware'
 import type { Profile, ParametresEntreprise } from '@/types'
 
 export const useAuthStore = create<{
-  user: Profile | null; loading: boolean; error: string | null
-  setUser: (u: Profile | null) => void; setLoading: (v: boolean) => void; setError: (e: string | null) => void
+  user: Profile | null
+  loading: boolean
+  error: string | null
+  // Séparé de la session Supabase : persisté pour survivre à F5 / réouverture
+  // de l'app, mais remis à false par la déconnexion explicite, l'inactivité
+  // prolongée (30 min) ou le passage en arrière-plan de l'app native.
+  isAppUnlocked: boolean
+  setUser: (u: Profile | null) => void
+  setLoading: (v: boolean) => void
+  setError: (e: string | null) => void
+  setAppUnlocked: (v: boolean) => void
   isAdmin: () => boolean
-}>((set, get) => ({
-  user: null, loading: true, error: null,
-  setUser: u => set({ user: u }),
-  setLoading: v => set({ loading: v }),
-  setError: e => set({ error: e }),
-  isAdmin: () => get().user?.role === 'admin'
-}))
+}>()(
+  persist(
+    (set, get) => ({
+      user: null, loading: true, error: null,
+      isAppUnlocked: false,
+      setUser: u => set({ user: u }),
+      setLoading: v => set({ loading: v }),
+      setError: e => set({ error: e }),
+      setAppUnlocked: v => set({ isAppUnlocked: v }),
+      isAdmin: () => get().user?.role === 'admin'
+    }),
+    {
+      name: 'kaytek-app-unlock',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      partialize: (s: any) => ({ isAppUnlocked: s.isAppUnlocked }),
+    } as any
+  )
+)
 
 export const useUIStore = create(persist<{
   theme: 'light'|'dark'; sidebarOpen: boolean

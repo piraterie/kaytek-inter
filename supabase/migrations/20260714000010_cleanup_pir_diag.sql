@@ -1,0 +1,11 @@
+-- Retire les fonctions de diagnostic temporaires créées en
+-- 20260714000009 pendant l'investigation d'un bug préexistant sur
+-- pir_update (l'organisation cible ne matche aucune ligne lors d'un
+-- PATCH direct, alors que la policy est logiquement correcte —
+-- reproductible même sur une mise à jour no-op, indépendant du
+-- trigger de transition de statut). Bug non introduit par cette
+-- session (pir_update n'a jamais été modifié ici), non résolu faute
+-- de temps — à investiguer séparément. Le masquage par statut
+-- (pir_select + get_partner_requests_preview, l'objet réel de cette
+-- migration) est lui pleinement fonctionnel et vérifié.
+DROP FUNCTION IF EXISTS public.diag_pir_update_check(uuid, uuid);

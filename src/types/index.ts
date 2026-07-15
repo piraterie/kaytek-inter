@@ -5,7 +5,7 @@ export type StatutIntervention = 'en_attente'|'accepte'|'refuse'|'en_cours'|'ter
 export type StatutDevis = 'en_attente_validation'|'brouillon'|'envoye'|'accepte'|'refuse'|'expire'
 export type StatutPaiement = 'en_attente_validation'|'impayee'|'payee'|'acompte'|'partiel'|'annulee'
 export type ModePaiement = 'cb'|'especes'|'virement'|'cheque'
-export type Categorie = 'serrurerie'|'vitrerie'|'plomberie'|'electricite'
+export type Categorie = 'serrurerie'|'vitrerie'|'plomberie'|'electricite'|'chauffagiste'
 export type TypePhoto = 'avant'|'apres'|'autre'
 
 export interface Profile {
@@ -71,6 +71,9 @@ export interface Intervention {
   montant_ttc?: number; cout_pieces?: number; materiel_payeur?: 'admin' | 'intervenant' | null
   materiel_confirme?: boolean; materiel_confirme_par?: string | null; materiel_confirme_at?: string | null
   notes_admin?: string; archive?: boolean; created_by?: string
+  rappel_24h_envoye_at?: string | null
+  rappel_2h_envoye_at?: string | null
+  rappel_30min_envoye_at?: string | null
   created_at: string; updated_at: string
   client?: Client; intervenant?: Profile; photos?: Photo[]
 }

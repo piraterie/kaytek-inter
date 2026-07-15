@@ -1,4 +1,5 @@
 // src/components/guide/GuideProgress.tsx — Barre de progression utilisateur
+import { PartyPopper } from 'lucide-react'
 import { useCompletedSlugs } from '@/lib/hooks/guide'
 import type { GuideSection } from '@/lib/data/guide-admin'
 
@@ -17,8 +18,8 @@ export default function GuideProgress({ sections }: Props) {
   return (
     <div className="card" style={{ padding: '14px 18px', marginBottom: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t0)' }}>
-          {pct === 100 ? '🎉 Guide terminé !' : 'Progression du guide'}
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t0)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          {pct === 100 ? <><PartyPopper size={14} /> Guide terminé !</> : 'Progression du guide'}
         </span>
         <span style={{ fontSize: 13, fontWeight: 700, color }}>
           {done}/{total} · {pct}%

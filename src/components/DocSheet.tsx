@@ -1,6 +1,7 @@
 // src/components/DocSheet.tsx
 // Bottom sheet contextuel partagé — Devis & Factures
 import { useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
 
 interface DocSheetProps {
   title: string
@@ -57,7 +58,7 @@ export function DocSheet({ title, subtitle, onClose, children }: DocSheetProps) 
 }
 
 interface SheetRowProps {
-  icon: string
+  icon: React.ReactNode
   label: string
   sublabel?: string
   onClick: () => void
@@ -75,7 +76,7 @@ export function SheetRow({ icon, label, sublabel, onClick, danger, disabled, loa
         width: '100%',
         display: 'flex',
         alignItems: 'center',
-        gap: 16,
+        gap: 14,
         padding: '15px 22px',
         border: 'none',
         borderBottom: '1px solid var(--b0)',
@@ -92,8 +93,13 @@ export function SheetRow({ icon, label, sublabel, onClick, danger, disabled, loa
       onTouchStart={e => { if (!isDisabled) (e.currentTarget as HTMLButtonElement).style.background = 'var(--s1)' }}
       onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
     >
-      <span style={{ fontSize: 22, width: 28, textAlign: 'center', flexShrink: 0, lineHeight: 1 }}>
-        {loading ? '⏳' : icon}
+      <span style={{
+        width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: danger ? 'var(--rdBg)' : 'var(--s1)',
+        color: danger ? 'var(--rdTx)' : 'var(--t1)',
+      }}>
+        {loading ? <Loader2 size={17} className="spin" /> : icon}
       </span>
       <div style={{ flex: 1, textAlign: 'left' }}>
         <div style={{

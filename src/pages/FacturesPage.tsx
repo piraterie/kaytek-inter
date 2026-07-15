@@ -1,6 +1,10 @@
 // src/pages/FacturesPage.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  FileSpreadsheet, CheckSquare, Trash2, Clock, AlertTriangle, Mail, MoreHorizontal,
+  Search, X, Euro, FileText, CheckCircle2, XCircle, Link2, Loader2, Send, Check,
+} from 'lucide-react'
 import { useFactures, useUpdateFacture, useDeleteFacture, useDeleteAllFactures, useParametres, useCreatePublicLink, notifyAdmins, REQUIRED_PARAMS } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
@@ -146,7 +150,7 @@ export default function FacturesPage() {
     if (!checkParams()) return
 
     // Feedback immédiat — l'UI n'est pas bloquée
-    add('📧 Envoi en cours…', 'info')
+    add('Envoi en cours…', 'info')
     setSendingEmailId(f.id)
 
     // Envoi en arrière-plan — fire & forget
@@ -219,7 +223,7 @@ export default function FacturesPage() {
         console.log(`[facture-email] edge fn ${Date.now() - t2}ms — total ${Date.now() - t0}ms`)
 
         if (error) { add(error, 'error') }
-        else { add(`✅ Facture ${f.numero} envoyée à ${email}`) }
+        else { add(`Facture ${f.numero} envoyée à ${email}`) }
       } catch (e: any) {
         add('Erreur : ' + (e.message || 'Erreur inconnue'), 'error')
       } finally {
@@ -313,13 +317,13 @@ export default function FacturesPage() {
           </div>
           {/* Desktop : inchangé */}
           <div className="page-actions hide-mobile">
-            <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}>📊 Excel</button>
+            <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}><FileSpreadsheet size={14} /> Excel</button>
             {isAdmin && !selectionMode && filtered.length > 0 && (
-              <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}><CheckSquare size={14} /> Sélectionner</button>
             )}
             {isAdmin && selectionMode && factures.length > 0 && (
               <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={handleVider} disabled={delAll.isPending}>
-                🗑 Tout supprimer
+                <Trash2 size={14} /> Tout supprimer
               </button>
             )}
           </div>
@@ -331,7 +335,7 @@ export default function FacturesPage() {
                 style={{ flex: 1, justifyContent: 'center' }}
                 onClick={() => setShowMobileActions(true)}
               >
-                ··· Actions
+                <MoreHorizontal size={15} /> Actions
               </button>
             </div>
           </div>
@@ -349,7 +353,9 @@ export default function FacturesPage() {
               fontFamily: 'inherit', WebkitTapHighlightColor: 'transparent',
             }}
           >
-            <span style={{ fontSize: 20 }}>⏳</span>
+            <span style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--amTx)' }}>
+              <Clock size={17} />
+            </span>
             <div>
               <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--amTx)' }}>
                 {pendingCount} facture{pendingCount > 1 ? 's' : ''} en attente de validation
@@ -374,27 +380,30 @@ export default function FacturesPage() {
           {selected.size > 0 && (
             <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
               onClick={handleDeleteSelected} disabled={delAll.isPending}>
-              🗑 Supprimer la sélection
+              <Trash2 size={13} /> Supprimer la sélection
             </button>
           )}
-          <button className="btn btn-secondary btn-sm" onClick={exitSelection}>✕ Annuler</button>
+          <button className="btn btn-secondary btn-sm" onClick={exitSelection}><X size={13} /> Annuler</button>
         </div>
       )}
 
       {/* ── Stats ───────────────────────────────────────── */}
       <div className="grid-3 mb-4">
-        <div className="stat-card">
-          <div className="stat-icon green" style={{ fontSize: 16 }}>💶</div>
+        <div className="stat-card accent-green">
+          <Euro size={100} className="stat-decor" />
+          <div className="stat-icon green"><Euro size={19} strokeWidth={2} /></div>
           <div className="stat-value">{eur(paye)}</div>
           <div className="stat-label">Encaissé</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon red" style={{ fontSize: 16 }}>⚠</div>
+        <div className="stat-card" style={{ borderColor: 'var(--rdBd)' }}>
+          <AlertTriangle size={100} className="stat-decor" />
+          <div className="stat-icon red"><AlertTriangle size={19} strokeWidth={2} /></div>
           <div className="stat-value">{eur(impaye)}</div>
           <div className="stat-label">Impayé</div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon blue" style={{ fontSize: 16 }}>📄</div>
+        <div className="stat-card accent-blue">
+          <FileText size={100} className="stat-decor" />
+          <div className="stat-icon blue"><FileText size={19} strokeWidth={2} /></div>
           <div className="stat-value">{factures.length}</div>
           <div className="stat-label">Total factures</div>
         </div>
@@ -403,7 +412,7 @@ export default function FacturesPage() {
       {/* ── Recherche + Filtres ─────────────────────────── */}
       <div style={{ marginBottom: 14 }}>
         <div className="search-bar" style={{ marginBottom: 10 }}>
-          <span style={{ color: 'var(--t3)', fontSize: 15, flexShrink: 0 }}>🔍</span>
+          <Search size={16} color="var(--t3)" style={{ flexShrink: 0 }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -412,8 +421,8 @@ export default function FacturesPage() {
           {search && (
             <button
               onClick={() => setSearch('')}
-              style={{ border: 'none', background: 'none', color: 'var(--t3)', cursor: 'pointer', padding: '0 2px', fontSize: 16, lineHeight: 1, flexShrink: 0 }}
-            >✕</button>
+              style={{ border: 'none', background: 'none', color: 'var(--t3)', cursor: 'pointer', padding: '0 2px', display: 'flex', flexShrink: 0 }}
+            ><X size={15} /></button>
           )}
         </div>
         <div className="filter-bar">
@@ -428,8 +437,8 @@ export default function FacturesPage() {
       </div>
 
       {isError && (
-        <div style={{ padding: '10px 14px', background: 'var(--rdBg)', border: '1px solid var(--rdBd)', borderRadius: 'var(--r2)', marginBottom: 12, fontSize: 12, color: 'var(--rdTx)' }}>
-          ⚠ Erreur : {(error as Error)?.message}
+        <div style={{ padding: '10px 14px', background: 'var(--rdBg)', border: '1px solid var(--rdBd)', borderRadius: 'var(--r2)', marginBottom: 12, fontSize: 12, color: 'var(--rdTx)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} /> Erreur : {(error as Error)?.message}
         </div>
       )}
 
@@ -499,7 +508,7 @@ export default function FacturesPage() {
                     disabled={!!sendingEmailId || !f.client?.email}
                     title={!f.client?.email ? 'Aucun email client renseigné' : undefined}
                     style={{ width: '100%', justifyContent: 'center', opacity: !f.client?.email ? 0.45 : 1 }}
-                  >{sendingEmailId === f.id ? '⏳ Envoi…' : '📧 Email'}</button>
+                  >{sendingEmailId === f.id ? <><Loader2 size={13} className="spin" /> Envoi…</> : <><Mail size={13} /> Email</>}</button>
                 </div>
               )}
             </div>
@@ -537,7 +546,9 @@ export default function FacturesPage() {
                   <td className="td-bold">{f.client?.nom} {f.client?.prenom}</td>
                   <td style={{ fontSize: 12 }}>{fmtDate(f.date_emission)}</td>
                   <td style={{ fontSize: 12, color: enRetard ? 'var(--rdTx)' : 'inherit', fontWeight: enRetard ? 600 : 400 }}>
-                    {f.date_echeance ? fmtDate(f.date_echeance) : '—'}{enRetard && ' ⚠'}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {f.date_echeance ? fmtDate(f.date_echeance) : '—'}{enRetard && <AlertTriangle size={12} />}
+                    </span>
                   </td>
                   <td className="td-bold">{eur(f.montant_ttc)}</td>
                   <td><span className={`pill ${SC[f.statut_paiement] || 'pill-gray'}`}>{SL[f.statut_paiement] || f.statut_paiement}</span></td>
@@ -545,20 +556,19 @@ export default function FacturesPage() {
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
                       {canSendEmail && (
                         <button
-                          className="btn btn-secondary btn-sm"
+                          className="btn-icon sm"
                           onClick={() => f.client?.email && handleEmailClick(f)}
                           title={f.client?.email ? `Envoyer à ${f.client.email}` : 'Aucun email client renseigné'}
                           disabled={!!sendingEmailId || !f.client?.email}
                           style={{ opacity: !f.client?.email ? 0.45 : 1 }}
-                        >{sendingEmailId === f.id ? '⏳' : '📧'}</button>
+                        >{sendingEmailId === f.id ? <Loader2 size={14} className="spin" /> : <Mail size={14} />}</button>
                       )}
                       <button
                         className="btn-icon sm"
                         onClick={() => openSheet(f)}
                         title="Actions"
-                        style={{ fontSize: 18, letterSpacing: 1 }}
                       >
-                        ···
+                        <MoreHorizontal size={15} />
                       </button>
                     </div>
                   </td>
@@ -581,14 +591,14 @@ export default function FacturesPage() {
             <>
               <SheetSection label="Validation" />
               <SheetRow
-                icon="✅"
+                icon={<CheckCircle2 size={16} />}
                 label="Valider cette facture"
                 sublabel="La facture sera marquée comme impayée"
                 onClick={() => { setActiveSheet(null); handleValidateFacture(activeSheet.id) }}
                 disabled={upd.isPending}
               />
               <SheetRow
-                icon="❌"
+                icon={<XCircle size={16} />}
                 label="Refuser cette facture"
                 danger
                 onClick={() => { setActiveSheet(null); handleRejectFacture(activeSheet.id) }}
@@ -602,7 +612,7 @@ export default function FacturesPage() {
             <>
               <SheetSection label="Paiement" />
               <SheetRow
-                icon="💶"
+                icon={<Euro size={16} />}
                 label="Marquer comme payée"
                 sublabel="Choisir le mode de paiement"
                 onClick={() => { setActiveSheet(null); setPayModal(activeSheet.id) }}
@@ -615,7 +625,7 @@ export default function FacturesPage() {
             <>
               <SheetSection label="Paiement" />
               <SheetRow
-                icon="💶"
+                icon={<Euro size={16} />}
                 label="C'est payé"
                 sublabel="Notifier l'admin que le paiement est reçu"
                 onClick={() => { setActiveSheet(null); handleMarkPaidIntervenant(activeSheet) }}
@@ -628,14 +638,14 @@ export default function FacturesPage() {
           <SheetSection label="Document" />
           {isAdmin && (
             <SheetRow
-              icon="📄"
+              icon={<FileText size={16} />}
               label="Exporter PDF"
               onClick={() => { setActiveSheet(null); dlPDF(activeSheet) }}
             />
           )}
           {canSendEmail && (
             <SheetRow
-              icon="📧"
+              icon={<Mail size={16} />}
               label="Envoyer par email"
               sublabel={activeSheet.client?.email ?? 'Aucun email client renseigné'}
               onClick={() => { setActiveSheet(null); handleEmailClick(activeSheet) }}
@@ -645,7 +655,7 @@ export default function FacturesPage() {
           )}
           {isAdmin && (
             <SheetRow
-              icon="🔗"
+              icon={<Link2 size={16} />}
               label="Partager par lien"
               sublabel="Crée un lien public pour que le client consulte la facture"
               onClick={() => handleShareFacture(activeSheet)}
@@ -658,7 +668,7 @@ export default function FacturesPage() {
             <>
               <SheetSection label="Zone dangereuse" />
               <SheetRow
-                icon="🗑️"
+                icon={<Trash2 size={16} />}
                 label="Supprimer cette facture"
                 danger
                 onClick={() => { setActiveSheet(null); handleDel(activeSheet.id) }}
@@ -672,7 +682,7 @@ export default function FacturesPage() {
       {showMobileActions && (
         <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
           <SheetRow
-            icon="📊"
+            icon={<FileSpreadsheet size={16} />}
             label="Exporter Excel"
             sublabel={filtered.length === 0 ? 'Aucune facture' : `${filtered.length} facture${filtered.length > 1 ? 's' : ''}`}
             onClick={() => { setShowMobileActions(false); handleExportCSV() }}
@@ -680,7 +690,7 @@ export default function FacturesPage() {
           />
           {isAdmin && !selectionMode && filtered.length > 0 && (
             <SheetRow
-              icon="☑"
+              icon={<CheckSquare size={16} />}
               label="Mode sélection"
               sublabel="Sélectionner des factures"
               onClick={() => { setShowMobileActions(false); setSelectionMode(true) }}
@@ -690,7 +700,7 @@ export default function FacturesPage() {
             <>
               <SheetSection label="Zone dangereuse" />
               <SheetRow
-                icon="🗑️"
+                icon={<Trash2 size={16} />}
                 label="Tout supprimer"
                 sublabel={`Supprimer les ${factures.length} facture${factures.length > 1 ? 's' : ''}`}
                 danger
@@ -707,8 +717,8 @@ export default function FacturesPage() {
         <div className="modal-overlay" onClick={() => setSendConfirmModal(null)}>
           <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">⚠️ Facture impayée</span>
-              <button className="btn-icon sm" onClick={() => setSendConfirmModal(null)}>✕</button>
+              <span className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><AlertTriangle size={16} color="var(--amTx)" /> Facture impayée</span>
+              <button className="btn-icon sm" onClick={() => setSendConfirmModal(null)}><X size={15} /></button>
             </div>
             <div className="modal-body">
               <p style={{ fontSize: 14, color: 'var(--t1)', marginBottom: 20 }}>
@@ -720,13 +730,13 @@ export default function FacturesPage() {
                   <button className="btn btn-primary" style={{ justifyContent: 'center' }}
                     onClick={() => handleEmailAndMarkPaid(sendConfirmModal)}
                     disabled={sendingEmailId === sendConfirmModal.id || upd.isPending}>
-                    ✅ Marquer comme payée puis envoyer
+                    <CheckCircle2 size={15} /> Marquer comme payée puis envoyer
                   </button>
                 )}
                 <button className="btn btn-secondary" style={{ justifyContent: 'center' }}
                   onClick={() => { setSendConfirmModal(null); handleEmail(sendConfirmModal) }}
                   disabled={sendingEmailId === sendConfirmModal.id}>
-                  {sendingEmailId === sendConfirmModal.id ? '📤 Envoi en cours…' : '📧 Envoyer quand même'}
+                  {sendingEmailId === sendConfirmModal.id ? <><Send size={14} /> Envoi en cours…</> : <><Mail size={14} /> Envoyer quand même</>}
                 </button>
                 <button className="btn btn-secondary" style={{ justifyContent: 'center', color: 'var(--t3)' }} onClick={() => setSendConfirmModal(null)}>
                   Annuler
@@ -743,7 +753,7 @@ export default function FacturesPage() {
           <div className="modal" style={{ maxWidth: 360 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">Mode de paiement</span>
-              <button className="btn-icon sm" onClick={() => setPayModal(null)}>✕</button>
+              <button className="btn-icon sm" onClick={() => setPayModal(null)}><X size={15} /></button>
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[['Espèces', 'especes'], ['CB', 'cb'], ['Virement', 'virement'], ['Chèque', 'cheque']].map(([label, val]) => (
@@ -768,7 +778,7 @@ export default function FacturesPage() {
       {shareUrl && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15,23,42,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
           <div style={{ background: 'var(--s0)', borderRadius: 'var(--r2)', padding: '24px 20px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.35)', border: '1px solid var(--b1)' }}>
-            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--t0)', marginBottom: 4 }}>🔗 Lien de partage</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--t0)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}><Link2 size={17} /> Lien de partage</div>
             <div style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 14 }}>Ce lien permet au client de consulter la facture sans connexion.</div>
             <div style={{ padding: '10px 14px', background: 'var(--s1)', borderRadius: 8, border: '1px solid var(--b1)', fontSize: 12, color: 'var(--t1)', wordBreak: 'break-all', marginBottom: 14 }}>
               {shareUrl}
@@ -776,7 +786,7 @@ export default function FacturesPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button className="btn btn-primary" style={{ justifyContent: 'center', textAlign: 'center' }}
                 onClick={() => { navigator.clipboard.writeText(shareUrl); setCopiedShare(true); setTimeout(() => setCopiedShare(false), 2000) }}>
-                {copiedShare ? '✓ Lien copié !' : '🔗 Copier le lien'}
+                {copiedShare ? <><Check size={15} /> Lien copié !</> : <><Link2 size={15} /> Copier le lien</>}
               </button>
               <button className="btn" style={{ background: '#25D366', color: '#fff', border: 'none', justifyContent: 'center', textAlign: 'center' }}
                 onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent('Votre facture : ' + shareUrl)}`, '_blank')}>

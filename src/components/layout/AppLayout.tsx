@@ -1,12 +1,15 @@
 // src/components/layout/AppLayout.tsx
 import { useState, useEffect, useRef } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+
 import {
   LayoutDashboard, MessagesSquare, Wrench, CalendarDays, FileText, Receipt,
   Users, Package, DollarSign, Shield, Settings, ClipboardList,
   ChevronLeft, ChevronRight, LogOut, Sun, Moon, BookOpen,
-  MessageCircle, Bell, Menu
+  MessageCircle, Bell, Menu, User, Smartphone, Monitor, X,
+  CheckCheck, Trash2, ChevronUp, ChevronDown, AlertTriangle,
+  CheckCircle2, XCircle, Info,
 } from 'lucide-react'
 import KaytekLogo from '@/components/KaytekLogo'
 import WelcomeModal from '@/components/WelcomeModal'
@@ -38,7 +41,7 @@ const NAV: { path: string; label: string; icon: NavIcon; section: string; adminO
 const SECTIONS = ['Pilotage', 'Terrain', 'Gestion', 'Administration']
 
 export default function AppLayout() {
-  const { user, setUser } = useAuthStore()
+  const { user, setUser, setAppUnlocked } = useAuthStore()
   const { theme, sidebarOpen, toggleTheme, toggleSidebar, closeSidebar } = useUIStore()
   const { toasts, remove, add } = useToastStore()
   const { data: unread = 0 } = useUnreadCount()
@@ -66,6 +69,7 @@ export default function AppLayout() {
     })
   }
 
+  const qcLayout = useQueryClient()
   const { data: pendingInterventions = 0 } = useQuery({
     queryKey: ['interventions-pending-count'],
     queryFn: async () => {
@@ -77,6 +81,20 @@ export default function AppLayout() {
     },
     staleTime: 2 * 60 * 1000,
   })
+
+  // Realtime : ce badge est vu par tous les rôles (admin, assistant, intervenant).
+  // Sans ceci, seul l'auteur d'une création/suppression/changement de statut
+  // voit son propre cache invalidé (via les mutations) — les autres utilisateurs
+  // de l'org ne verraient le compteur se corriger qu'au prochain remount/refresh.
+  // RLS filtre déjà les événements livrés à chaque utilisateur (org + rôle).
+  useEffect(() => {
+    if (!user) return
+    const ch = supabase.channel(`interventions-pending-count-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'interventions' },
+        () => qcLayout.invalidateQueries({ queryKey: ['interventions-pending-count'] }))
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [user?.id, qcLayout])
 
   // Mobile : fermer la sidebar au premier chargement (sidebarOpen vaut true par défaut).
   // On utilise closeSidebar (idempotent) plutôt que toggleSidebar pour éviter le double-toggle
@@ -120,16 +138,16 @@ export default function AppLayout() {
   const [devices, setDevices] = useState<DeviceRecord[]>([])
   const [devicesLoading, setDevicesLoading] = useState(false)
 
-  // Inactivité — déconnexion automatique après 30 minutes
+  // Inactivité — verrouillage automatique après 30 minutes
   useEffect(() => {
     const TIMEOUT = 30 * 60 * 1000
     let timer: ReturnType<typeof setTimeout>
     const resetTimer = () => {
       clearTimeout(timer)
-      timer = setTimeout(async () => {
-        await signOut()
-        sessionStorage.removeItem('kaytek-active')
-        nav('/login')
+      timer = setTimeout(() => {
+        console.log('[AppLayout] inactivité 30min → verrouillage')
+        setAppUnlocked(false)
+        // Guard redirige automatiquement vers /lock
       }, TIMEOUT)
     }
     const events = ['mousemove', 'keydown', 'click', 'touchstart'] as const
@@ -139,9 +157,14 @@ export default function AppLayout() {
       clearTimeout(timer)
       events.forEach(e => window.removeEventListener(e, resetTimer))
     }
-  }, [nav])
+  }, [setAppUnlocked])
 
-  async function handleSignOut() { await signOut(); nav('/login') }
+  async function handleSignOut() {
+    console.log('[AppLayout] déconnexion explicite')
+    setAppUnlocked(false)
+    await signOut()
+    nav('/login')
+  }
 
   async function openProfil() {
     setProfilForm({ prenom: user?.prenom || '', nom: user?.nom || '' })
@@ -313,6 +336,19 @@ export default function AppLayout() {
           })}
         </nav>
 
+        {/* ── CONFIDENTIALITÉ ── */}
+        {!compactDesktop && (
+          <div style={{ padding: '4px 16px 6px', textAlign: 'center', display: 'flex', justifyContent: 'center', gap: 10 }}>
+            <a href="/confidentialite" style={{ fontSize: 10, color: 'var(--navSec)', textDecoration: 'none', opacity: 0.7 }}>
+              Confidentialité
+            </a>
+            <span style={{ fontSize: 10, color: 'var(--navSec)', opacity: 0.4 }}>·</span>
+            <a href="/delete-account" style={{ fontSize: 10, color: 'var(--navSec)', textDecoration: 'none', opacity: 0.7 }}>
+              Supprimer mon compte
+            </a>
+          </div>
+        )}
+
         {/* ── USER AREA ── */}
         <div style={{ padding: compactDesktop ? '10px 6px' : '10px 10px', borderTop: '1px solid var(--navBd)', flexShrink: 0 }}>
           {!compactDesktop ? (
@@ -433,9 +469,11 @@ export default function AppLayout() {
                     borderBottom: profilTab === t ? '2px solid var(--bl)' : '2px solid transparent',
                     color: profilTab === t ? 'var(--blTx)' : 'var(--t2)',
                     cursor: 'pointer', marginBottom: -1, fontFamily: 'inherit',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   }}
                 >
-                  {t === 'profil' ? '👤 Profil' : '📱 Appareils'}
+                  {t === 'profil' ? <User size={14} /> : <Smartphone size={14} />}
+                  {t === 'profil' ? 'Profil' : 'Appareils'}
                 </button>
               ))}
             </div>
@@ -480,8 +518,8 @@ export default function AppLayout() {
                         const isCurrent = isCurrentDevice(d.device_id)
                         return (
                           <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, border: '1px solid var(--b1)', background: isCurrent ? 'var(--blBg)' : 'transparent', minWidth: 0 }}>
-                            <span style={{ fontSize: 20, flexShrink: 0 }}>
-                              {d.systeme_exploitation === 'iOS' || d.systeme_exploitation === 'Android' ? '📱' : '💻'}
+                            <span style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--s1)', color: 'var(--t2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              {d.systeme_exploitation === 'iOS' || d.systeme_exploitation === 'Android' ? <Smartphone size={15} /> : <Monitor size={15} />}
                             </span>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -502,7 +540,7 @@ export default function AppLayout() {
                                   className="btn-icon sm"
                                   style={{ color: 'var(--rdTx)' }}
                                   title="Déconnecter"
-                                >✕</button>
+                                ><X size={14} /></button>
                               )}
                             </div>
                           </div>
@@ -564,24 +602,24 @@ export default function AppLayout() {
                     </span>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       {unreadNotifs > 0 && (
-                        <button style={{ fontSize: 11, color: 'var(--blTx)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 6px', borderRadius: 4 }}
+                        <button style={{ fontSize: 11, color: 'var(--blTx)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 6px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}
                           onClick={() => {
                             console.log('[notif] MARK_ALL_READ CLICK — non-lues:', unreadNotifs)
                             markAllRead.mutate()
                           }}>
-                          ✓ Tout lu
+                          <CheckCheck size={13} /> Tout lu
                         </button>
                       )}
                       {readNotifs.length > 0 && (
-                        <button style={{ fontSize: 11, color: 'var(--rdTx)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 6px', borderRadius: 4 }}
+                        <button style={{ fontSize: 11, color: 'var(--rdTx)', background: 'none', border: 'none', cursor: 'pointer', padding: '3px 6px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}
                           onClick={() => {
                             console.log('[notif] DELETE_ALL_READ CLICK — lues:', readNotifs.length)
                             deleteAllRead.mutate()
                           }}>
-                          🗑 Sup. lues
+                          <Trash2 size={13} /> Sup. lues
                         </button>
                       )}
-                      <button className="btn-icon sm" onClick={() => setNotifOpen(false)} style={{ fontSize: 13 }}>✕</button>
+                      <button className="btn-icon sm" onClick={() => setNotifOpen(false)}><X size={14} /></button>
                     </div>
                   </div>
 
@@ -612,16 +650,16 @@ export default function AppLayout() {
                         <button onClick={() => {
                           console.log('[notif] DELETE_NOTIFICATION CLICK (non-lue) —', n.id)
                           deleteNotif.mutate(n.id)
-                        }} className="btn-icon sm" style={{ color: 'var(--t3)', flexShrink: 0, fontSize: 12 }} title="Supprimer">✕</button>
+                        }} className="btn-icon sm" style={{ color: 'var(--t3)', flexShrink: 0 }} title="Supprimer"><X size={14} /></button>
                       </div>
                     ))}
 
                     {/* Lues */}
                     {readNotifs.length > 0 && (
                       <>
-                        <button style={{ width: '100%', padding: '8px 14px', fontSize: 11, color: 'var(--t3)', background: 'none', border: 'none', borderBottom: '1px solid var(--b0)', cursor: 'pointer', textAlign: 'left' }}
+                        <button style={{ width: '100%', padding: '8px 14px', fontSize: 11, color: 'var(--t3)', background: 'none', border: 'none', borderBottom: '1px solid var(--b0)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 5 }}
                           onClick={() => setShowReadNotifs(v => !v)}>
-                          {showReadNotifs ? '▲' : '▼'} Lues ({readNotifs.length})
+                          {showReadNotifs ? <ChevronUp size={13} /> : <ChevronDown size={13} />} Lues ({readNotifs.length})
                         </button>
                         {showReadNotifs && readNotifs.map((n: any) => (
                           <div key={n.id} style={{ display: 'flex', gap: 10, padding: '9px 14px', borderBottom: '1px solid var(--b0)', opacity: 0.55, alignItems: 'flex-start' }}>
@@ -636,7 +674,7 @@ export default function AppLayout() {
                             <button onClick={() => {
                               console.log('[notif] DELETE_NOTIFICATION CLICK (lue) —', n.id)
                               deleteNotif.mutate(n.id)
-                            }} className="btn-icon sm" style={{ color: 'var(--t3)', flexShrink: 0, fontSize: 12 }}>✕</button>
+                            }} className="btn-icon sm" style={{ color: 'var(--t3)', flexShrink: 0 }}><X size={14} /></button>
                           </div>
                         ))}
                       </>
@@ -654,7 +692,7 @@ export default function AppLayout() {
         {/* Bannière paramètres incomplets — admin seulement */}
         {isAdmin && paramsLoaded && !paramsComplete && (
           <div style={{ background: 'var(--amBg)', borderBottom: '1px solid var(--amBd)', padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 16 }}>⚠</span>
+            <AlertTriangle size={16} color="var(--amTx)" style={{ flexShrink: 0 }} />
             <span style={{ fontSize: 13, color: 'var(--amTx)', flex: 1, minWidth: 200 }}>
               <strong>Paramètres entreprise incomplets</strong>
               {paramsMissing.length > 0 && <> — manquants : {paramsMissing.map(f => f.label).join(', ')}</>}
@@ -693,20 +731,20 @@ export default function AppLayout() {
       {newMenuOpen && (
         <DocSheet title="Créer" subtitle="Choisissez le type de document" onClose={() => setNewMenuOpen(false)}>
           {isAdmin && (
-            <SheetRow icon="🔧" label="Nouvelle intervention" sublabel="Créer un nouveau chantier"
+            <SheetRow icon={<Wrench size={16} />} label="Nouvelle intervention" sublabel="Créer un nouveau chantier"
               onClick={() => { setNewMenuOpen(false); nav('/interventions', { state: { openCreate: true } }) }} />
           )}
           {isAdmin && (
-            <SheetRow icon="👥" label="Nouveau client" sublabel="Ajouter un client"
+            <SheetRow icon={<Users size={16} />} label="Nouveau client" sublabel="Ajouter un client"
               onClick={() => { setNewMenuOpen(false); nav('/clients', { state: { openCreate: true } }) }} />
           )}
           <SheetSection label="Documents" />
           {(isAdmin || user?.can_create_documents) && (
-            <SheetRow icon="📄" label="Nouveau devis" sublabel="Rédiger un devis client"
+            <SheetRow icon={<FileText size={16} />} label="Nouveau devis" sublabel="Rédiger un devis client"
               onClick={() => { setNewMenuOpen(false); nav('/devis/nouveau') }} />
           )}
           {(isAdmin || user?.can_create_documents) && (
-            <SheetRow icon="🧾" label="Nouvelle facture" sublabel="Créer une facture"
+            <SheetRow icon={<Receipt size={16} />} label="Nouvelle facture" sublabel="Créer une facture"
               onClick={() => { setNewMenuOpen(false); add('Une facture se crée depuis un devis accepté.', 'info', { label: 'Voir les devis', fn: () => nav('/devis') }) }} />
           )}
         </DocSheet>
@@ -720,7 +758,9 @@ export default function AppLayout() {
         {toasts.slice(isMobile ? -2 : -3).map(t => (
           <div key={t.id} className={`toast ${t.type}`} onClick={() => remove(t.id)}
             style={t.actionLabel ? { display: 'flex', alignItems: 'center', gap: 6 } : undefined}>
-            <span>{t.type === 'success' ? '✓' : t.type === 'error' ? '✗' : t.type === 'warning' ? '⚠' : 'ℹ'}</span>
+            <span style={{ display: 'inline-flex', flexShrink: 0 }}>
+              {t.type === 'success' ? <CheckCircle2 size={16} /> : t.type === 'error' ? <XCircle size={16} /> : t.type === 'warning' ? <AlertTriangle size={16} /> : <Info size={16} />}
+            </span>
             {t.actionLabel
               ? <span style={{ flex: 1 }}>{t.message}{t.count > 1 ? ` ×${t.count}` : ''}</span>
               : <>{t.message}{t.count > 1 ? ` ×${t.count}` : ''}</>

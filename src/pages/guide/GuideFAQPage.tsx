@@ -1,7 +1,7 @@
 // src/pages/guide/GuideFAQPage.tsx — Questions fréquentes
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, ChevronDown, ChevronUp, BookOpen } from 'lucide-react'
+import { Search, ChevronDown, ChevronUp, BookOpen, HelpCircle, MessageCircle } from 'lucide-react'
 import { FAQ_ITEMS, type FaqItem } from '@/lib/data/guide-faq'
 import { useAuthStore } from '@/lib/store'
 
@@ -81,7 +81,7 @@ export default function GuideFAQPage() {
     <div>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 className="page-title">❓ FAQ</h1>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><HelpCircle size={22} style={{ color: 'var(--bl)' }} /> FAQ</h1>
           <p className="page-subtitle">Réponses aux questions les plus fréquentes.</p>
         </div>
         <button className="btn btn-secondary btn-sm" onClick={() => nav('/guide')} style={{ gap: 6 }}>
@@ -140,7 +140,7 @@ export default function GuideFAQPage() {
           Vous n'avez pas trouvé votre réponse ?
         </p>
         <button className="btn btn-secondary" onClick={() => nav('/messagerie')} style={{ gap: 6 }}>
-          💬 Contacter l'administrateur
+          <MessageCircle size={14} /> Contacter l'administrateur
         </button>
       </div>
     </div>

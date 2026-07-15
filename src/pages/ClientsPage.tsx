@@ -1,6 +1,10 @@
 // src/pages/ClientsPage.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import {
+  FileSpreadsheet, Archive, ArchiveRestore, CheckSquare, Trash2, X, Search,
+  Phone, MapPin, Eye, Pencil, MoreHorizontal, AlertTriangle,
+} from 'lucide-react'
 import { useClients, useCreateClient, useUpdateClient, useArchiveClient, useDeleteClientSafe, useBulkArchiveClients, useDeleteArchivedClients } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
@@ -155,22 +159,22 @@ export default function ClientsPage() {
         </div>
         {/* Desktop : inchangé */}
         <div className="page-actions hide-mobile">
-          <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={clients.length===0}>📊 Excel</button>
+          <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={clients.length===0}><FileSpreadsheet size={14} /> Excel</button>
           {isAdmin && (
             <button
               className={`btn btn-sm ${showArchived ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => { setShowArchived(v => !v); exitSelection() }}
             >
-              📦 {showArchived ? 'Masquer archives' : 'Archives'}
+              <Archive size={14} /> {showArchived ? 'Masquer archives' : 'Archives'}
             </button>
           )}
           {isAdmin && !selectionMode && clients.length > 0 && (
-            <button className="btn btn-secondary" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
+            <button className="btn btn-secondary" onClick={() => setSelectionMode(true)}><CheckSquare size={14} /> Sélectionner</button>
           )}
           {isAdmin && showArchived && clients.length > 0 && (
             <button className="btn btn-secondary" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
               onClick={handleViderArchives} disabled={delArchived.isPending}>
-              🗑 Vider les archives
+              <Trash2 size={14} /> Vider les archives
             </button>
           )}
           {isAdmin && !showArchived && <button className="btn btn-primary" onClick={openCreate}>+ Ajouter</button>}
@@ -188,7 +192,7 @@ export default function ClientsPage() {
               style={{ paddingLeft: 16, paddingRight: 16, justifyContent: 'center' }}
               onClick={() => setShowMobileActions(true)}
             >
-              ···
+              <MoreHorizontal size={16} />
             </button>
           </div>
         </div>
@@ -202,25 +206,25 @@ export default function ClientsPage() {
           {selected.size > 0 && !showArchived && (
             <button className="btn btn-secondary btn-sm" style={{ color: 'var(--amTx)', borderColor: 'var(--amBd)' }}
               onClick={handleArchiveSelected} disabled={bulkArchive.isPending}>
-              📦 Archiver la sélection
+              <Archive size={13} /> Archiver la sélection
             </button>
           )}
           {selected.size > 0 && showArchived && (
             <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
               onClick={handleDeleteSelected} disabled={delArchived.isPending}>
-              🗑 Supprimer la sélection
+              <Trash2 size={13} /> Supprimer la sélection
             </button>
           )}
-          <button className="btn btn-secondary btn-sm" onClick={exitSelection}>✕ Annuler la sélection</button>
+          <button className="btn btn-secondary btn-sm" onClick={exitSelection}><X size={13} /> Annuler la sélection</button>
         </div>
       )}
 
       <div className="filter-bar">
         <div className="search-bar" style={{ flex:1, minWidth:160, maxWidth:300 }}>
-          <span style={{ color:'var(--t3)',fontSize:17 }}>🔍</span>
+          <Search size={16} color="var(--t3)" style={{ flexShrink: 0 }} />
           <input placeholder="Nom, email, téléphone…" value={search} onChange={e=>setSearch(e.target.value)} />
           {search && (
-            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',fontSize:16,lineHeight:1,flexShrink:0 }}>✕</button>
+            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',display:'flex',flexShrink:0 }}><X size={15} /></button>
           )}
         </div>
       </div>
@@ -269,10 +273,10 @@ export default function ClientsPage() {
                   {c.nom}{c.prenom ? ` ${c.prenom}` : ''}
                 </div>
                 {c.telephone && (
-                  <div style={{ fontSize: 13, color: 'var(--t1)', marginTop: 2 }}>📞 {c.telephone}</div>
+                  <div style={{ fontSize: 13, color: 'var(--t1)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}><Phone size={12} /> {c.telephone}</div>
                 )}
                 {c.adresse_intervention && (
-                  <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>📍 {c.adresse_intervention}</div>
+                  <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}><MapPin size={11} /> {c.adresse_intervention}</div>
                 )}
               </div>
               <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
@@ -282,9 +286,9 @@ export default function ClientsPage() {
                   <button
                     className="btn-icon sm"
                     onClick={e => { e.stopPropagation(); setActiveSheet(c) }}
-                    style={{ fontSize: 16, letterSpacing: 1, marginTop: 4 }}
+                    style={{ marginTop: 4 }}
                   >
-                    ···
+                    <MoreHorizontal size={15} />
                   </button>
                 )}
               </div>
@@ -331,9 +335,9 @@ export default function ClientsPage() {
                 {isAdmin&&(
                   <td onClick={e => e.stopPropagation()}>
                     <div style={{ display:'flex', gap:4 }}>
-                      {!c.archive && <button className="btn-icon sm" onClick={()=>openEdit(c)} title="Modifier">✏</button>}
-                      <button className="btn-icon sm" onClick={()=>handleArchive(c)} title={c.archive?'Restaurer':'Archiver'} style={{ color: c.archive ? 'var(--gnTx)' : 'var(--amTx)' }}>📦</button>
-                      {c.archive && <button className="btn-icon sm" style={{ color:'var(--rdTx)' }} onClick={()=>handleDelete(c)} title="Supprimer définitivement">🗑</button>}
+                      {!c.archive && <button className="btn-icon sm" onClick={()=>openEdit(c)} title="Modifier"><Pencil size={14} /></button>}
+                      <button className="btn-icon sm" onClick={()=>handleArchive(c)} title={c.archive?'Restaurer':'Archiver'} style={{ color: c.archive ? 'var(--gnTx)' : 'var(--amTx)' }}>{c.archive ? <ArchiveRestore size={14} /> : <Archive size={14} />}</button>
+                      {c.archive && <button className="btn-icon sm" style={{ color:'var(--rdTx)' }} onClick={()=>handleDelete(c)} title="Supprimer définitivement"><Trash2 size={14} /></button>}
                     </div>
                   </td>
                 )}
@@ -344,8 +348,8 @@ export default function ClientsPage() {
       </div>
 
       {showArchived && !selectionMode && (
-        <div style={{ marginTop:12,padding:'10px 14px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:'var(--r2)',fontSize:12,color:'var(--amTx)' }}>
-          ⚠ Les clients archivés restent liés à leurs devis, factures et interventions. La suppression définitive n'est possible que si aucune donnée n'y est rattachée.
+        <div style={{ marginTop:12,padding:'10px 14px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:'var(--r2)',fontSize:12,color:'var(--amTx)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} /> Les clients archivés restent liés à leurs devis, factures et interventions. La suppression définitive n'est possible que si aucune donnée n'y est rattachée.
         </div>
       )}
 
@@ -356,27 +360,27 @@ export default function ClientsPage() {
           subtitle={activeSheet.type}
           onClose={() => setActiveSheet(null)}
         >
-          <SheetRow icon="👁" label="Voir la fiche client"
+          <SheetRow icon={<Eye size={16} />} label="Voir la fiche client"
             onClick={() => { setActiveSheet(null); nav(`/clients/${activeSheet.id}`) }} />
 
           {!activeSheet.archive && (
             <>
               <SheetSection label="Édition" />
-              <SheetRow icon="✏️" label="Modifier"
+              <SheetRow icon={<Pencil size={16} />} label="Modifier"
                 onClick={() => { setActiveSheet(null); openEdit(activeSheet) }} />
             </>
           )}
 
           <SheetSection label="Archivage" />
           <SheetRow
-            icon={activeSheet.archive ? '↩' : '📦'}
+            icon={activeSheet.archive ? <ArchiveRestore size={16} /> : <Archive size={16} />}
             label={activeSheet.archive ? 'Restaurer le client' : 'Archiver le client'}
             onClick={() => { setActiveSheet(null); handleArchive(activeSheet) }} />
 
           {activeSheet.archive && (
             <>
               <SheetSection label="Zone dangereuse" />
-              <SheetRow icon="🗑️" label="Supprimer définitivement" danger
+              <SheetRow icon={<Trash2 size={16} />} label="Supprimer définitivement" danger
                 onClick={() => { setActiveSheet(null); handleDelete(activeSheet) }} />
             </>
           )}
@@ -387,7 +391,7 @@ export default function ClientsPage() {
       {showMobileActions && (
         <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
           <SheetRow
-            icon="📊"
+            icon={<FileSpreadsheet size={16} />}
             label="Exporter Excel"
             sublabel={clients.length === 0 ? 'Aucun client' : `${clients.length} client${clients.length > 1 ? 's' : ''}`}
             onClick={() => { setShowMobileActions(false); handleExport() }}
@@ -395,14 +399,14 @@ export default function ClientsPage() {
           />
           {isAdmin && (
             <SheetRow
-              icon="📦"
+              icon={<Archive size={16} />}
               label={showArchived ? 'Masquer les archives' : 'Voir les archives'}
               onClick={() => { setShowMobileActions(false); setShowArchived(v => !v); exitSelection() }}
             />
           )}
           {isAdmin && !selectionMode && clients.length > 0 && (
             <SheetRow
-              icon="☑"
+              icon={<CheckSquare size={16} />}
               label="Mode sélection"
               sublabel="Sélectionner des clients"
               onClick={() => { setShowMobileActions(false); setSelectionMode(true) }}
@@ -412,7 +416,7 @@ export default function ClientsPage() {
             <>
               <SheetSection label="Zone dangereuse" />
               <SheetRow
-                icon="🗑️"
+                icon={<Trash2 size={16} />}
                 label="Vider les archives"
                 sublabel={`Supprimer les ${clients.length} archive${clients.length > 1 ? 's' : ''}`}
                 danger
@@ -436,7 +440,7 @@ export default function ClientsPage() {
       {modal&&(
         <div className={`modal-overlay${modalClosing?' is-closing':''}`} onClick={closeModal}>
           <div className="modal" onClick={e=>e.stopPropagation()}>
-            <div className="modal-header"><span className="modal-title">{editing?'Modifier client':'Nouveau client'}</span><button className="btn-icon sm" onClick={closeModal}>✕</button></div>
+            <div className="modal-header"><span className="modal-title">{editing?'Modifier client':'Nouveau client'}</span><button className="btn-icon sm" onClick={closeModal}><X size={15} /></button></div>
             <form onSubmit={submit}>
               <div className="modal-body">
                 <div className="form-group"><label>Type</label>

@@ -1,10 +1,11 @@
 // src/pages/DevisApercuPage.tsx
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useDevisById, useParametres, useUpdateDevis, useDevisToFacture, useDuplicateDevis, useCreatePublicLink, useIsMobile, notifyUser, notifyAdmins } from '@/lib/hooks'
+import { useDevisById, useParametres, useUpdateDevis, useDevisToFacture, useDuplicateDevis, useCreatePublicLink, useIsMobile, useCreateIntervention, notifyUser, notifyAdmins } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import SignatureModal from '@/components/SignatureModal'
 import EmailDevisModal from '@/components/EmailDevisModal'
+import { AddressAutocomplete } from '@/components/AddressAutocomplete'
 
 export default function DevisApercuPage() {
   const { id } = useParams<{ id: string }>()
@@ -18,6 +19,7 @@ export default function DevisApercuPage() {
   const toFacture = useDevisToFacture()
   const dup = useDuplicateDevis()
   const createLink = useCreatePublicLink()
+  const createIntervention = useCreateIntervention()
   const isMobile = useIsMobile()
   const [showSign, setShowSign] = useState(false)
   const [signing, setSigning] = useState(false)
@@ -26,6 +28,9 @@ export default function DevisApercuPage() {
   const [showUnsignedWarning, setShowUnsignedWarning] = useState(false)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [copiedShare, setCopiedShare] = useState(false)
+  const [showRdvModal, setShowRdvModal] = useState(false)
+  const [rdvForm, setRdvForm] = useState({ adresse: '', date_prevue: '' })
+  const [rdvLoading, setRdvLoading] = useState(false)
 
   // Protection : désactiver clic droit + raccourcis impression
   useEffect(() => {
@@ -114,6 +119,37 @@ export default function DevisApercuPage() {
     }
   }
 
+  function openRdvModal() {
+    if (!devis) return
+    setRdvForm({ adresse: (devis.client as any)?.adresse_intervention || '', date_prevue: '' })
+    setShowRdvModal(true)
+  }
+
+  async function submitRdv(e: React.FormEvent) {
+    e.preventDefault()
+    if (!devis) return
+    setRdvLoading(true)
+    try {
+      const payload: any = {
+        client_id: devis.client_id,
+        type: devis.activite,
+        description: devis.notes || '',
+        adresse: rdvForm.adresse || '',
+      }
+      if ((devis as any).intervenant_id) payload.intervenant_id = (devis as any).intervenant_id
+      if (rdvForm.date_prevue) payload.date_prevue = new Date(rdvForm.date_prevue).toISOString()
+      const newIntervention: any = await createIntervention.mutateAsync(payload)
+      await updDevis.mutateAsync({ id: devis.id, intervention_id: newIntervention.id } as any)
+      add('Rendez-vous créé et lié au devis')
+      setShowRdvModal(false)
+      nav(`/interventions/${newIntervention.id}`)
+    } catch (e: any) {
+      add('Erreur : ' + e.message, 'error')
+    } finally {
+      setRdvLoading(false)
+    }
+  }
+
   if (isLoading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--t3)' }}>Chargement…</div>
   if (!devis) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--rdTx)' }}>Devis introuvable</div>
 
@@ -127,9 +163,10 @@ export default function DevisApercuPage() {
   const isAdmin = user?.role === 'admin'
   const isSigned = !!(devis as any).signature_client
   const canSign = !isAdmin && ['brouillon', 'envoye'].includes(statut) && !isSigned
-  const canFacture = isAdmin && (statut === 'accepte' || isSigned)
+  const canFacture = (isAdmin || user?.can_create_documents === true) && (statut === 'accepte' || isSigned)
   const canSendEmail = isAdmin || (user?.can_create_documents === true && user?.can_bypass_validation === true)
   const canDuplicate = isAdmin || user?.can_create_documents === true
+  const canRdv = (isAdmin || user?.can_create_documents === true) && !(devis as any).intervention_id
 
   const statutColor = statut === 'en_attente_validation' ? '#d97706' : statut === 'accepte' ? '#16a34a' : statut === 'refuse' ? '#dc2626' : '#64748b'
   const statutLabel = statut === 'en_attente_validation' ? '⏳ En attente de validation' : statut === 'accepte' ? '✓ Accepté' : statut === 'refuse' ? '✕ Refusé' : statut === 'envoye' ? '✉ Envoyé' : statut
@@ -207,6 +244,11 @@ export default function DevisApercuPage() {
           {!isMobile && canFacture && (
             <button className="btn btn-primary" onClick={handleToFacture} disabled={toFacture.isPending} style={{ whiteSpace: 'nowrap', background: '#16a34a' }}>
               {toFacture.isPending ? 'Création…' : '🧾 Transformer en facture'}
+            </button>
+          )}
+          {!isMobile && canRdv && (
+            <button className="btn btn-secondary" onClick={openRdvModal} style={{ whiteSpace: 'nowrap' }}>
+              📅 RDV
             </button>
           )}
           {!isMobile && canDuplicate && (
@@ -356,7 +398,7 @@ export default function DevisApercuPage() {
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, marginTop: 8 }}>{devis.numero}</div>
               <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
-                {new Date(devis.created_at).toLocaleDateString('fr-FR')}
+                {new Date(devis.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </div>
               {devis.valide_jusqu_au && (
                 <div style={{ fontSize: 11, opacity: 0.6, marginTop: 2 }}>
@@ -643,6 +685,45 @@ export default function DevisApercuPage() {
             setShowEmail(false)
           }}
         />
+      )}
+
+      {showRdvModal && devis && (
+        <div className="modal-overlay" onClick={() => setShowRdvModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">Créer un RDV</span>
+              <button className="btn-icon sm" onClick={() => setShowRdvModal(false)}>✕</button>
+            </div>
+            <form onSubmit={submitRdv}>
+              <div className="modal-body">
+                <div style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 14 }}>
+                  {devis.client?.nom} {devis.client?.prenom}
+                  {devis.client?.telephone && ` · ${devis.client.telephone}`}
+                </div>
+                <div className="form-group">
+                  <label>Adresse</label>
+                  <AddressAutocomplete
+                    value={rdvForm.adresse}
+                    onChange={v => setRdvForm(f => ({ ...f, adresse: v }))}
+                    onSelect={s => setRdvForm(f => ({ ...f, adresse: s.label }))}
+                    placeholder="Adresse complète"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Date prévue</label>
+                  <input type="datetime-local" value={rdvForm.date_prevue} onChange={e => setRdvForm(f => ({ ...f, date_prevue: e.target.value }))} />
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--t3)' }}>
+                  Activité et description reprises automatiquement du devis.
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowRdvModal(false)}>Annuler</button>
+                <button type="submit" className="btn btn-primary" disabled={rdvLoading}>{rdvLoading ? 'Création…' : 'Créer le RDV'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   )

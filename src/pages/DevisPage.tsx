@@ -1,6 +1,11 @@
 // src/pages/DevisPage.tsx
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  FileText, CheckCircle2, Euro, Search, X, FileSpreadsheet, CheckSquare,
+  Trash2, Clock, AlertTriangle, Mail, Eye, Pencil, XCircle, Receipt,
+  Send, Copy, MoreHorizontal, User, ArrowLeft, BadgeCheck,
+} from 'lucide-react'
 import { useDevis, useDeleteDevis, useDeleteAllDevis, useDevisToFacture, useUpdateDevis, useParametres, useDuplicateDevis, notifyUser, REQUIRED_PARAMS } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
@@ -222,6 +227,7 @@ export default function DevisPage() {
 
   const eur = (n?: number | null) => n ? n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) : '—'
   const fmtDate = (s: string) => new Date(s).toLocaleDateString('fr-FR')
+  const fmtDateTime = (s: string) => new Date(s).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
   const colCount = (isAdmin ? 9 : 8) + (selectionMode ? 1 : 0)
 
   return (
@@ -237,17 +243,17 @@ export default function DevisPage() {
         </div>
         {/* Desktop : inchangé */}
         <div className="page-actions hide-mobile">
-          <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}>📊 Excel</button>
+          <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filtered.length === 0}><FileSpreadsheet size={14} /> Excel</button>
           {isAdmin && !selectionMode && filtered.length > 0 && (
-            <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>☑ Sélectionner</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}><CheckSquare size={14} /> Sélectionner</button>
           )}
           {isAdmin && selectionMode && devis.length > 0 && (
             <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)' }} onClick={handleVider} disabled={delAll.isPending}>
-              🗑 Tout supprimer
+              <Trash2 size={14} /> Tout supprimer
             </button>
           )}
           {!isAdmin && (
-            <button className="btn btn-secondary btn-sm" onClick={() => nav('/interventions')}>← Interventions</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => nav('/interventions')}><ArrowLeft size={14} /> Interventions</button>
           )}
           {canCreateDocs && (
             <button className="btn btn-primary" onClick={() => nav('/devis/nouveau')}>+ Nouveau</button>
@@ -275,19 +281,22 @@ export default function DevisPage() {
       {/* ── KPIs ─────────────────────────────────────────── */}
       {devis.length > 0 && (
         <div className="grid-3 mb-4">
-          <div className="stat-card">
-            <div className="stat-icon blue" style={{ fontSize: 16 }}>📋</div>
+          <div className="stat-card accent-blue">
+            <FileText size={100} className="stat-decor" />
+            <div className="stat-icon blue"><FileText size={19} strokeWidth={2} /></div>
             <div className="stat-value">{devis.length}</div>
             <div className="stat-label">Total devis</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon green" style={{ fontSize: 16 }}>✅</div>
+          <div className="stat-card accent-green">
+            <CheckCircle2 size={100} className="stat-decor" />
+            <div className="stat-icon green"><CheckCircle2 size={19} strokeWidth={2} /></div>
             <div className="stat-value">{accepteCount}</div>
             <div className="stat-label">Acceptés</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-icon amber" style={{ fontSize: 16 }}>💶</div>
-            <div className="stat-value" style={{ fontSize: caEnJeu > 9999 ? 18 : 26 }}>{eur(caEnJeu)}</div>
+          <div className="stat-card accent-amber">
+            <Euro size={100} className="stat-decor" />
+            <div className="stat-icon amber"><Euro size={19} strokeWidth={2} /></div>
+            <div className="stat-value" style={{ fontSize: caEnJeu > 9999 ? 20 : 28 }}>{eur(caEnJeu)}</div>
             <div className="stat-label">CA en jeu</div>
           </div>
         </div>
@@ -305,7 +314,9 @@ export default function DevisPage() {
             fontFamily: 'inherit', WebkitTapHighlightColor: 'transparent',
           }}
         >
-          <span style={{ fontSize: 20 }}>⏳</span>
+          <span style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--amTx)' }}>
+            <Clock size={17} />
+          </span>
           <div>
             <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--amTx)' }}>
               {pendingCount} devis en attente de validation
@@ -329,17 +340,17 @@ export default function DevisPage() {
           {selected.size > 0 && (
             <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
               onClick={handleDeleteSelected} disabled={delAll.isPending}>
-              🗑 Supprimer la sélection
+              <Trash2 size={13} /> Supprimer la sélection
             </button>
           )}
-          <button className="btn btn-secondary btn-sm" onClick={exitSelection}>✕ Annuler</button>
+          <button className="btn btn-secondary btn-sm" onClick={exitSelection}><X size={13} /> Annuler</button>
         </div>
       )}
 
       {/* ── Recherche + Filtres ─────────────────────────── */}
       <div style={{ marginBottom: 14 }}>
         <div className="search-bar" style={{ marginBottom: 10 }}>
-          <span style={{ color: 'var(--t3)', fontSize: 15, flexShrink: 0 }}>🔍</span>
+          <Search size={16} color="var(--t3)" style={{ flexShrink: 0 }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -348,8 +359,8 @@ export default function DevisPage() {
           {search && (
             <button
               onClick={() => setSearch('')}
-              style={{ border: 'none', background: 'none', color: 'var(--t3)', cursor: 'pointer', padding: '0 2px', fontSize: 16, lineHeight: 1, flexShrink: 0 }}
-            >✕</button>
+              style={{ border: 'none', background: 'none', color: 'var(--t3)', cursor: 'pointer', padding: '0 2px', display: 'flex', flexShrink: 0 }}
+            ><X size={15} /></button>
           )}
         </div>
         <div className="filter-bar">
@@ -377,8 +388,8 @@ export default function DevisPage() {
       </div>
 
       {isError && (
-        <div style={{ padding: '10px 14px', background: 'var(--rdBg)', border: '1px solid var(--rdBd)', borderRadius: 'var(--r2)', marginBottom: 12, fontSize: 12, color: 'var(--rdTx)' }}>
-          ⚠ Erreur : {(error as Error)?.message}
+        <div style={{ padding: '10px 14px', background: 'var(--rdBg)', border: '1px solid var(--rdBd)', borderRadius: 'var(--r2)', marginBottom: 12, fontSize: 12, color: 'var(--rdTx)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} /> Erreur : {(error as Error)?.message}
         </div>
       )}
 
@@ -460,14 +471,14 @@ export default function DevisPage() {
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtDate(d.created_at)}</span>
+                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtDateTime(d.created_at)}</span>
                     {d.activite && (
                       <span className={`pill ${ACT_PILL[d.activite] || 'pill-gray'}`} style={{ fontSize: 10 }}>
                         {d.activite}
                       </span>
                     )}
                     {(d.signature_url || d.signature_client) && (
-                      <span style={{ fontSize: 10, color: 'var(--gnTx)', fontWeight: 700 }}>✓ Signé</span>
+                      <span style={{ fontSize: 10, color: 'var(--gnTx)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}><BadgeCheck size={12} /> Signé</span>
                     )}
                   </div>
                   {d.valide_jusqu_au && (
@@ -476,8 +487,8 @@ export default function DevisPage() {
                     </div>
                   )}
                   {isAdmin && d.intervenant && (
-                    <div style={{ fontSize: 11, color: 'var(--t2)', marginTop: 4 }}>
-                      👤 {d.intervenant.prenom} {d.intervenant.nom}
+                    <div style={{ fontSize: 11, color: 'var(--t2)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <User size={11} /> {d.intervenant.prenom} {d.intervenant.nom}
                     </div>
                   )}
                 </div>
@@ -495,7 +506,7 @@ export default function DevisPage() {
                     className="btn btn-secondary btn-sm"
                     onClick={e => { e.stopPropagation(); handleEmail(d) }}
                     style={{ width: '100%', justifyContent: 'center' }}
-                  >📧 Envoyer par email</button>
+                  ><Mail size={13} /> Envoyer par email</button>
                 </div>
               )}
             </div>
@@ -555,7 +566,7 @@ export default function DevisPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <div style={{ width: 3, height: 18, borderRadius: 2, background: STATUS_BORDER[d.statut] || 'var(--s3)', flexShrink: 0 }} />
                       <span style={{ fontWeight: 700, color: 'var(--t0)' }}>{d.numero}</span>
-                      {(d.signature_url || d.signature_client) && <span style={{ fontSize: 10, color: 'var(--gnTx)', fontWeight: 700 }} title="Devis signé">✓</span>}
+                      {(d.signature_url || d.signature_client) && <BadgeCheck size={13} color="var(--gnTx)" title="Devis signé" />}
                     </div>
                   </td>
                   <td>
@@ -566,25 +577,26 @@ export default function DevisPage() {
                   <td style={{ fontWeight: 700, color: 'var(--t0)' }}>{eur(d.total_ttc)}</td>
                   <td><span className={`pill ${SC[d.statut] || 'pill-gray'}`}>{SL[d.statut] || d.statut}</span></td>
                   {isAdmin && <td style={{ fontSize: 12 }}>{d.intervenant?.nom ? `${d.intervenant.prenom} ${d.intervenant.nom}` : '—'}</td>}
-                  <td style={{ fontSize: 12 }}>{fmtDate(d.created_at)}</td>
+                  <td style={{ fontSize: 12 }}>{fmtDateTime(d.created_at)}</td>
                   <td style={{ fontSize: 12 }}>
                     {d.valide_jusqu_au ? (
-                      <span style={{ color: expired ? 'var(--rdTx)' : expiresSoon ? 'var(--amTx)' : 'var(--t2)', fontWeight: expired || expiresSoon ? 600 : 400 }}>
-                        {fmtDate(d.valide_jusqu_au)}{expired ? ' ⚠' : expiresSoon ? ' ⏳' : ''}
+                      <span style={{ color: expired ? 'var(--rdTx)' : expiresSoon ? 'var(--amTx)' : 'var(--t2)', fontWeight: expired || expiresSoon ? 600 : 400, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        {fmtDate(d.valide_jusqu_au)}
+                        {expired ? <AlertTriangle size={12} /> : expiresSoon ? <Clock size={12} /> : null}
                       </span>
                     ) : '—'}
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
                       {canSendEmail && d.client?.email && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => handleEmail(d)} title={`Envoyer à ${d.client.email}`}>📧</button>
+                        <button className="btn-icon sm" onClick={() => handleEmail(d)} title={`Envoyer à ${d.client.email}`}><Mail size={14} /></button>
                       )}
+                      <button className="btn-icon sm" onClick={() => nav(`/devis/${d.id}/apercu`)} title="Voir le devis"><Eye size={14} /></button>
                       <button
                         className="btn-icon sm"
                         onClick={() => setActiveSheet(d)}
                         title="Actions"
-                        style={{ fontSize: 18, letterSpacing: 1 }}
-                      >···</button>
+                      ><MoreHorizontal size={15} /></button>
                     </div>
                   </td>
                 </tr>
@@ -602,14 +614,14 @@ export default function DevisPage() {
           onClose={() => setActiveSheet(null)}
         >
           <SheetRow
-            icon="👁"
+            icon={<Eye size={16} />}
             label="Voir le devis"
             sublabel="Aperçu et signature client"
             onClick={() => { nav(`/devis/${activeSheet.id}/apercu`); setActiveSheet(null) }}
           />
           {isAdmin && (
             <SheetRow
-              icon="✏️"
+              icon={<Pencil size={16} />}
               label="Modifier"
               onClick={() => { nav(`/devis/${activeSheet.id}/editer`); setActiveSheet(null) }}
             />
@@ -618,14 +630,14 @@ export default function DevisPage() {
             <>
               <SheetSection label="Validation" />
               <SheetRow
-                icon="✅"
+                icon={<CheckCircle2 size={16} />}
                 label="Valider ce devis"
                 sublabel="Le devis sera transmis pour signature"
                 onClick={() => { setActiveSheet(null); handleValidate(activeSheet) }}
                 disabled={upd.isPending}
               />
               <SheetRow
-                icon="❌"
+                icon={<XCircle size={16} />}
                 label="Refuser ce devis"
                 danger
                 onClick={() => { setActiveSheet(null); handleReject(activeSheet) }}
@@ -633,11 +645,11 @@ export default function DevisPage() {
               />
             </>
           )}
-          {isAdmin && ['accepte', 'envoye'].includes(activeSheet.statut) && (
+          {(isAdmin || user?.can_create_documents === true) && ['accepte', 'envoye'].includes(activeSheet.statut) && (
             <>
               <SheetSection label="Conversion" />
               <SheetRow
-                icon="🧾"
+                icon={<Receipt size={16} />}
                 label="Transformer en facture"
                 sublabel="Crée une facture liée à ce devis"
                 onClick={() => { setActiveSheet(null); handleToFacture(activeSheet.id) }}
@@ -647,7 +659,7 @@ export default function DevisPage() {
           )}
           {isAdmin && activeSheet.statut === 'brouillon' && (
             <SheetRow
-              icon="✉️"
+              icon={<Send size={16} />}
               label="Marquer comme envoyé"
               onClick={() => { setActiveSheet(null); handleSend(activeSheet.id) }}
               disabled={upd.isPending}
@@ -656,7 +668,7 @@ export default function DevisPage() {
           <SheetSection label="Document" />
           {canCreateDocs && (
             <SheetRow
-              icon="📋"
+              icon={<Copy size={16} />}
               label="Dupliquer ce devis"
               sublabel="Nouveau brouillon avec les mêmes lignes"
               onClick={() => { setActiveSheet(null); handleDuplicate(activeSheet) }}
@@ -665,14 +677,14 @@ export default function DevisPage() {
           )}
           {isAdmin && (
             <SheetRow
-              icon="📄"
+              icon={<FileText size={16} />}
               label="Exporter PDF"
               onClick={() => { setActiveSheet(null); handlePDF(activeSheet) }}
             />
           )}
           {canSendEmail && activeSheet.client?.email && (
             <SheetRow
-              icon="📧"
+              icon={<Mail size={16} />}
               label="Envoyer par email"
               sublabel={activeSheet.client.email}
               onClick={() => { setActiveSheet(null); handleEmail(activeSheet) }}
@@ -682,7 +694,7 @@ export default function DevisPage() {
             <>
               <SheetSection label="Zone dangereuse" />
               <SheetRow
-                icon="🗑️"
+                icon={<Trash2 size={16} />}
                 label="Supprimer ce devis"
                 danger
                 onClick={() => { setActiveSheet(null); handleDel(activeSheet.id) }}
@@ -696,7 +708,7 @@ export default function DevisPage() {
       {showMobileActions && (
         <DocSheet title="Actions" onClose={() => setShowMobileActions(false)}>
           <SheetRow
-            icon="📊"
+            icon={<FileSpreadsheet size={16} />}
             label="Exporter Excel"
             sublabel={filtered.length === 0 ? 'Aucun devis' : `${filtered.length} devis`}
             onClick={() => { setShowMobileActions(false); handleExportCSV() }}
@@ -704,7 +716,7 @@ export default function DevisPage() {
           />
           {isAdmin && !selectionMode && filtered.length > 0 && (
             <SheetRow
-              icon="☑"
+              icon={<CheckSquare size={16} />}
               label="Mode sélection"
               sublabel="Sélectionner des devis"
               onClick={() => { setShowMobileActions(false); setSelectionMode(true) }}
@@ -712,7 +724,7 @@ export default function DevisPage() {
           )}
           {!isAdmin && (
             <SheetRow
-              icon="←"
+              icon={<ArrowLeft size={16} />}
               label="Interventions"
               sublabel="Retour à la liste"
               onClick={() => { setShowMobileActions(false); nav('/interventions') }}
@@ -722,7 +734,7 @@ export default function DevisPage() {
             <>
               <SheetSection label="Zone dangereuse" />
               <SheetRow
-                icon="🗑️"
+                icon={<Trash2 size={16} />}
                 label="Tout supprimer"
                 sublabel={`Supprimer les ${devis.length} devis`}
                 danger

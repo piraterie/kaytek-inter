@@ -8,7 +8,7 @@ export default function KaytekLogo({ size = 36, style }: Props) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 100 100"
+      viewBox="-13 -13 126 126"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       style={{ flexShrink: 0, ...style }}

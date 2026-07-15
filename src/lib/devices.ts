@@ -77,7 +77,7 @@ function getDeviceFingerprint(): string {
   ].join('|')
 }
 
-export async function registerDevice(userId: string, organisationId: string): Promise<{ error: string | null }> {
+export async function registerDevice(userId: string, organisationId: string, isAdmin = false): Promise<{ error: string | null }> {
   const device_id = getDeviceId()
   const device_fingerprint = getDeviceFingerprint()
   const { nom_appareil, navigateur, systeme_exploitation } = getDeviceInfo()
@@ -120,51 +120,53 @@ export async function registerDevice(userId: string, organisationId: string): Pr
     return { error: null }
   }
 
-  // Étape 3 — Véritable nouvel appareil — vérifier la limite
-  const { count } = await supabase
-    .from('devices')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('actif', true)
-
-  if ((count || 0) >= MAX_DEVICES) {
-    // 3a — Libérer un slot si un appareil actif n'a pas été vu depuis STALE_DAYS jours
-    const staleDate = new Date(Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000).toISOString()
-    const { data: staleRows } = await supabase
+  // Étape 3 — Véritable nouvel appareil — vérifier la limite (sauf pour les admins)
+  if (!isAdmin) {
+    const { count } = await supabase
       .from('devices')
-      .select('id')
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('actif', true)
-      .lt('date_derniere_connexion', staleDate)
-      .order('date_derniere_connexion', { ascending: true })
-      .limit(1)
 
-    const stale = staleRows?.[0] ?? null
-    if (stale) {
-      await supabase.from('devices').update({ actif: false }).eq('id', stale.id)
-      // Slot libéré — on continue vers l'insert
-    } else {
-      // 3b — Fallback pré-migration : appareil actif sans fingerprint (enregistrement ancien)
-      // Adopte le slot le plus récent sans fingerprint et y stocke le nouveau device_id + fingerprint
-      const { data: nullFpRows } = await supabase
+    if ((count || 0) >= MAX_DEVICES) {
+      // 3a — Libérer un slot si un appareil actif n'a pas été vu depuis STALE_DAYS jours
+      const staleDate = new Date(Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000).toISOString()
+      const { data: staleRows } = await supabase
         .from('devices')
         .select('id')
         .eq('user_id', userId)
         .eq('actif', true)
-        .is('device_fingerprint', null)
-        .order('date_derniere_connexion', { ascending: false })
+        .lt('date_derniere_connexion', staleDate)
+        .order('date_derniere_connexion', { ascending: true })
         .limit(1)
 
-      const nullFp = nullFpRows?.[0] ?? null
-      if (nullFp) {
-        await supabase
+      const stale = staleRows?.[0] ?? null
+      if (stale) {
+        await supabase.from('devices').update({ actif: false }).eq('id', stale.id)
+        // Slot libéré — on continue vers l'insert
+      } else {
+        // 3b — Fallback pré-migration : appareil actif sans fingerprint (enregistrement ancien)
+        // Adopte le slot le plus récent sans fingerprint et y stocke le nouveau device_id + fingerprint
+        const { data: nullFpRows } = await supabase
           .from('devices')
-          .update({ device_id, device_fingerprint, date_derniere_connexion: now, actif: true, nom_appareil, navigateur, systeme_exploitation })
-          .eq('id', nullFp.id)
-        return { error: null }
-      }
+          .select('id')
+          .eq('user_id', userId)
+          .eq('actif', true)
+          .is('device_fingerprint', null)
+          .order('date_derniere_connexion', { ascending: false })
+          .limit(1)
 
-      return { error: 'DEVICE_LIMIT' }
+        const nullFp = nullFpRows?.[0] ?? null
+        if (nullFp) {
+          await supabase
+            .from('devices')
+            .update({ device_id, device_fingerprint, date_derniere_connexion: now, actif: true, nom_appareil, navigateur, systeme_exploitation })
+            .eq('id', nullFp.id)
+          return { error: null }
+        }
+
+        return { error: 'DEVICE_LIMIT' }
+      }
     }
   }
 
@@ -217,4 +219,8 @@ export async function revokeDevice(deviceDbId: string): Promise<void> {
 
 export function isCurrentDevice(deviceId: string): boolean {
   return deviceId === getDeviceId()
+}
+
+export async function resetUserDevices(userId: string): Promise<void> {
+  await supabase.from('devices').update({ actif: false }).eq('user_id', userId)
 }

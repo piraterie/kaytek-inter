@@ -1,7 +1,8 @@
 // src/pages/CataloguePage.tsx
 import { useState } from 'react'
-import { useAllPrestations, useCreatePrestation, useUpdatePrestation } from '@/lib/hooks'
-import { useToastStore } from '@/lib/store'
+import { Search, X, Pencil, Pause, Play, Info } from 'lucide-react'
+import { useAllPrestations, useCreatePrestation, useUpdatePrestation, useSeedDefaultPrestations } from '@/lib/hooks'
+import { useToastStore, useAuthStore } from '@/lib/store'
 import type { Categorie, Prestation } from '@/types'
 
 const ACTIVITES: { value: Categorie | 'tous'; label: string }[] = [
@@ -10,15 +11,18 @@ const ACTIVITES: { value: Categorie | 'tous'; label: string }[] = [
   { value: 'plomberie', label: 'Plomberie' },
   { value: 'electricite', label: 'Électricité' },
   { value: 'vitrerie', label: 'Vitrerie' },
+  { value: 'chauffagiste', label: 'Chauffagiste' },
 ]
 
 const ACT_LABELS: Record<string, string> = {
   serrurerie: 'Serrurerie', plomberie: 'Plomberie',
   electricite: 'Électricité', vitrerie: 'Vitrerie',
+  chauffagiste: 'Chauffagiste',
 }
 const ACT_PILLS: Record<string, string> = {
   serrurerie: 'pill-gray', plomberie: 'pill-blue',
   electricite: 'pill-amber', vitrerie: 'pill-purple',
+  chauffagiste: 'pill-orange',
 }
 
 const ns = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -27,9 +31,11 @@ const emptyForm = { nom: '', categorie: 'serrurerie' as Categorie, prix_conseill
 
 export default function CataloguePage() {
   const { add } = useToastStore()
+  const { isAdmin, user } = useAuthStore()
   const { data: prestations = [], isLoading } = useAllPrestations()
   const create = useCreatePrestation()
   const upd = useUpdatePrestation()
+  const seed = useSeedDefaultPrestations()
 
   const [filterAct, setFilterAct] = useState<Categorie | 'tous'>('tous')
   const [search, setSearch] = useState('')
@@ -72,6 +78,14 @@ export default function CataloguePage() {
     } catch (err: any) { add(err.message, 'error') }
   }
 
+  async function handleSeedDefaults() {
+    if (!user?.organisation_id) return
+    try {
+      const n = await seed.mutateAsync(user.organisation_id)
+      add(n > 0 ? `${n} prestation${n > 1 ? 's' : ''} par défaut ajoutée${n > 1 ? 's' : ''}` : 'Prestations par défaut déjà présentes')
+    } catch (err: any) { add(err.message, 'error') }
+  }
+
   async function toggleActif(p: Prestation) {
     try {
       await upd.mutateAsync({ id: p.id, actif: !p.actif })
@@ -98,14 +112,14 @@ export default function CataloguePage() {
       {/* Recherche + Filtres activité */}
       <div style={{ marginBottom: 16 }}>
         <div className="search-bar" style={{ marginBottom: 10 }}>
-          <span style={{ color: 'var(--t3)', fontSize: 15, flexShrink: 0 }}>🔍</span>
+          <Search size={16} color="var(--t3)" style={{ flexShrink: 0 }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher une prestation…"
           />
           {search && (
-            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',fontSize:16,lineHeight:1,flexShrink:0 }}>✕</button>
+            <button onClick={() => setSearch('')} style={{ border:'none',background:'none',color:'var(--t3)',cursor:'pointer',padding:'0 2px',display:'flex',flexShrink:0 }}><X size={15} /></button>
           )}
         </div>
         <div className="filter-bar">
@@ -128,7 +142,22 @@ export default function CataloguePage() {
                 <p style={{ marginBottom: 12 }}>Aucun résultat pour « {search} »</p>
                 <button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button>
               </>
-            ) : 'Aucune prestation'}
+            ) : isAdmin() ? (
+              <>
+                <p style={{ marginBottom: 14, fontSize: 14 }}>
+                  Aucune prestation{filterAct !== 'tous' ? ` en ${ACT_LABELS[filterAct] || filterAct}` : ''}.
+                </p>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleSeedDefaults}
+                  disabled={seed.isPending}
+                >
+                  {seed.isPending ? 'Ajout en cours…' : '+ Ajouter les prestations par défaut'}
+                </button>
+              </>
+            ) : (
+              <p style={{ fontSize: 14 }}>Aucune prestation{filterAct !== 'tous' ? ` dans cette catégorie` : ''}.</p>
+            )}
           </div>
         )}
         {filtered.map(p => (
@@ -147,9 +176,9 @@ export default function CataloguePage() {
               </div>
             </div>
             <div className="mobile-card-actions">
-              <button className="btn btn-secondary btn-sm" onClick={() => openEdit(p)}>✏ Modifier</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => openEdit(p)}><Pencil size={13} /> Modifier</button>
               <button className="btn btn-secondary btn-sm" onClick={() => toggleActif(p)}>
-                {p.actif ? '⏸ Désactiver' : '▶ Réactiver'}
+                {p.actif ? <><Pause size={13} /> Désactiver</> : <><Play size={13} /> Réactiver</>}
               </button>
             </div>
           </div>
@@ -173,7 +202,22 @@ export default function CataloguePage() {
             {isLoading && <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>Chargement…</td></tr>}
             {!isLoading && filtered.length === 0 && (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: 24, color: 'var(--t3)' }}>
-                {search.trim() ? <><span>Aucun résultat — </span><button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button></> : 'Aucune prestation'}
+                {search.trim() ? (
+                  <><span>Aucun résultat — </span><button className="btn btn-secondary btn-sm" onClick={() => setSearch('')}>Effacer la recherche</button></>
+                ) : isAdmin() ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+                    <span>Aucune prestation{filterAct !== 'tous' ? ` en ${ACT_LABELS[filterAct] || filterAct}` : ''} —</span>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={handleSeedDefaults}
+                      disabled={seed.isPending}
+                    >
+                      {seed.isPending ? 'Ajout…' : '+ Ajouter les prestations par défaut'}
+                    </button>
+                  </span>
+                ) : (
+                  `Aucune prestation${filterAct !== 'tous' ? ' dans cette catégorie' : ''}`
+                )}
               </td></tr>
             )}
             {filtered.map(p => (
@@ -185,10 +229,10 @@ export default function CataloguePage() {
                 <td><span className={`pill ${p.actif ? 'pill-green' : 'pill-gray'}`}>{p.actif ? 'Actif' : 'Inactif'}</span></td>
                 <td>
                   <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="btn-icon sm" onClick={() => openEdit(p)} title="Modifier">✏</button>
+                    <button className="btn-icon sm" onClick={() => openEdit(p)} title="Modifier"><Pencil size={14} /></button>
                     <button className="btn-icon sm" onClick={() => toggleActif(p)} title={p.actif ? 'Désactiver' : 'Réactiver'}
                       style={{ color: p.actif ? 'var(--amTx)' : 'var(--gnTx)' }}>
-                      {p.actif ? '⏸' : '▶'}
+                      {p.actif ? <Pause size={14} /> : <Play size={14} />}
                     </button>
                   </div>
                 </td>
@@ -199,8 +243,8 @@ export default function CataloguePage() {
       </div>
 
       {/* Note info */}
-      <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--blBg)', border: '1px solid var(--blBd)', borderRadius: 'var(--r2)', fontSize: 12, color: 'var(--blTx)' }}>
-        ℹ Les prestations désactivées n'apparaissent plus dans le catalogue rapide des devis, mais restent liées aux devis existants.
+      <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--blBg)', border: '1px solid var(--blBd)', borderRadius: 'var(--r2)', fontSize: 12, color: 'var(--blTx)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Info size={14} style={{ flexShrink: 0 }} /> Les prestations désactivées n'apparaissent plus dans le catalogue rapide des devis, mais restent liées aux devis existants.
       </div>
 
       {/* MODAL */}
@@ -209,7 +253,7 @@ export default function CataloguePage() {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-title">{editing ? 'Modifier la prestation' : 'Nouvelle prestation'}</span>
-              <button className="btn-icon sm" onClick={() => setModal(false)}>✕</button>
+              <button className="btn-icon sm" onClick={() => setModal(false)}><X size={15} /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
@@ -224,6 +268,7 @@ export default function CataloguePage() {
                     <option value="plomberie">Plomberie</option>
                     <option value="electricite">Électricité</option>
                     <option value="vitrerie">Vitrerie</option>
+                    <option value="chauffagiste">Chauffagiste</option>
                   </select>
                 </div>
                 <div className="grid-2">

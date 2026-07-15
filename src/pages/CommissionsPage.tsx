@@ -1,6 +1,10 @@
 // src/pages/CommissionsPage.tsx
 import { useState } from 'react'
-import { useCommissionsData, useMarkCommissionReceived, useUpdateInterventionMateriel, notifyUser, notifyAdmins } from '@/lib/hooks'
+import {
+  Package, CheckCircle2, Clock, DollarSign, Building2, FileSpreadsheet,
+  AlertTriangle, Save,
+} from 'lucide-react'
+import { useCommissionsData, useMarkCommissionReceived, useUpdateInterventionMateriel, useIntervenants, notifyUser, notifyAdmins } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { exportCommissionsPremium } from '@/lib/exportPremium'
 
@@ -23,11 +27,53 @@ export default function CommissionsPage() {
   const { data: commissionsData, isLoading, error } = useCommissionsData()
   const items = commissionsData?.items ?? []
   const unattributedCount = commissionsData?.unattributedCount ?? 0
+  const { data: intervenants = [] } = useIntervenants()
   const markReceived = useMarkCommissionReceived()
   const updateMateriel = useUpdateInterventionMateriel()
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [materielModal, setMaterielModal] = useState<MaterielModal | null>(null)
   const [materielInput, setMaterielInput] = useState('')
+
+  // ── Filtres ────────────────────────────────────────────────────
+  const [filterIntervenantId, setFilterIntervenantId] = useState('tous')
+  const [filterStatut, setFilterStatut] = useState<'tous' | 'a_recevoir' | 'recue'>('tous')
+  const [filterDateFrom, setFilterDateFrom] = useState('')
+  const [filterDateTo, setFilterDateTo] = useState('')
+
+  const filteredItems = items.filter(c => {
+    if (isAdmin && filterIntervenantId !== 'tous' && c.intervenant_id !== filterIntervenantId) return false
+    if (filterStatut === 'a_recevoir' && c.recue) return false
+    if (filterStatut === 'recue' && !c.recue) return false
+    if (filterDateFrom && (!c.date_paiement || c.date_paiement < filterDateFrom)) return false
+    if (filterDateTo && (!c.date_paiement || c.date_paiement > filterDateTo + 'T23:59:59')) return false
+    return true
+  })
+  const filtersActive = filterIntervenantId !== 'tous' || filterStatut !== 'tous' || !!filterDateFrom || !!filterDateTo
+
+  function renderFilterBar() {
+    return (
+      <div className="filter-bar" style={{ marginBottom: 14 }}>
+        {isAdmin && (
+          <select value={filterIntervenantId} onChange={e => setFilterIntervenantId(e.target.value)} style={{ width: 'auto', minWidth: 160 }}>
+            <option value="tous">Tous les intervenants</option>
+            {intervenants.filter(p => p.actif !== false).map(p => (
+              <option key={p.id} value={p.id}>{[p.prenom, p.nom].filter(Boolean).join(' ') || p.email}</option>
+            ))}
+          </select>
+        )}
+        <button className={`btn btn-sm ${filterStatut === 'tous' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilterStatut('tous')}>Toutes</button>
+        <button className={`btn btn-sm ${filterStatut === 'a_recevoir' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilterStatut('a_recevoir')}>À recevoir</button>
+        <button className={`btn btn-sm ${filterStatut === 'recue' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setFilterStatut('recue')}>Reçue</button>
+        <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} style={{ width: 'auto' }} title="Depuis le" />
+        <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} style={{ width: 'auto' }} title="Jusqu'au" />
+        {filtersActive && (
+          <button className="btn btn-secondary btn-sm" onClick={() => { setFilterIntervenantId('tous'); setFilterStatut('tous'); setFilterDateFrom(''); setFilterDateTo('') }}>
+            Réinitialiser
+          </button>
+        )}
+      </div>
+    )
+  }
 
   function openMaterielModal(c: any) {
     setMaterielInput(c.cout_pieces_raw ? String(c.cout_pieces_raw) : '')
@@ -52,7 +98,7 @@ export default function CommissionsPage() {
         materiel_payeur: materielModal.materiel_payeur,
         confirmer,
       })
-      add(confirmer ? '✅ Matériel confirmé — commission recalculée' : '💾 Matériel enregistré')
+      add(confirmer ? 'Matériel confirmé — commission recalculée' : 'Matériel enregistré')
       if (newAmount !== materielModal.original_cout) {
         const lien = '/commissions'
         if (isAdmin) {
@@ -125,11 +171,11 @@ export default function CommissionsPage() {
         onClick={() => openMaterielModal(c)}
         style={{ fontSize: 11, padding: '3px 8px', whiteSpace: 'nowrap' }}
       >
-        {hasRaw
-          ? isConfirmed
-            ? `🔩 ${eur(c.cout_pieces_raw)} ✓`
-            : `🔩 ${eur(c.cout_pieces_raw)} ⏳`
-          : '🔩 Matériel'}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Package size={12} />
+          {hasRaw ? eur(c.cout_pieces_raw) : 'Matériel'}
+          {hasRaw && (isConfirmed ? <CheckCircle2 size={12} /> : <Clock size={12} />)}
+        </span>
       </button>
     )
   }
@@ -139,7 +185,7 @@ export default function CommissionsPage() {
     return (
       <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }} onClick={e => { if (e.target === e.currentTarget) setMaterielModal(null) }}>
         <div className="card card-body" style={{ width: '100%', maxWidth: 380 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>🔩 Matériel — {materielModal.facture_numero}</div>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><Package size={16} /> Matériel — {materielModal.facture_numero}</div>
 
           <div className="form-group">
             <label>Montant matériel (€)</label>
@@ -170,24 +216,24 @@ export default function CommissionsPage() {
           </div>
 
           {materielModal.materiel_confirme && (
-            <div style={{ fontSize: 12, color: '#16a34a', padding: '6px 0', marginBottom: 8 }}>
-              ✅ Actuellement confirmé
+            <div style={{ fontSize: 12, color: '#16a34a', padding: '6px 0', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CheckCircle2 size={13} /> Actuellement confirmé
             </div>
           )}
           {!materielModal.materiel_confirme && materielInput.length > 0 && (
-            <div style={{ fontSize: 11, color: 'var(--amTx)', padding: '4px 0', marginBottom: 8 }}>
-              ⏳ Non confirmé — non déduit du calcul
+            <div style={{ fontSize: 11, color: 'var(--amTx)', padding: '4px 0', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Clock size={12} /> Non confirmé — non déduit du calcul
             </div>
           )}
 
           <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
             {isAdmin ? (
               <button className="btn btn-primary" onClick={() => handleSaveMateriel(true)} disabled={updateMateriel.isPending}>
-                {updateMateriel.isPending ? 'Enregistrement…' : '✅ Confirmer matériel'}
+                {updateMateriel.isPending ? 'Enregistrement…' : <><CheckCircle2 size={14} /> Confirmer matériel</>}
               </button>
             ) : (
               <button className="btn btn-primary" onClick={() => handleSaveMateriel(false)} disabled={updateMateriel.isPending}>
-                {updateMateriel.isPending ? 'Enregistrement…' : '💾 Enregistrer'}
+                {updateMateriel.isPending ? 'Enregistrement…' : <><Save size={14} /> Enregistrer</>}
               </button>
             )}
             <button className="btn btn-secondary" onClick={() => setMaterielModal(null)}>Annuler</button>
@@ -199,8 +245,8 @@ export default function CommissionsPage() {
 
   // ── VUE INTERVENANT ──────────────────────────────────────────────
   if (!isAdmin) {
-    const pending = items.filter(c => !c.recue)
-    const received = items.filter(c => c.recue)
+    const pending = filteredItems.filter(c => !c.recue)
+    const received = filteredItems.filter(c => c.recue)
     const totalPending = pending.reduce((s, c) => s + c.commission_intervenant, 0)
     const totalReceived = received.reduce((s, c) => s + c.commission_intervenant, 0)
 
@@ -213,27 +259,33 @@ export default function CommissionsPage() {
 
         {items.length === 0 ? (
           <div className="card card-body" style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--t3)' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>💰</div>
+            <DollarSign size={30} style={{ marginBottom: 12, opacity: 0.5 }} />
             <div style={{ fontWeight: 600, color: 'var(--t1)', marginBottom: 8 }}>Aucune commission pour le moment</div>
             <div style={{ fontSize: 13 }}>Les commissions apparaissent lorsqu'une facture liée à vos interventions est payée.</div>
           </div>
         ) : (
           <>
+            {renderFilterBar()}
             <div className="grid-2 mb-4">
               <div className="stat-card">
-                <div className="stat-icon amber" style={{ marginBottom: 8, fontSize: 18 }}>⏳</div>
+                <div className="stat-icon amber" style={{ marginBottom: 8 }}><Clock size={17} /></div>
                 <div className="stat-value">{eur(totalPending)}</div>
                 <div className="stat-label">À recevoir</div>
               </div>
               <div className="stat-card">
-                <div className="stat-icon green" style={{ marginBottom: 8, fontSize: 18 }}>✓</div>
+                <div className="stat-icon green" style={{ marginBottom: 8 }}><CheckCircle2 size={17} /></div>
                 <div className="stat-value">{eur(totalReceived)}</div>
                 <div className="stat-label">Déjà reçu</div>
               </div>
             </div>
 
+            {filteredItems.length === 0 && (
+              <div className="card card-body" style={{ textAlign: 'center', padding: '30px 24px', color: 'var(--t3)' }}>
+                Aucune commission ne correspond aux filtres sélectionnés.
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {items.map(c => (
+              {filteredItems.map(c => (
                 <div key={c.id} className="card card-body" style={{ borderLeft: c.recue ? '3px solid var(--gnBd)' : '3px solid var(--amBd)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 12 }}>
                     <div>
@@ -279,7 +331,7 @@ export default function CommissionsPage() {
                     <MaterielBtn c={c} />
                     {c.recue ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span className="pill pill-green">✓ Reçue</span>
+                        <span className="pill pill-green" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><CheckCircle2 size={11} /> Reçue</span>
                         {c.recue_le && (
                           <span style={{ fontSize: 12, color: 'var(--t3)' }}>
                             le {new Date(c.recue_le).toLocaleDateString('fr-FR')}
@@ -292,7 +344,7 @@ export default function CommissionsPage() {
                         onClick={() => handleMarkReceived(c)}
                         disabled={processingId === c.id}
                       >
-                        {processingId === c.id ? 'Enregistrement…' : "✓ J'ai reçu ma commission"}
+                        {processingId === c.id ? 'Enregistrement…' : <><CheckCircle2 size={13} /> J'ai reçu ma commission</>}
                       </button>
                     )}
                   </div>
@@ -309,18 +361,18 @@ export default function CommissionsPage() {
 
   // ── VUE ADMIN ────────────────────────────────────────────────────
   const byIntervenant: Record<string, typeof items> = {}
-  items.forEach(c => {
+  filteredItems.forEach(c => {
     const key = c.intervenant_id || 'unknown'
     if (!byIntervenant[key]) byIntervenant[key] = []
     byIntervenant[key].push(c)
   })
 
-  const totalCommAll = items.reduce((s, c) => s + c.commission_intervenant, 0)
-  const totalResteAll = items.reduce((s, c) => s + c.reste_entreprise, 0)
+  const totalCommAll = filteredItems.reduce((s, c) => s + c.commission_intervenant, 0)
+  const totalResteAll = filteredItems.reduce((s, c) => s + c.reste_entreprise, 0)
 
   async function handleExportCSV() {
     try {
-      await exportCommissionsPremium(items, { user: user ? { nom: user.nom, prenom: user.prenom } : null })
+      await exportCommissionsPremium(filteredItems, { user: user ? { nom: user.nom, prenom: user.prenom } : null })
     } catch (e: any) { add('Erreur export : ' + e.message, 'error') }
   }
 
@@ -329,26 +381,28 @@ export default function CommissionsPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Commissions</h1>
-          <p className="page-subtitle">Calculées sur les factures payées · {items.length} entrée{items.length !== 1 ? 's' : ''}</p>
+          <p className="page-subtitle">Calculées sur les factures payées · {filteredItems.length} entrée{filteredItems.length !== 1 ? 's' : ''}{filtersActive ? ` (sur ${items.length})` : ''}</p>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={items.length === 0}>📊 Excel</button>
+        <button className="btn btn-secondary btn-sm" onClick={handleExportCSV} disabled={filteredItems.length === 0}><FileSpreadsheet size={14} /> Excel</button>
       </div>
 
       {isAdmin && unattributedCount > 0 && (
-        <div style={{ padding:'12px 14px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:'var(--r2)',marginBottom:16,fontSize:13,color:'var(--amTx)' }}>
-          ⚠ {unattributedCount} facture{unattributedCount > 1 ? 's' : ''} payée{unattributedCount > 1 ? 's' : ''} sans intervention associée — non incluse{unattributedCount > 1 ? 's' : ''} dans les commissions.
+        <div style={{ padding:'12px 14px',background:'var(--amBg)',border:'1px solid var(--amBd)',borderRadius:'var(--r2)',marginBottom:16,fontSize:13,color:'var(--amTx)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AlertTriangle size={14} style={{ flexShrink: 0 }} /> {unattributedCount} facture{unattributedCount > 1 ? 's' : ''} payée{unattributedCount > 1 ? 's' : ''} sans intervention associée — non incluse{unattributedCount > 1 ? 's' : ''} dans les commissions.
         </div>
       )}
 
-      {items.length > 0 && (
+      {items.length > 0 && renderFilterBar()}
+
+      {filteredItems.length > 0 && (
         <div className="grid-2 mb-4">
           <div className="stat-card">
-            <div className="stat-icon green" style={{ marginBottom: 8, fontSize: 16 }}>💰</div>
+            <div className="stat-icon green" style={{ marginBottom: 8 }}><DollarSign size={17} /></div>
             <div className="stat-value">{eur(totalCommAll)}</div>
             <div className="stat-label">Total commissions intervenants</div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon blue" style={{ marginBottom: 8, fontSize: 16 }}>🏢</div>
+            <div className="stat-icon blue" style={{ marginBottom: 8 }}><Building2 size={17} /></div>
             <div className="stat-value">{eur(totalResteAll)}</div>
             <div className="stat-label">Reste entreprise</div>
           </div>
@@ -357,9 +411,13 @@ export default function CommissionsPage() {
 
       {items.length === 0 ? (
         <div className="card card-body" style={{ textAlign: 'center', padding: '40px 24px', color: 'var(--t3)' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>💰</div>
+          <DollarSign size={30} style={{ marginBottom: 12, opacity: 0.5 }} />
           <div style={{ fontWeight: 600, color: 'var(--t1)', marginBottom: 8 }}>Aucune commission pour le moment</div>
           <div style={{ fontSize: 13 }}>Les commissions apparaissent lorsqu'une facture est payée et liée à une intervention avec un intervenant assigné.</div>
+        </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="card card-body" style={{ textAlign: 'center', padding: '30px 24px', color: 'var(--t3)' }}>
+          Aucune commission ne correspond aux filtres sélectionnés.
         </div>
       ) : (
         Object.entries(byIntervenant).map(([intId, comms]) => {
@@ -439,11 +497,11 @@ export default function CommissionsPage() {
                           </td>
                           <td>
                             {c.recue ? (
-                              <span className="pill pill-green" style={{ fontSize: 11 }}>
-                                ✓{c.recue_le ? ` ${new Date(c.recue_le).toLocaleDateString('fr-FR')}` : ''}
+                              <span className="pill pill-green" style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                <CheckCircle2 size={11} />{c.recue_le ? ` ${new Date(c.recue_le).toLocaleDateString('fr-FR')}` : ''}
                               </span>
                             ) : (
-                              <span className="pill pill-amber" style={{ fontSize: 11 }}>⏳</span>
+                              <span className="pill pill-amber" style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center' }}><Clock size={11} /></span>
                             )}
                           </td>
                         </tr>

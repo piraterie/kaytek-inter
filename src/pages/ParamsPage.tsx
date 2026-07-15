@@ -1,5 +1,6 @@
 // src/pages/ParamsPage.tsx
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react'
+import { CheckCircle2, Building2, Scale, FileText, Upload, Loader2, Save } from 'lucide-react'
 import { useParametres, useUpdateParametres, REQUIRED_PARAMS } from '@/lib/hooks'
 import { useToastStore, useParamsStore, useAuthStore } from '@/lib/store'
 import { uploadLogo } from '@/lib/supabase/storage'
@@ -102,8 +103,8 @@ export default function ParamsPage() {
         <p className="page-subtitle">Ces informations apparaissent sur tous les devis, factures et emails</p>
         {initialized.current && (
           <div style={{ marginTop:8, display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ fontSize:13, fontWeight:600, color: isFormComplete ? 'var(--grTx, #16a34a)' : 'var(--amTx)' }}>
-              {isFormComplete ? '✓ ' : ''}Configuration : {completionCount}/{REQUIRED_PARAMS.length} champs obligatoires remplis
+            <span style={{ fontSize:13, fontWeight:600, color: isFormComplete ? 'var(--grTx, #16a34a)' : 'var(--amTx)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              {isFormComplete && <CheckCircle2 size={14} />}Configuration : {completionCount}/{REQUIRED_PARAMS.length} champs obligatoires remplis
             </span>
             {!isFormComplete && (
               <span style={{ fontSize:12, color:'var(--amTx)', opacity:0.8 }}>
@@ -123,7 +124,7 @@ export default function ParamsPage() {
           {/* ── Identité ─────────────────────────────── */}
           <div className="card card-body">
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14, paddingBottom:12, borderBottom:'1px solid var(--b0)' }}>
-              <span style={{ fontSize:20 }}>🏢</span>
+              <span style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--blBg)', color: 'var(--blTx)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Building2 size={16} /></span>
               <div>
                 <div style={{ fontSize:13, fontWeight:700, color:'var(--t0)' }}>Identité</div>
                 <div style={{ fontSize:11, color:'var(--t3)', marginTop:1 }}>Coordonnées, logo, contact</div>
@@ -137,7 +138,7 @@ export default function ParamsPage() {
                 {form.logo_url && <img src={form.logo_url} alt="logo" style={{ width:40, height:40, borderRadius:8, objectFit:'contain', border:'1px solid var(--b1)' }} />}
                 <input ref={logoRef} type="file" accept="image/*" onChange={handleLogo} style={{ display:'none' }} />
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => logoRef.current?.click()} disabled={logoUploading}>
-                  {logoUploading ? 'Upload…' : '↑ Changer'}
+                  {logoUploading ? 'Upload…' : <><Upload size={13} /> Changer</>}
                 </button>
               </div>
             </div>
@@ -157,7 +158,7 @@ export default function ParamsPage() {
           {/* ── Légal & bancaire ──────────────────────── */}
           <div className="card card-body">
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14, paddingBottom:12, borderBottom:'1px solid var(--b0)' }}>
-              <span style={{ fontSize:20 }}>⚖️</span>
+              <span style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--puBg)', color: 'var(--puTx)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Scale size={16} /></span>
               <div>
                 <div style={{ fontSize:13, fontWeight:700, color:'var(--t0)' }}>Légal & bancaire</div>
                 <div style={{ fontSize:11, color:'var(--t3)', marginTop:1 }}>SIRET, TVA, IBAN, RC Pro</div>
@@ -211,7 +212,7 @@ export default function ParamsPage() {
         <div className="params-section-label">Documents</div>
         <div className="card card-body mb-4">
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14, paddingBottom:12, borderBottom:'1px solid var(--b0)' }}>
-            <span style={{ fontSize:20 }}>📃</span>
+            <span style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--s1)', color: 'var(--t2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><FileText size={16} /></span>
             <div>
               <div style={{ fontSize:13, fontWeight:700, color:'var(--t0)' }}>Conditions générales</div>
               <div style={{ fontSize:11, color:'var(--t3)', marginTop:1 }}>Pied de page des PDF devis & factures</div>
@@ -234,7 +235,7 @@ export default function ParamsPage() {
         <div className="hide-mobile flex gap-2 justify-end" style={{ paddingBottom:8 }}>
           <button type="button" className="btn btn-secondary" onClick={() => setForm({...params})}>Annuler</button>
           <button type="submit" className="btn btn-primary" disabled={upd.isPending}>
-            {upd.isPending ? '⏳ Sauvegarde…' : '💾 Sauvegarder'}
+            {upd.isPending ? <><Loader2 size={14} className="spin" /> Sauvegarde…</> : <><Save size={14} /> Sauvegarder</>}
           </button>
         </div>
 
@@ -242,7 +243,7 @@ export default function ParamsPage() {
         <div className="bottom-action-bar">
           <button type="button" className="btn btn-secondary" onClick={() => setForm({...params})}>Annuler</button>
           <button type="submit" className="btn btn-primary" disabled={upd.isPending}>
-            {upd.isPending ? '⏳ Sauvegarde…' : '💾 Sauvegarder'}
+            {upd.isPending ? <><Loader2 size={14} className="spin" /> Sauvegarde…</> : <><Save size={14} /> Sauvegarder</>}
           </button>
         </div>
 

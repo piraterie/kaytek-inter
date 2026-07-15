@@ -15,3 +15,14 @@ dist
 playwright-report/
 test-results/
 tests/.auth/
+
+# Android — fichiers de build générés (ne pas versionner)
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/app/release/
+android/.idea/
+android/keystore.properties
+*.jks
+*.keystore
