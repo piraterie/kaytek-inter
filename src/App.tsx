@@ -5,49 +5,64 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Capacitor } from '@capacitor/core'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore, useUIStore, useParamsStore } from '@/lib/store'
+import { fetchSubscriptionBlocked } from '@/lib/subscription'
 import AppLayout from '@/components/layout/AppLayout'
 import KaytekLogo from '@/components/KaytekLogo'
+import type { Role } from '@/types'
 
-const LoginPage           = lazy(() => import('@/pages/LoginPage'))
-const LockScreen          = lazy(() => import('@/pages/LockScreen'))
-const ResetPasswordPage   = lazy(() => import('@/pages/ResetPasswordPage'))
-const DashboardPage       = lazy(() => import('@/pages/DashboardPage'))
-const InterventionsPage   = lazy(() => import('@/pages/InterventionsPage'))
+const LoginPage = lazy(() => import('@/pages/LoginPage'))
+const LockScreen = lazy(() => import('@/pages/LockScreen'))
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'))
+const ActivationPage = lazy(() => import('@/pages/ActivationPage'))
+const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
+const InterventionsPage = lazy(() => import('@/pages/InterventionsPage'))
 const InterventionDetailPage = lazy(() => import('@/pages/InterventionDetailPage'))
-const DevisPage           = lazy(() => import('@/pages/DevisPage'))
-const DevisFormPage       = lazy(() => import('@/pages/DevisFormPage'))
-const FacturesPage        = lazy(() => import('@/pages/FacturesPage'))
-const ClientsPage         = lazy(() => import('@/pages/ClientsPage'))
-const ClientDetailPage    = lazy(() => import('@/pages/ClientDetailPage'))
-const MessagingPage       = lazy(() => import('@/pages/MessagingPage'))
-const CommissionsPage     = lazy(() => import('@/pages/CommissionsPage'))
-const UsersPage           = lazy(() => import('@/pages/UsersPage'))
-const ParamsPage          = lazy(() => import('@/pages/ParamsPage'))
-const JournalPage         = lazy(() => import('@/pages/JournalPage'))
-const DevisApercuPage     = lazy(() => import('@/pages/DevisApercuPage'))
-const CataloguePage       = lazy(() => import('@/pages/CataloguePage'))
-const PlanningPage        = lazy(() => import('@/pages/PlanningPage'))
-const GuidePage           = lazy(() => import('@/pages/guide/GuidePage'))
-const GuideAdminPage      = lazy(() => import('@/pages/guide/GuideAdminPage'))
-const GuideIntervenantPage= lazy(() => import('@/pages/guide/GuideIntervenantPage'))
-const GuideFAQPage        = lazy(() => import('@/pages/guide/GuideFAQPage'))
-const GuideAdminVideosPage= lazy(() => import('@/pages/guide/GuideAdminVideosPage'))
-const PublicDocumentPage  = lazy(() => import('@/pages/PublicDocumentPage'))
+const DevisPage = lazy(() => import('@/pages/DevisPage'))
+const DevisFormPage = lazy(() => import('@/pages/DevisFormPage'))
+const FacturesPage = lazy(() => import('@/pages/FacturesPage'))
+const ClientsPage = lazy(() => import('@/pages/ClientsPage'))
+const ClientDetailPage = lazy(() => import('@/pages/ClientDetailPage'))
+const MessagingPage = lazy(() => import('@/pages/MessagingPage'))
+const CommissionsPage = lazy(() => import('@/pages/CommissionsPage'))
+const UsersPage = lazy(() => import('@/pages/UsersPage'))
+const ParamsPage = lazy(() => import('@/pages/ParamsPage'))
+const JournalPage = lazy(() => import('@/pages/JournalPage'))
+const DevisApercuPage = lazy(() => import('@/pages/DevisApercuPage'))
+const CataloguePage = lazy(() => import('@/pages/CataloguePage'))
+const PlanningPage = lazy(() => import('@/pages/PlanningPage'))
+const GuidePage = lazy(() => import('@/pages/guide/GuidePage'))
+const GuideAdminPage = lazy(() => import('@/pages/guide/GuideAdminPage'))
+const GuideIntervenantPage = lazy(() => import('@/pages/guide/GuideIntervenantPage'))
+const GuideFAQPage = lazy(() => import('@/pages/guide/GuideFAQPage'))
+const GuideAdminVideosPage = lazy(() => import('@/pages/guide/GuideAdminVideosPage'))
+const PartenairesPage = lazy(() => import('@/pages/PartenairesPage'))
+const PublicDocumentPage = lazy(() => import('@/pages/PublicDocumentPage'))
 const ConfidentialitePage = lazy(() => import('@/pages/ConfidentialitePage'))
-const DeleteAccountPage   = lazy(() => import('@/pages/DeleteAccountPage'))
+const DeleteAccountPage = lazy(() => import('@/pages/DeleteAccountPage'))
 
-// ── Guard : session Supabase + app déverrouillée ─────────────────────────────
-function Guard({ children, adminOnly = false, requireCanCreateDocs = false }: {
-  children: React.ReactNode; adminOnly?: boolean; requireCanCreateDocs?: boolean
+// ── Guard : session Supabase + app déverrouillée + abonnement actif ─────────
+function Guard({ children, adminOnly = false, requireCanCreateDocs = false, allowedRoles }: {
+  children: React.ReactNode; adminOnly?: boolean; requireCanCreateDocs?: boolean; allowedRoles?: Role[]
 }) {
-  const { user, loading, error, isAppUnlocked } = useAuthStore()
+  const { user, loading, error, isAppUnlocked, subscriptionBlocked } = useAuthStore()
   const location = useLocation()
+  // Capturé une seule fois, au tout premier rendu (avant que le SDK Supabase ne
+  // traite/nettoie le hash de façon asynchrone) — lire window.location.hash plus
+  // tard dans le rendu (ex. après résolution de `loading`) le trouverait déjà vidé.
+  const [initialAuthHash] = useState(() => window.location.hash)
 
   if (loading) return <Loader />
   if (error)   return <ErrorDisplay error={error} />
 
   if (!user) {
-    // Sauvegarder la destination pour redirection post-push
+    // Filet de sécurité : un lien d'invitation/réinitialisation Supabase peut atterrir
+    // ici avec le token dans le hash si la redirection configurée côté Supabase (Site URL /
+    // Redirect URLs) ne pointe pas vers le bon chemin — on route vers /activation plutôt
+    // que de perdre le token en renvoyant vers /login.
+    if (initialAuthHash.includes('access_token') && (initialAuthHash.includes('type=invite') || initialAuthHash.includes('type=recovery'))) {
+      return <Navigate to={`/activation${initialAuthHash}`} replace />
+    }
+    // Sauvegarder la destination pour redirection post-login (cas push notification)
     const target = location.pathname + location.search
     if (target && target !== '/' && !target.startsWith('/login') && !target.startsWith('/lock')) {
       sessionStorage.setItem('kaytek-push-redirect', target)
@@ -61,7 +76,9 @@ function Guard({ children, adminOnly = false, requireCanCreateDocs = false }: {
     return <Navigate to="/lock" replace />
   }
 
+  if (subscriptionBlocked) return <SubscriptionBlockedScreen role={user.role} />
   if (adminOnly && user.role !== 'admin') return <Navigate to="/dashboard" replace />
+  if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/dashboard" replace />
   if (requireCanCreateDocs && user.role !== 'admin' && !user.can_create_documents) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
@@ -106,13 +123,43 @@ function ErrorDisplay({ error }: { error: string }) {
   )
 }
 
+function SubscriptionBlockedScreen({ role }: { role: string }) {
+  const nav = useNavigate()
+  const { setUser, setSubscriptionBlocked } = useAuthStore()
+  const message = role === 'admin'
+    ? "L'abonnement de votre organisation est inactif ou a expiré. Merci de le régulariser pour continuer à utiliser Kaytek Inter."
+    : "L'abonnement de votre organisation n'est plus actif. Merci de contacter votre administrateur pour régulariser la situation."
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    // Navigation explicite plutôt que de compter sur onAuthStateChange (même
+    // pattern que AppLayout.handleSignOut) — évite de dépendre du listener.
+    setUser(null)
+    setSubscriptionBlocked(false)
+    nav('/login', { replace: true })
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: 'var(--bg)', flexDirection: 'column', gap: 14, padding: 24 }}>
+      <div style={{ width: 40, height: 40, background: '#f59e0b', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🔒</div>
+      <p style={{ color: 'var(--t1)', fontSize: 14, fontWeight: 600 }}>Abonnement inactif</p>
+      <p style={{ color: 'var(--t2)', fontSize: 13, maxWidth: 400, textAlign: 'center' }}>{message}</p>
+      <button
+        onClick={handleSignOut}
+        style={{ marginTop: 10, padding: '8px 16px', background: 'var(--bl)', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+      >
+        Se déconnecter
+      </button>
+    </div>
+  )
+}
+
 export default function App() {
-  const { setUser, setLoading, setError, setAppUnlocked } = useAuthStore()
+  const { setUser, setLoading, setError, setAppUnlocked, setSubscriptionBlocked } = useAuthStore()
   const { theme } = useUIStore()
   const { setParams } = useParamsStore()
   const qc = useQueryClient()
   const nav = useNavigate()
-  const [initDone, setInitDone] = useState(false)
 
   // Thème
   useEffect(() => {
@@ -151,20 +198,18 @@ export default function App() {
     return () => { cleanup?.() }
   }, [setAppUnlocked])
 
-  // Initialisation auth : trouve la session → charge le profil → reste VERROUILLÉ
   useEffect(() => {
-    if (initDone) return
-
     let isMounted = true
-    let timeoutId: NodeJS.Timeout
+    let timeoutId: ReturnType<typeof setTimeout>
 
     const initAuth = async () => {
       setLoading(true)
       setError(null)
 
-      // Nettoyage push_open (URL propre)
+      // Ouverture depuis une notification push (push_open=1 ajouté par push-sw.js)
       const searchParams = new URLSearchParams(window.location.search)
       if (searchParams.get('push_open') === '1') {
+        sessionStorage.setItem('kaytek-active', '1')
         const cleanUrl = window.location.pathname + window.location.hash
         window.history.replaceState({}, '', cleanUrl)
       }
@@ -182,15 +227,22 @@ export default function App() {
         ])
 
         if (!isMounted) return
-        if (sessionError) throw new Error(`Erreur de session: ${sessionError.message}`)
 
-        if (session?.user) {
-          console.log('[App] session trouvée pour', session.user.email, '→ chargement profil')
+        if (sessionError) {
+          throw new Error(`Erreur de session: ${sessionError.message}`)
+        }
 
+        if (session?.user && sessionStorage.getItem('kaytek-active')) {
           const { data: profile, error: profileError } = await supabase
-            .from('profiles').select('*').eq('id', session.user.id).single()
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
 
-          if (profileError) throw new Error(`Profil inaccessible: ${profileError.message}`)
+          if (profileError) {
+            console.error('Erreur profil:', profileError)
+            throw new Error(`Impossible de charger le profil utilisateur: ${profileError.message}`)
+          }
 
           if (profile && isMounted) {
             setUser(profile)
@@ -200,33 +252,73 @@ export default function App() {
             // l'app en arrière-plan — voir useAuthStore et AppLayout.
           }
 
-          const { data: params, error: paramsError } = await supabase
-            .from('parametres_entreprise').select('*').single()
-          if (!paramsError && params && isMounted) setParams(params)
+          if (isMounted) {
+            setSubscriptionBlocked(await fetchSubscriptionBlocked())
+          }
 
-        } else {
-          console.log('[App] aucune session → affichage login')
+          const { data: params, error: paramsError } = await supabase
+            .from('parametres_entreprise_public')
+            .select('*')
+            .single()
+
+          if (!paramsError && params && isMounted) {
+            setParams(params)
+          }
         }
 
       } catch (err: any) {
-        console.error('[App] erreur initialisation:', err)
-        if (isMounted) setError(err.message || 'Erreur de chargement')
+        console.error('Erreur d\'initialisation:', err)
+        if (isMounted) {
+          setError(err.message || 'Une erreur est survenue lors du chargement')
+        }
       } finally {
         clearTimeout(timeoutId)
-        if (isMounted) { setLoading(false); setInitDone(true) }
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     initAuth()
 
-    // Seul SIGNED_OUT est géré ici — les logins/unlocks sont gérés par LoginPage et LockScreen
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return
+
+      if (event === 'SIGNED_IN' && session?.user && sessionStorage.getItem('kaytek-active')) {
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+
+          if (profileError) {
+            console.error('Erreur profil après connexion:', profileError)
+            return
+          }
+
+          if (profile) setUser(profile)
+
+          setSubscriptionBlocked(await fetchSubscriptionBlocked())
+
+          const { data: params, error: paramsError } = await supabase
+            .from('parametres_entreprise_public')
+            .select('*')
+            .single()
+
+          if (!paramsError && params) setParams(params)
+
+        } catch (err) {
+          console.error('Erreur lors du changement d\'état auth:', err)
+        }
+      }
+
       if (event === 'SIGNED_OUT') {
         console.log('[App] SIGNED_OUT → reset store')
         setAppUnlocked(false)
         setUser(null)
         setParams(null)
+        setSubscriptionBlocked(false)
         qc.clear()
       }
     })
@@ -236,48 +328,51 @@ export default function App() {
       clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
-  }, [initDone, setUser, setLoading, setError, setParams, setAppUnlocked, qc])
+  }, [])
 
   return (
     <Suspense fallback={<Loader />}>
       <Routes>
         {/* Pages publiques */}
-        <Route path="/login"          element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/d/:token"       element={<PublicDocumentPage />} />
-        <Route path="/confidentialite"element={<ConfidentialitePage />} />
+        <Route path="/activation" element={<ActivationPage />} />
+        <Route path="/d/:token" element={<PublicDocumentPage />} />
+        <Route path="/confidentialite" element={<ConfidentialitePage />} />
         <Route path="/delete-account" element={<DeleteAccountPage />} />
 
-        {/* Écran de verrouillage */}
+        {/* Écran de verrouillage (app native) */}
         <Route path="/lock" element={<LockGuard><LockScreen /></LockGuard>} />
 
-        {/* App protégée : session + isAppUnlocked */}
+        {/* App protégée : session + isAppUnlocked + abonnement actif */}
         <Route path="/" element={<Guard><AppLayout /></Guard>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard"      element={<DashboardPage />} />
-          <Route path="interventions"  element={<InterventionsPage />} />
-          <Route path="planning"       element={<PlanningPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="interventions" element={<InterventionsPage />} />
+          <Route path="planning" element={<PlanningPage />} />
           <Route path="interventions/:id" element={<InterventionDetailPage />} />
-          <Route path="devis"          element={<Guard><DevisPage /></Guard>} />
-          <Route path="devis/nouveau"  element={<Guard requireCanCreateDocs><DevisFormPage /></Guard>} />
+          <Route path="devis" element={<Guard allowedRoles={['admin','intervenant']}><DevisPage /></Guard>} />
+          <Route path="devis/nouveau" element={<Guard requireCanCreateDocs allowedRoles={['admin','intervenant']}><DevisFormPage /></Guard>} />
           <Route path="devis/:id/editer" element={<Guard adminOnly><DevisFormPage /></Guard>} />
-          <Route path="devis/:id/apercu" element={<Guard><DevisApercuPage /></Guard>} />
-          <Route path="factures"       element={<Guard><FacturesPage /></Guard>} />
-          <Route path="clients"        element={<Guard adminOnly><ClientsPage /></Guard>} />
-          <Route path="clients/:id"    element={<Guard adminOnly><ClientDetailPage /></Guard>} />
-          <Route path="catalogue"      element={<Guard adminOnly><CataloguePage /></Guard>} />
-          <Route path="messagerie"     element={<MessagingPage />} />
+          <Route path="devis/:id/apercu" element={<Guard allowedRoles={['admin','intervenant']}><DevisApercuPage /></Guard>} />
+          <Route path="factures" element={<Guard allowedRoles={['admin','intervenant']}><FacturesPage /></Guard>} />
+          <Route path="clients" element={<Guard allowedRoles={['admin','assistant']}><ClientsPage /></Guard>} />
+          <Route path="clients/:id" element={<Guard allowedRoles={['admin','assistant']}><ClientDetailPage /></Guard>} />
+          <Route path="catalogue" element={<Guard adminOnly><CataloguePage /></Guard>} />
+          <Route path="messagerie" element={<MessagingPage />} />
           <Route path="messagerie/:userId" element={<MessagingPage />} />
-          <Route path="commissions"    element={<CommissionsPage />} />
-          <Route path="utilisateurs"   element={<Guard adminOnly><UsersPage /></Guard>} />
-          <Route path="parametres"     element={<Guard adminOnly><ParamsPage /></Guard>} />
-          <Route path="journal"        element={<Guard adminOnly><JournalPage /></Guard>} />
-          <Route path="guide"          element={<Guard><GuidePage /></Guard>} />
+          <Route path="commissions" element={<Guard allowedRoles={['admin','intervenant']}><CommissionsPage /></Guard>} />
+          <Route path="partenaires" element={<Guard adminOnly><PartenairesPage /></Guard>} />
+          <Route path="utilisateurs" element={<Guard adminOnly><UsersPage /></Guard>} />
+          <Route path="parametres" element={<Guard adminOnly><ParamsPage /></Guard>} />
+          <Route path="journal" element={<Guard adminOnly><JournalPage /></Guard>} />
+          {/* ── Guide d'utilisation ─────────────────────────────────────── */}
+          <Route path="guide" element={<Guard allowedRoles={['admin','intervenant']}><GuidePage /></Guard>} />
           <Route path="guide/admin/videos" element={<Guard adminOnly><GuideAdminVideosPage /></Guard>} />
           <Route path="guide/admin/:section?" element={<Guard adminOnly><GuideAdminPage /></Guard>} />
           <Route path="guide/intervenant/:section?" element={<Guard><GuideIntervenantPage /></Guard>} />
-          <Route path="guide/faq"      element={<Guard><GuideFAQPage /></Guard>} />
-          <Route path="*"              element={<Navigate to="/dashboard" replace />} />
+          <Route path="guide/faq" element={<Guard><GuideFAQPage /></Guard>} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
     </Suspense>

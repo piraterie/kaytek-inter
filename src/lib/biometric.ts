@@ -142,8 +142,8 @@ export async function authenticateWithBiometric(): Promise<boolean> {
     const challenge = crypto.getRandomValues(new Uint8Array(32))
     const assertion = await navigator.credentials.get({
       publicKey: {
-        challenge,
-        allowCredentials: [{ type: 'public-key', id: credId }],
+        challenge: challenge as BufferSource,
+        allowCredentials: [{ type: 'public-key', id: credId as BufferSource }],
         userVerification: 'required',
         timeout: 60000,
       },

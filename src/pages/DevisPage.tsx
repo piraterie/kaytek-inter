@@ -566,7 +566,7 @@ export default function DevisPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <div style={{ width: 3, height: 18, borderRadius: 2, background: STATUS_BORDER[d.statut] || 'var(--s3)', flexShrink: 0 }} />
                       <span style={{ fontWeight: 700, color: 'var(--t0)' }}>{d.numero}</span>
-                      {(d.signature_url || d.signature_client) && <BadgeCheck size={13} color="var(--gnTx)" title="Devis signé" />}
+                      {(d.signature_url || d.signature_client) && <span title="Devis signé"><BadgeCheck size={13} color="var(--gnTx)" /></span>}
                     </div>
                   </td>
                   <td>

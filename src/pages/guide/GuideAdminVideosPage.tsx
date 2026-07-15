@@ -7,7 +7,7 @@ import ConfirmModal from '@/components/ConfirmModal'
 import { BookOpen, Upload, Edit2, Trash2, Eye, EyeOff, ArrowLeft } from 'lucide-react'
 import type { GuideVideo, Role } from '@/types'
 
-const ROLE_LABELS: Record<Role, string> = { admin: 'Administrateur', intervenant: 'Intervenant' }
+const ROLE_LABELS: Record<Role, string> = { admin: 'Administrateur', intervenant: 'Intervenant', assistant: 'Assistant' }
 
 function EditModal({ video, onClose }: { video: GuideVideo; onClose: () => void }) {
   const update = useUpdateGuideVideo()

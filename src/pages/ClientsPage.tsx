@@ -20,6 +20,7 @@ export default function ClientsPage() {
   const { user } = useAuthStore()
   const { add } = useToastStore()
   const isAdmin = user?.role === 'admin'
+  const canManageOps = isAdmin || user?.role === 'assistant'
   const [search, setSearch] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [modal, setModal] = useState(false)
@@ -160,7 +161,7 @@ export default function ClientsPage() {
         {/* Desktop : inchangé */}
         <div className="page-actions hide-mobile">
           <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={clients.length===0}><FileSpreadsheet size={14} /> Excel</button>
-          {isAdmin && (
+          {canManageOps && (
             <button
               className={`btn btn-sm ${showArchived ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => { setShowArchived(v => !v); exitSelection() }}
@@ -168,7 +169,7 @@ export default function ClientsPage() {
               <Archive size={14} /> {showArchived ? 'Masquer archives' : 'Archives'}
             </button>
           )}
-          {isAdmin && !selectionMode && clients.length > 0 && (
+          {canManageOps && !selectionMode && clients.length > 0 && (
             <button className="btn btn-secondary" onClick={() => setSelectionMode(true)}><CheckSquare size={14} /> Sélectionner</button>
           )}
           {isAdmin && showArchived && clients.length > 0 && (
@@ -177,12 +178,12 @@ export default function ClientsPage() {
               <Trash2 size={14} /> Vider les archives
             </button>
           )}
-          {isAdmin && !showArchived && <button className="btn btn-primary" onClick={openCreate}>+ Ajouter</button>}
+          {canManageOps && !showArchived && <button className="btn btn-primary" onClick={openCreate}>+ Ajouter</button>}
         </div>
         {/* Mobile : ligne compacte sous le titre */}
         <div className="show-mobile" style={{ width: '100%' }}>
           <div style={{ display: 'flex', gap: 8 }}>
-            {isAdmin && !showArchived && (
+            {canManageOps && !showArchived && (
               <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={openCreate}>
                 + Ajouter
               </button>
@@ -209,7 +210,7 @@ export default function ClientsPage() {
               <Archive size={13} /> Archiver la sélection
             </button>
           )}
-          {selected.size > 0 && showArchived && (
+          {isAdmin && selected.size > 0 && showArchived && (
             <button className="btn btn-secondary btn-sm" style={{ color: 'var(--rdTx)', borderColor: 'var(--rdBd)' }}
               onClick={handleDeleteSelected} disabled={delArchived.isPending}>
               <Trash2 size={13} /> Supprimer la sélection
@@ -282,7 +283,7 @@ export default function ClientsPage() {
               <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                 <span className="pill pill-gray" style={{ fontSize: 10 }}>{c.type}</span>
                 {c.archive && <span className="pill pill-amber" style={{ fontSize: 9 }}>Archivé</span>}
-                {isAdmin && !selectionMode && (
+                {canManageOps && !selectionMode && (
                   <button
                     className="btn-icon sm"
                     onClick={e => { e.stopPropagation(); setActiveSheet(c) }}
@@ -303,7 +304,7 @@ export default function ClientsPage() {
           <thead>
             <tr>
               {selectionMode && <th style={{ width: 40, paddingRight: 0 }}><input type="checkbox" style={chkStyle} checked={selected.size === clients.length && clients.length > 0} onChange={toggleSelectAll} /></th>}
-              <th>Client</th><th>Contact</th><th>Adresse</th><th>Type</th>{isAdmin&&<th></th>}
+              <th>Client</th><th>Contact</th><th>Adresse</th><th>Type</th>{canManageOps&&<th></th>}
             </tr>
           </thead>
           <tbody>
@@ -314,7 +315,7 @@ export default function ClientsPage() {
                 <td><div className="skeleton-row" style={{ height:13,width:'80%',marginBottom:4 }} /><div className="skeleton-row" style={{ height:11,width:'60%' }} /></td>
                 <td><div className="skeleton-row" style={{ height:13,width:'90%' }} /></td>
                 <td><div className="skeleton-row" style={{ height:20,width:60,borderRadius:999 }} /></td>
-                {isAdmin&&<td />}
+                {canManageOps&&<td />}
               </tr>
             ))}
             {!isLoading&&clients.length===0&&<tr><td colSpan={selectionMode ? 6 : 5} style={{ textAlign:'center',padding:24,color:'var(--t3)' }}>
@@ -332,12 +333,12 @@ export default function ClientsPage() {
                 <td><div style={{ fontSize:13 }}>{c.telephone||'—'}</div><div style={{ fontSize:12,color:'var(--t3)' }}>{c.email}</div></td>
                 <td style={{ fontSize:12 }}>{c.adresse_intervention||'—'}</td>
                 <td><span className="pill pill-gray">{c.type}</span></td>
-                {isAdmin&&(
+                {canManageOps&&(
                   <td onClick={e => e.stopPropagation()}>
                     <div style={{ display:'flex', gap:4 }}>
                       {!c.archive && <button className="btn-icon sm" onClick={()=>openEdit(c)} title="Modifier"><Pencil size={14} /></button>}
                       <button className="btn-icon sm" onClick={()=>handleArchive(c)} title={c.archive?'Restaurer':'Archiver'} style={{ color: c.archive ? 'var(--gnTx)' : 'var(--amTx)' }}>{c.archive ? <ArchiveRestore size={14} /> : <Archive size={14} />}</button>
-                      {c.archive && <button className="btn-icon sm" style={{ color:'var(--rdTx)' }} onClick={()=>handleDelete(c)} title="Supprimer définitivement"><Trash2 size={14} /></button>}
+                      {c.archive && isAdmin && <button className="btn-icon sm" style={{ color:'var(--rdTx)' }} onClick={()=>handleDelete(c)} title="Supprimer définitivement"><Trash2 size={14} /></button>}
                     </div>
                   </td>
                 )}
@@ -377,7 +378,7 @@ export default function ClientsPage() {
             label={activeSheet.archive ? 'Restaurer le client' : 'Archiver le client'}
             onClick={() => { setActiveSheet(null); handleArchive(activeSheet) }} />
 
-          {activeSheet.archive && (
+          {activeSheet.archive && isAdmin && (
             <>
               <SheetSection label="Zone dangereuse" />
               <SheetRow icon={<Trash2 size={16} />} label="Supprimer définitivement" danger
@@ -397,14 +398,14 @@ export default function ClientsPage() {
             onClick={() => { setShowMobileActions(false); handleExport() }}
             disabled={clients.length === 0}
           />
-          {isAdmin && (
+          {canManageOps && (
             <SheetRow
               icon={<Archive size={16} />}
               label={showArchived ? 'Masquer les archives' : 'Voir les archives'}
               onClick={() => { setShowMobileActions(false); setShowArchived(v => !v); exitSelection() }}
             />
           )}
-          {isAdmin && !selectionMode && clients.length > 0 && (
+          {canManageOps && !selectionMode && clients.length > 0 && (
             <SheetRow
               icon={<CheckSquare size={16} />}
               label="Mode sélection"

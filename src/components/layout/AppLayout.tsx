@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
   LayoutDashboard, MessagesSquare, Wrench, CalendarDays, FileText, Receipt,
-  Users, Package, DollarSign, Shield, Settings, ClipboardList,
+  Users, Package, DollarSign, Shield, Settings, ClipboardList, Handshake,
   ChevronLeft, ChevronRight, LogOut, Sun, Moon, BookOpen,
   MessageCircle, Bell, Menu, User, Smartphone, Monitor, X,
   CheckCheck, Trash2, ChevronUp, ChevronDown, AlertTriangle,
@@ -20,20 +20,22 @@ import { useUnreadCount, useUpdateProfile, useIsMobile, useRequestNotificationPe
 import { getMyDevices, disconnectDevice, disconnectAllOtherDevices, isCurrentDevice, type DeviceRecord } from '@/lib/devices'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 import OfflineBanner from '@/components/OfflineBanner'
+import type { Role } from '@/types'
 
-type NavIcon = React.ComponentType<{ size?: number; strokeWidth?: number; style?: React.CSSProperties }>
+type NavIcon = React.ComponentType<{ size?: number | string; strokeWidth?: number | string; style?: React.CSSProperties }>
 
-const NAV: { path: string; label: string; icon: NavIcon; section: string; adminOnly?: boolean; badge?: 'messages' | 'pending' }[] = [
+const NAV: { path: string; label: string; icon: NavIcon; section: string; adminOnly?: boolean; allowedRoles?: Role[]; badge?: 'messages' | 'pending' | 'partnerRequests' }[] = [
   { path: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard, section: 'Pilotage' },
   { path: '/messagerie',    label: 'Messagerie',    icon: MessagesSquare,  section: 'Pilotage', badge: 'messages' },
   { path: '/interventions', label: 'Interventions', icon: Wrench,          section: 'Terrain',  badge: 'pending' },
   { path: '/planning',      label: 'Planning',      icon: CalendarDays,    section: 'Terrain' },
-  { path: '/devis',         label: 'Devis',         icon: FileText,        section: 'Terrain' },
-  { path: '/factures',      label: 'Factures',      icon: Receipt,         section: 'Terrain' },
-  { path: '/clients',       label: 'Clients',       icon: Users,           section: 'Gestion', adminOnly: true },
+  { path: '/devis',         label: 'Devis',         icon: FileText,        section: 'Terrain', allowedRoles: ['admin','intervenant'] },
+  { path: '/factures',      label: 'Factures',      icon: Receipt,         section: 'Terrain', allowedRoles: ['admin','intervenant'] },
+  { path: '/clients',       label: 'Clients',       icon: Users,           section: 'Gestion', allowedRoles: ['admin','assistant'] },
   { path: '/catalogue',     label: 'Catalogue',     icon: Package,         section: 'Gestion', adminOnly: true },
-  { path: '/commissions',   label: 'Commissions',   icon: DollarSign,      section: 'Gestion' },
-  { path: '/guide',         label: 'Guide',         icon: BookOpen,        section: 'Gestion' },
+  { path: '/commissions',   label: 'Commissions',   icon: DollarSign,      section: 'Gestion', allowedRoles: ['admin','intervenant'] },
+  { path: '/guide',         label: 'Guide',         icon: BookOpen,        section: 'Gestion', allowedRoles: ['admin','intervenant'] },
+  { path: '/partenaires',   label: 'Réseau partenaires', icon: Handshake,  section: 'Administration', adminOnly: true, badge: 'partnerRequests' },
   { path: '/utilisateurs',  label: 'Utilisateurs',  icon: Shield,          section: 'Administration', adminOnly: true },
   { path: '/parametres',    label: 'Paramètres',    icon: Settings,        section: 'Administration', adminOnly: true },
   { path: '/journal',       label: 'Journal',       icon: ClipboardList,   section: 'Administration', adminOnly: true },
@@ -53,7 +55,10 @@ export default function AppLayout() {
   const nav = useNavigate()
   const loc = useLocation()
   const isAdmin = user?.role === 'admin'
-  const items = NAV.filter(i => !i.adminOnly || isAdmin)
+  const items = NAV.filter(i => {
+    if (i.allowedRoles) return !!user && i.allowedRoles.includes(user.role)
+    return !i.adminOnly || isAdmin
+  })
   const isMobile = useIsMobile()
 
   const [compact, setCompact] = useState(() => {
@@ -79,6 +84,21 @@ export default function AppLayout() {
         .eq('statut', 'en_attente')
       return count || 0
     },
+    staleTime: 2 * 60 * 1000,
+  })
+
+  const { data: pendingPartnerRequests = 0 } = useQuery({
+    queryKey: ['partner-requests-pending-count', user?.organisation_id],
+    queryFn: async () => {
+      if (!user?.organisation_id) return 0
+      const { count } = await supabase
+        .from('partner_connections')
+        .select('*', { count: 'exact', head: true })
+        .eq('target_organisation_id', user.organisation_id)
+        .eq('status', 'pending')
+      return count || 0
+    },
+    enabled: isAdmin && !!user?.organisation_id,
     staleTime: 2 * 60 * 1000,
   })
 
@@ -305,7 +325,7 @@ export default function AppLayout() {
                 {sItems.map(item => {
                   const active = loc.pathname.startsWith(item.path)
                   const Icon = item.icon
-                  const badgeCount = item.badge === 'messages' ? unread : item.badge === 'pending' ? pendingInterventions : 0
+                  const badgeCount = item.badge === 'messages' ? unread : item.badge === 'pending' ? pendingInterventions : item.badge === 'partnerRequests' ? pendingPartnerRequests : 0
                   return (
                     <button
                       key={item.path}
@@ -364,7 +384,7 @@ export default function AppLayout() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: 'var(--navTA)', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.prenom} {user?.nom}</div>
                     <div style={{ color: 'var(--navSec)', fontSize: 11, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {user?.role === 'admin' ? 'Administrateur' : 'Intervenant'} · {orgParams?.raison_sociale || 'Kaytek Inter'}
+                      {user?.role === 'admin' ? 'Administrateur' : user?.role === 'assistant' ? 'Assistant' : 'Intervenant'} · {orgParams?.raison_sociale || 'Kaytek Inter'}
                     </div>
                   </div>
                 </div>

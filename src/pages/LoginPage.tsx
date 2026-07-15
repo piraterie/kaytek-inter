@@ -1,9 +1,10 @@
 // src/pages/LoginPage.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuthStore, useParamsStore } from '@/lib/store'
+import { useAuthStore } from '@/lib/store'
 import { signIn, resetPassword } from '@/lib/supabase/auth'
 import { supabase } from '@/lib/supabase/client'
+import { fetchSubscriptionBlocked } from '@/lib/subscription'
 import {
   isBiometricAvailable, hasBiometricRegistered, getBiometricEmail,
   authenticateWithBiometric, registerBiometric, clearBiometric,
@@ -37,15 +38,6 @@ export default function LoginPage() {
   const [pendingProfile, setPendingProfile] = useState<Profile | null>(null)
   const [showPwForm, setShowPwForm] = useState(false)
   const [lockRemaining, setLockRemaining] = useState(0)
-  const [bioAvailableState, setBioAvailableState] = useState(false)
-
-  // Détection biométrie (async — plugin natif sur Android, WebAuthn sur web)
-  useEffect(() => {
-    isBiometricAvailable().then(avail => {
-      console.log('[LoginPage] bioAvailable:', avail, 'bioRegistered:', hasBiometricRegistered())
-      setBioAvailableState(avail)
-    })
-  }, [])
 
   // Décompte si verrouillé
   useEffect(() => {
@@ -62,29 +54,27 @@ export default function LoginPage() {
     return () => clearInterval(interval)
   }, [])
 
-  const { setUser, setAppUnlocked } = useAuthStore()
-  const { setParams } = useParamsStore()
+  const { setUser, setSubscriptionBlocked } = useAuthStore()
   const nav = useNavigate()
 
+  const bioAvailable  = isBiometricAvailable()
   const bioRegistered = hasBiometricRegistered()
   const bioEmail      = getBiometricEmail()
-  const showBioFirst  = bioAvailableState && bioRegistered && !showPwForm
+  const showBioFirst  = bioAvailable && bioRegistered && !showPwForm
 
-  // Activation session : profil chargé + app déverrouillée
   function activateSession(profile: Profile) {
-    console.log('[LoginPage] session activée pour', profile.email)
+    sessionStorage.setItem('kaytek-active', '1')
     setUser(profile)
-    setAppUnlocked(true)
   }
 
   function redirectAfterLogin() {
     const redirect = sessionStorage.getItem('kaytek-push-redirect')
-    if (redirect && redirect !== '/' && !redirect.startsWith('/login') && !redirect.startsWith('/lock')) {
+    if (redirect && redirect !== '/' && !redirect.startsWith('/login')) {
       sessionStorage.removeItem('kaytek-push-redirect')
-      console.log('[LoginPage] redirect post-push →', redirect)
+      console.log('[Login] redirect post-push →', redirect)
       nav(redirect, { replace: true })
     } else {
-      nav('/dashboard', { replace: true })
+      nav('/dashboard')
     }
   }
 
@@ -92,6 +82,7 @@ export default function LoginPage() {
     e.preventDefault()
     setErr('')
 
+    // Vérification du verrouillage brute-force
     const bf = getBF()
     if (bf.lockedUntil && bf.lockedUntil > Date.now()) {
       const remaining = Math.ceil((bf.lockedUntil - Date.now()) / 1000)
@@ -101,11 +92,11 @@ export default function LoginPage() {
 
     setLoading(true)
     try {
-      console.log('[LoginPage] tentative connexion pour', email)
       const result = await signIn(email, pw)
       if (!result) { setErr('Erreur de connexion inattendue'); setLoading(false); return }
-      const { profile, error } = result
+      const { profile, error, subscriptionBlocked } = result
       if (error) {
+        // Incrémenter le compteur d'échecs sauf pour l'erreur appareils
         const isDeviceLimit = error.includes("appareils autorisés")
         if (!isDeviceLimit) {
           const current = getBF()
@@ -116,31 +107,24 @@ export default function LoginPage() {
             setBF({ count: newCount, lockedUntil: null })
           }
         }
-        console.log('[LoginPage] erreur connexion:', error)
         setErr(error)
         setLoading(false)
         return
       }
       if (!profile) { setErr('Profil utilisateur introuvable'); setLoading(false); return }
 
-      // Charger les paramètres entreprise
-      const { data: params } = await supabase.from('parametres_entreprise').select('*').single()
-      if (params) setParams(params)
-
-      // Connexion réussie — réinitialiser le compteur + activer session
+      // Connexion réussie — réinitialiser le compteur
       clearBF()
+      setSubscriptionBlocked(!!subscriptionBlocked)
       activateSession(profile)
 
-      // Proposer l'activation biométrique si pas encore enregistrée
-      if (bioAvailableState && !bioRegistered) {
-        console.log('[LoginPage] proposition activation biométrie')
+      if (bioAvailable && !bioRegistered) {
         setPendingProfile(profile)
         setOfferBio(true)
       } else {
         redirectAfterLogin()
       }
     } catch (err: any) {
-      console.log('[LoginPage] exception:', err?.message)
       setErr(err.message || 'Erreur de connexion')
       setLoading(false)
     }
@@ -149,22 +133,20 @@ export default function LoginPage() {
   async function handleBiometricLogin() {
     setErr('')
     setBioLoading(true)
-    console.log('[LoginPage] tentative connexion biométrique...')
     try {
       const ok = await authenticateWithBiometric()
-      console.log('[LoginPage] résultat biométrie:', ok)
       if (!ok) {
         setErr('Empreinte non reconnue. Utilisez votre mot de passe.')
         setShowPwForm(true)
         return
       }
 
-      // Vérifier que la session Supabase est toujours valide
+      sessionStorage.setItem('kaytek-active', '1')
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) {
-        console.log('[LoginPage] session expirée → biométrie inutilisable')
-        clearBiometric()
+        sessionStorage.removeItem('kaytek-active')
         setErr('Session expirée. Reconnectez-vous avec votre mot de passe.')
+        clearBiometric()
         setShowPwForm(true)
         return
       }
@@ -172,17 +154,14 @@ export default function LoginPage() {
       const { data: profile } = await supabase
         .from('profiles').select('*').eq('id', session.user.id).single()
       if (!profile) {
+        sessionStorage.removeItem('kaytek-active')
         setErr('Profil introuvable.')
         setShowPwForm(true)
         return
       }
 
-      // Charger les paramètres
-      const { data: params } = await supabase.from('parametres_entreprise').select('*').single()
-      if (params) setParams(params)
-
-      console.log('[LoginPage] biométrie OK → session activée')
-      activateSession(profile)
+      setUser(profile)
+      setSubscriptionBlocked(await fetchSubscriptionBlocked())
       redirectAfterLogin()
     } catch {
       setErr('Authentification échouée. Utilisez votre mot de passe.')
@@ -325,7 +304,7 @@ export default function LoginPage() {
                       {loading ? 'Connexion…' : lockRemaining > 0 ? `Bloqué (${Math.ceil(lockRemaining / 60)} min)` : 'Se connecter'}
                     </button>
                   </form>
-                  {showPwForm && bioAvailableState && bioRegistered && (
+                  {showPwForm && bioAvailable && bioRegistered && (
                     <button
                       onClick={() => { setShowPwForm(false); setErr('') }}
                       style={{ background: 'none', border: 'none', color: 'var(--blTx)', fontSize: 12, cursor: 'pointer', marginTop: 10, display: 'block', textAlign: 'center', width: '100%' }}

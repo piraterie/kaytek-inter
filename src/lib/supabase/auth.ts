@@ -1,6 +1,7 @@
 // src/lib/supabase/auth.ts
 import { supabase } from './client'
 import { registerDevice } from '@/lib/devices'
+import { fetchSubscriptionBlocked } from '@/lib/subscription'
 
 export async function signIn(email: string, password: string) {
   try {
@@ -37,7 +38,9 @@ export async function signIn(email: string, password: string) {
       }
     }
 
-    return { profile, error: null }
+    const subscriptionBlocked = await fetchSubscriptionBlocked()
+
+    return { profile, error: null, subscriptionBlocked }
   } catch (err: any) {
     console.error('Erreur signIn:', err)
     return { profile: null, error: err.message || 'Erreur de connexion' }
@@ -62,8 +65,30 @@ export async function resetPassword(email: string) {
   }
 }
 
+// Supprime l'abonnement push de CE navigateur uniquement (pas les autres
+// appareils du même utilisateur) et le désinscrit côté navigateur — sur un
+// appareil partagé, empêche l'utilisateur suivant de recevoir les push
+// destinés au précédent. Doit s'exécuter AVANT supabase.auth.signOut() : la
+// RLS de push_subscriptions exige un auth.uid() encore valide. Best-effort,
+// ne bloque jamais la déconnexion en cas d'échec (PushManager indisponible,
+// erreur réseau/Supabase).
+async function cleanupCurrentDevicePushSubscription() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    const registration = await navigator.serviceWorker.getRegistration()
+    const sub = await registration?.pushManager.getSubscription()
+    if (!sub) return
+    const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
+    if (error) console.error('Suppression push_subscriptions échouée (non bloquant):', error.message)
+    await sub.unsubscribe()
+  } catch (err) {
+    console.error('Nettoyage abonnement push échoué (non bloquant):', err)
+  }
+}
+
 export async function signOut() {
   try {
+    await cleanupCurrentDevicePushSubscription()
     const { error } = await supabase.auth.signOut()
     if (error) {
       return { error: error.message }
@@ -106,11 +131,12 @@ export async function inviterIntervenant(
   nom: string,
   prenom: string,
   commission_pct: number,
-  type_intervenant?: 'entrepreneur' | 'salarie'
+  type_intervenant?: 'entrepreneur' | 'salarie',
+  role: 'intervenant' | 'assistant' = 'intervenant'
 ) {
   try {
     const { data, error } = await supabase.functions.invoke('inviter-intervenant', {
-      body: { email, nom, prenom, commission_pct, type_intervenant }
+      body: { email, nom, prenom, commission_pct, type_intervenant, role }
     })
 
     if (error) return { error: error.message }

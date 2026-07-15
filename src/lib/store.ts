@@ -1,12 +1,13 @@
 // src/lib/store.ts
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Profile, ParametresEntreprise } from '@/types'
+import type { Profile, ParametresEntreprisePublic } from '@/types'
 
 export const useAuthStore = create<{
   user: Profile | null
   loading: boolean
   error: string | null
+  subscriptionBlocked: boolean
   // Séparé de la session Supabase : persisté pour survivre à F5 / réouverture
   // de l'app, mais remis à false par la déconnexion explicite, l'inactivité
   // prolongée (30 min) ou le passage en arrière-plan de l'app native.
@@ -14,16 +15,19 @@ export const useAuthStore = create<{
   setUser: (u: Profile | null) => void
   setLoading: (v: boolean) => void
   setError: (e: string | null) => void
+  setSubscriptionBlocked: (v: boolean) => void
   setAppUnlocked: (v: boolean) => void
   isAdmin: () => boolean
 }>()(
   persist(
     (set, get) => ({
       user: null, loading: true, error: null,
+      subscriptionBlocked: false,
       isAppUnlocked: false,
       setUser: u => set({ user: u }),
       setLoading: v => set({ loading: v }),
       setError: e => set({ error: e }),
+      setSubscriptionBlocked: v => set({ subscriptionBlocked: v }),
       setAppUnlocked: v => set({ isAppUnlocked: v }),
       isAdmin: () => get().user?.role === 'admin'
     }),
@@ -46,8 +50,10 @@ export const useUIStore = create(persist<{
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }), { name: 'kaytek-ui', partialize: (s: any) => ({ theme: s.theme }) } as any))
 
+// Paramètres publics uniquement (jamais iban/bic) — branding/UI générale,
+// accessible à tout rôle. Voir usePublicParametres()/useParametres().
 export const useParamsStore = create<{
-  params: ParametresEntreprise | null; setParams: (p: ParametresEntreprise) => void
+  params: ParametresEntreprisePublic | null; setParams: (p: ParametresEntreprisePublic) => void
 }>((set) => ({ params: null, setParams: p => set({ params: p }) }))
 
 export type ToastType = 'success'|'error'|'info'|'warning'

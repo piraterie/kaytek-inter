@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import SignatureModal from '@/components/SignatureModal'
-import { useCreateDevis, useUpdateDevis, useDevisById, useClients, useProfiles, usePrestations, useCreatePrestation, useParametres, useCreateClient, useCreateIntervention } from '@/lib/hooks'
+import { useCreateDevis, useUpdateDevis, useDevisById, useClients, useProfiles, usePrestations, useCreatePrestation, useParametres, usePublicParametres, useCreateClient, useCreateIntervention } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
 import { pdfCache } from '@/lib/pdf/cache'
@@ -35,9 +35,15 @@ export default function DevisFormPage() {
   const [sp] = useSearchParams()
   const isEdit = !!id && id !== 'nouveau'
   const { user } = useAuthStore()
+  const isAdmin = user?.role === 'admin'
   const { params: storeParams } = useParamsStore()
+  // Admin : IBAN/BIC inclus (RLS admin-only). Non-admin : jamais
+  // iban/bic — SIRET/TVA/RC Pro restent sur le PDF (mentions légales
+  // publiques), storeParams (vue publique, chargée dès la connexion)
+  // sert de repli le temps du chargement de dbParams.
   const { data: dbParams } = useParametres()
-  const params = storeParams || dbParams
+  const { data: publicParams } = usePublicParametres()
+  const params = isAdmin ? (dbParams || storeParams || publicParams) : (storeParams || publicParams)
   const { add } = useToastStore()
   // UI state
   const [showSig, setShowSig] = useState(false)
@@ -74,7 +80,6 @@ export default function DevisFormPage() {
     intervention_id: interventionId
   })
   const [lignes, setLignes] = useState<LigneDevis[]>([])
-  const isAdmin = user?.role === 'admin'
   const [clientFromIntervention, setClientFromIntervention] = useState<{ nom: string; prenom?: string; telephone?: string; email?: string } | null>(null)
 
   useEffect(() => {

@@ -22,7 +22,7 @@ export default function UsersPage() {
   const [modal, setModal] = useState(false)
   const [editModal, setEditModal] = useState(false)
   const [editTarget, setEditTarget] = useState<Profile | null>(null)
-  const [invForm, setInvForm] = useState({ email:'', nom:'', prenom:'', commission_pct:30, type_intervenant:'entrepreneur' as 'entrepreneur'|'salarie' })
+  const [invForm, setInvForm] = useState({ email:'', nom:'', prenom:'', commission_pct:30, type_intervenant:'entrepreneur' as 'entrepreneur'|'salarie', role:'intervenant' as 'intervenant'|'assistant' })
   const [editForm, setEditForm] = useState({ nom:'', prenom:'', email:'', commission_pct:30, type_intervenant:'' as ''|'entrepreneur'|'salarie', can_create_documents: false, can_bypass_validation: false, telegram_chat_id: '', telegram_notifications_enabled: true })
   const [invLoading, setInvLoading] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
@@ -49,10 +49,10 @@ export default function UsersPage() {
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault(); setInvLoading(true)
-    const { error } = await inviterIntervenant(invForm.email, invForm.nom, invForm.prenom, invForm.commission_pct, invForm.type_intervenant)
+    const { error } = await inviterIntervenant(invForm.email, invForm.nom, invForm.prenom, invForm.commission_pct, invForm.type_intervenant, invForm.role)
     setInvLoading(false)
     if (error) add(error,'error')
-    else { add(`Invitation envoyée à ${invForm.email}`); setModal(false); setInvForm({ email:'',nom:'',prenom:'',commission_pct:30, type_intervenant:'entrepreneur' }); refetch() }
+    else { add(`Invitation envoyée à ${invForm.email}`); setModal(false); setInvForm({ email:'',nom:'',prenom:'',commission_pct:30, type_intervenant:'entrepreneur', role:'intervenant' }); refetch() }
   }
 
   function openEdit(p: Profile) {
@@ -155,7 +155,7 @@ export default function UsersPage() {
           <h1 className="page-title">Utilisateurs</h1>
           <p className="page-subtitle">{profiles.length} utilisateur{profiles.length > 1 ? 's' : ''} · Admin : accès total · Intervenants : données isolées (RLS)</p>
         </div>
-        <button className="btn btn-primary" onClick={()=>setModal(true)}>+ Inviter intervenant</button>
+        <button className="btn btn-primary" onClick={()=>setModal(true)}>+ Inviter un utilisateur</button>
       </div>
 
       <div className="search-bar" style={{ marginBottom: 14 }}>
@@ -202,24 +202,26 @@ export default function UsersPage() {
             </div>
             {/* Actions — wrappent sur une nouvelle ligne sur mobile */}
             <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',width:'100%',maxWidth:380 }}>
-              <span className={`pill ${p.role==='admin'?'pill-purple':'pill-blue'}`}>{p.role}</span>
-              {p.role==='intervenant'&&(
+              <span className={`pill ${p.role==='admin'?'pill-purple':p.role==='assistant'?'pill-amber':'pill-blue'}`}>{p.role}</span>
+              {(p.role==='intervenant'||p.role==='assistant')&&(
                 <>
                   <span className={`pill ${p.actif?'pill-green':'pill-red'}`}>{p.actif?'Actif':'Inactif'}</span>
                   <div className={`toggle ${p.actif?'':'off'}`} onClick={()=>toggleActive(p.id, p.actif)} title={p.actif?'Désactiver':'Activer'} style={{ cursor:'pointer' }} />
-                  <div style={{ display:'flex',alignItems:'center',gap:4 }}>
-                    <input type="number" defaultValue={p.commission_pct} min={0} max={100} step={1}
-                      style={{ width:52,fontSize:13,padding:'4px 6px',minHeight:'auto',borderRadius:6 }}
-                      onBlur={e=>{ if(+e.target.value!==p.commission_pct) updateCommission(p.id,+e.target.value) }}
-                      title="Commission %" />
-                    <span style={{ fontSize:12,color:'var(--t2)' }}>%</span>
-                  </div>
+                  {p.role==='intervenant' && (
+                    <div style={{ display:'flex',alignItems:'center',gap:4 }}>
+                      <input type="number" defaultValue={p.commission_pct} min={0} max={100} step={1}
+                        style={{ width:52,fontSize:13,padding:'4px 6px',minHeight:'auto',borderRadius:6 }}
+                        onBlur={e=>{ if(+e.target.value!==p.commission_pct) updateCommission(p.id,+e.target.value) }}
+                        title="Commission %" />
+                      <span style={{ fontSize:12,color:'var(--t2)' }}>%</span>
+                    </div>
+                  )}
                 </>
               )}
               <div style={{ marginLeft:'auto',display:'flex',gap:8 }}>
                 <button className="btn-icon sm" onClick={()=>openDevices(p)} title="Gérer les appareils"><Smartphone size={14} /></button>
                 <button className="btn btn-secondary btn-sm" onClick={()=>openEdit(p)} title="Modifier"><Pencil size={13} /> Modifier</button>
-                {p.role==='intervenant'&&(
+                {(p.role==='intervenant'||p.role==='assistant')&&(
                   <button
                     className="btn-icon sm"
                     style={{ color:'var(--rdTx)' }}
@@ -244,23 +246,34 @@ export default function UsersPage() {
         <div className="modal-overlay" onClick={()=>setModal(false)}>
           <div className="modal" onClick={e=>e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">Inviter un intervenant</span>
+              <span className="modal-title">Inviter un utilisateur</span>
               <button className="btn-icon sm" onClick={()=>setModal(false)}><X size={15} /></button>
             </div>
             <form onSubmit={handleInvite}>
               <div className="modal-body">
-                <p style={{ fontSize:13,color:'var(--t2)',marginBottom:14 }}>Un email d'invitation sera envoyé. L'intervenant pourra définir son mot de passe.</p>
+                <p style={{ fontSize:13,color:'var(--t2)',marginBottom:14 }}>Un email d'invitation sera envoyé. L'utilisateur pourra définir son mot de passe.</p>
+                <div className="form-group">
+                  <label>Rôle</label>
+                  <select value={invForm.role} onChange={e=>setInvForm(f=>({...f,role:e.target.value as any}))}>
+                    <option value="intervenant">Intervenant</option>
+                    <option value="assistant">Assistant</option>
+                  </select>
+                </div>
                 <div className="form-group"><label>Prénom <span className="req">*</span></label><input value={invForm.prenom} onChange={e=>setInvForm(f=>({...f,prenom:e.target.value}))} required /></div>
                 <div className="form-group"><label>Nom <span className="req">*</span></label><input value={invForm.nom} onChange={e=>setInvForm(f=>({...f,nom:e.target.value}))} required /></div>
                 <div className="form-group"><label>Email <span className="req">*</span></label><input type="email" value={invForm.email} onChange={e=>setInvForm(f=>({...f,email:e.target.value}))} required /></div>
-                <div className="form-group"><label>Commission (%)</label><input type="number" min={0} max={100} value={invForm.commission_pct} onChange={e=>setInvForm(f=>({...f,commission_pct:+e.target.value}))} /></div>
-                <div className="form-group">
-                  <label>Type d'intervenant</label>
-                  <select value={invForm.type_intervenant} onChange={e=>setInvForm(f=>({...f,type_intervenant:e.target.value as any}))}>
-                    <option value="entrepreneur">Entrepreneur (autonome)</option>
-                    <option value="salarie">Salarié</option>
-                  </select>
-                </div>
+                {invForm.role === 'intervenant' && (
+                  <>
+                    <div className="form-group"><label>Commission (%)</label><input type="number" min={0} max={100} value={invForm.commission_pct} onChange={e=>setInvForm(f=>({...f,commission_pct:+e.target.value}))} /></div>
+                    <div className="form-group">
+                      <label>Type d'intervenant</label>
+                      <select value={invForm.type_intervenant} onChange={e=>setInvForm(f=>({...f,type_intervenant:e.target.value as any}))}>
+                        <option value="entrepreneur">Entrepreneur (autonome)</option>
+                        <option value="salarie">Salarié</option>
+                      </select>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={()=>setModal(false)}>Annuler</button>

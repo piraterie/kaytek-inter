@@ -15,10 +15,11 @@ import { supabase } from '@/lib/supabase/client'
 import { uploadPhoto as uploadPhotoStorage } from '@/lib/supabase/storage'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { pdfCache } from '@/lib/pdf/cache'
-import type { Intervention, Devis, Facture, Client, Commission, Message, Profile, Prestation, ParametresEntreprise, DashboardStats, JournalEntry } from '@/types'
+import type { Intervention, Devis, Facture, Client, Commission, Message, Profile, Prestation, ParametresEntreprise, ParametresEntreprisePublic, DashboardStats, JournalEntry } from '@/types'
 
 const uid = () => useAuthStore.getState().user?.id
 const isAdm = () => useAuthStore.getState().user?.role === 'admin'
+const canManageOps = () => ['admin', 'assistant'].includes(useAuthStore.getState().user?.role || '')
 const orgId = () => useAuthStore.getState().user?.organisation_id
 
 // ── DASHBOARD ────────────────────────────────────────────────────
@@ -31,20 +32,23 @@ export function useDashboard() {
       const startDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
       const startMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString()
       const admin = isAdm()
+      const isAssistant = user?.role === 'assistant'
       const [
         { count: todayCount },
         { data: factures },
         { data: commissionsDues },
         { count: msgs },
         { count: devisWaiting },
-        { data: mesCommissions }
+        { data: mesCommissions },
+        { count: aPlanifier },
       ] = await Promise.all([
         supabase.from('interventions').select('id', { count: 'exact', head: true }).gte('date_prevue', startDay),
         admin ? supabase.from('factures').select('montant_ttc, statut_paiement').gte('created_at', startMonth) : Promise.resolve({ data: [] }),
         admin ? supabase.from('commissions').select('commission_admin').eq('statut', 'a_payer') : Promise.resolve({ data: [] }),
         supabase.from('messages').select('id', { count: 'exact', head: true }).eq('destinataire_id', user!.id).eq('lu', false),
         admin ? supabase.from('devis').select('id', { count: 'exact', head: true }).eq('statut', 'envoye') : Promise.resolve({ count: 0 }),
-        !admin ? supabase.from('commissions').select('part_intervenant, statut').eq('intervenant_id', user!.id).gte('created_at', startMonth) : Promise.resolve({ data: [] }),
+        (!admin && !isAssistant) ? supabase.from('commissions').select('part_intervenant, statut').eq('intervenant_id', user!.id).gte('created_at', startMonth) : Promise.resolve({ data: [] }),
+        isAssistant ? supabase.from('interventions').select('id', { count: 'exact', head: true }).eq('statut', 'en_attente') : Promise.resolve({ count: 0 }),
       ])
       const fa = factures || []
       const impayees = fa.filter(f => f.statut_paiement === 'impayee')
@@ -60,6 +64,7 @@ export function useDashboard() {
         messages_non_lus: msgs || 0,
         mes_commissions_mois: myComm.reduce((s, c) => s + (c.part_intervenant || 0), 0),
         mes_commissions_dues: myComm.filter(c => c.statut === 'a_payer').reduce((s, c) => s + (c.part_intervenant || 0), 0),
+        interventions_a_planifier: aPlanifier || 0,
       }
     },
     refetchInterval: 30_000,
@@ -105,11 +110,29 @@ export function useUpdateProfile() {
 }
 
 // ── PARAMETRES ───────────────────────────────────────────────────
+// Version complète (iban/bic inclus) — réservée admin par RLS
+// (params_select_admin). Pour tout autre rôle, retourne null : utiliser
+// usePublicParametres() pour les champs non sensibles.
 export function useParametres() {
   return useQuery<ParametresEntreprise | null>({
     queryKey: ['parametres'],
     queryFn: async () => {
       const { data, error } = await supabase.from('parametres_entreprise').select('*').maybeSingle()
+      if (error) throw error
+      return data
+    },
+    staleTime: 1000 * 60 * 10
+  })
+}
+// Version publique (sans iban/bic) — accessible à tout membre de
+// l'organisation via la vue parametres_entreprise_public. À utiliser
+// pour l'UI générale, les mentions légales du PDF (SIRET/TVA/RC Pro
+// sont publiques), et REQUIRED_PARAMS, quel que soit le rôle.
+export function usePublicParametres() {
+  return useQuery<ParametresEntreprisePublic | null>({
+    queryKey: ['parametres-public'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('parametres_entreprise_public').select('*').maybeSingle()
       if (error) throw error
       return data
     },
@@ -135,15 +158,17 @@ export function useUpdateParametres() {
   })
 }
 
-export const REQUIRED_PARAMS: Array<{ field: keyof ParametresEntreprise; label: string }> = [
+export const REQUIRED_PARAMS: Array<{ field: keyof ParametresEntreprisePublic; label: string }> = [
   { field: 'raison_sociale', label: 'Raison sociale' },
   { field: 'email',          label: 'Email entreprise' },
   { field: 'telephone',      label: 'Téléphone' },
   { field: 'adresse',        label: 'Adresse' },
 ]
 
+// Champs non sensibles uniquement (raison_sociale/email/telephone/
+// adresse) : doit fonctionner pour tous les rôles, pas seulement admin.
 export function useParamsCompletion() {
-  const { data: params, isLoading } = useParametres()
+  const { data: params, isLoading } = usePublicParametres()
   if (isLoading) {
     return { isComplete: true, missingFields: [] as typeof REQUIRED_PARAMS, isLoaded: false }
   }
@@ -352,7 +377,7 @@ export function useInterventions(filters?: { statut?: string; intervenant_id?: s
       let q = supabase.from('interventions')
         .select('*, client:clients(id,nom,prenom,telephone,ville_intervention), intervenant:profiles!intervenant_id(id,nom,prenom,email,commission_pct), photos(id,url,type)')
         .order('created_at', { ascending: false })
-      if (!isAdm()) q = q.eq('intervenant_id', user!.id)
+      if (!canManageOps()) q = q.eq('intervenant_id', user!.id)
       if (filters?.statut && filters.statut !== 'tous') q = q.eq('statut', filters.statut)
       if (filters?.intervenant_id) q = q.eq('intervenant_id', filters.intervenant_id)
       if (filters?.search) q = q.or(`description.ilike.%${filters.search}%,adresse.ilike.%${filters.search}%`)
@@ -447,10 +472,16 @@ export function useCreateIntervention() {
         if (error.code === '23505') throw new Error('Numéro d\'intervention déjà utilisé — veuillez réessayer.')
         throw error
       }
+      const lien = `/interventions/${(result as any).id}`
       // Si un intervenant est assigné dès la création, le notifier
       if (data.intervenant_id) {
-        const lien = `/interventions/${(result as any).id}`
         notifyUser(data.intervenant_id, '🚨 Nouvelle intervention', 'Une intervention vous a été attribuée.', lien).catch(() => {})
+      }
+      // Créée par un assistant → prévenir l'admin (visibilité sur le dispatch)
+      const creator = useAuthStore.getState().user
+      if (creator?.role === 'assistant') {
+        const creatorName = `${creator.prenom || ''} ${creator.nom || ''}`.trim()
+        notifyAdmins('🆕 Intervention créée par l\'assistant', `${creatorName} a créé une nouvelle intervention.`, lien).catch(() => {})
       }
       return result
     },
@@ -473,6 +504,10 @@ export function useUpdateIntervention() {
       } else if (data.intervenant_id) {
         // Réassignation d'intervenant
         notifyUser(data.intervenant_id, '🚨 Nouvelle intervention', 'Une intervention vous a été attribuée.', lien).catch(() => {})
+        // Assignée/réassignée par un assistant → prévenir l'admin
+        if (user?.role === 'assistant') {
+          notifyAdmins('🔄 Intervention assignée par l\'assistant', `${userName} a assigné un intervenant sur une intervention.`, lien).catch(() => {})
+        }
       } else if (data.statut) {
         // Autre changement de statut → notifier l'intervenant assigné
         const { data: current } = await supabase.from('interventions').select('intervenant_id').eq('id', id).single()
@@ -504,6 +539,25 @@ export function useDeleteIntervention() {
       qc.invalidateQueries({ queryKey: ['notifications'] })
     }
   })
+}
+// Vérifie si une intervention a des enregistrements liés avant suppression physique
+// (devis/factures gardent un lien nullable, mais commissions/justificatifs/photos
+// sont supprimés en cascade — on veut avertir avant de perdre ces données).
+export async function checkInterventionLinks(interventionId: string) {
+  const [devis, factures, commissions, commissionReceipts, messages] = await Promise.all([
+    supabase.from('devis').select('id', { count: 'exact', head: true }).eq('intervention_id', interventionId),
+    supabase.from('factures').select('id', { count: 'exact', head: true }).eq('intervention_id', interventionId),
+    supabase.from('commissions').select('id', { count: 'exact', head: true }).eq('intervention_id', interventionId),
+    supabase.from('commission_receipts').select('id', { count: 'exact', head: true }).eq('intervention_id', interventionId),
+    supabase.from('messages').select('id', { count: 'exact', head: true }).eq('intervention_id', interventionId),
+  ])
+  return {
+    devis: devis.count || 0,
+    factures: factures.count || 0,
+    commissions: commissions.count || 0,
+    commissionReceipts: commissionReceipts.count || 0,
+    messages: messages.count || 0,
+  }
 }
 export function useUploadPhoto() {
   const qc = useQueryClient()
@@ -732,10 +786,10 @@ function buildTelegramMessage(titre: string, contenu: string, lien?: string): st
 }
 
 export async function notifyAdmins(titre: string, contenu: string, lien?: string) {
-  const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin')
-  if (!admins?.length) return
   const org_id = orgId()
   if (!org_id) return
+  const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin').eq('organisation_id', org_id)
+  if (!admins?.length) return
   const msg = buildTelegramMessage(titre, contenu, lien)
   for (const admin of admins) {
     let telegramSent = false
@@ -856,7 +910,7 @@ export function useMarkNotificationRead() {
 export function useMarkAllNotificationsRead() {
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
-  return useMutation({
+  return useMutation<void, Error, void>({
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ['notifications', user?.id] })
       const prev = qc.getQueryData<any[]>(['notifications', user?.id])
@@ -912,7 +966,7 @@ export function useDeleteNotification() {
 export function useDeleteAllReadNotifications() {
   const qc = useQueryClient()
   const user = useAuthStore(s => s.user)
-  return useMutation({
+  return useMutation<void, Error, void>({
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: ['notifications', user?.id] })
       const prev = qc.getQueryData<any[]>(['notifications', user?.id])
@@ -1260,10 +1314,15 @@ export function useSendMessage() {
   const user = useAuthStore(s => s.user)
   return useMutation({
     mutationFn: async ({ destinataire_id, contenu, intervention_id, type = 'texte', media_url }: { destinataire_id: string; contenu: string; intervention_id?: string; type?: Message['type']; media_url?: string }) => {
-      // Sécurité : un non-admin ne peut envoyer qu'à un admin
-      if (user!.role !== 'admin') {
+      // Sécurité : un intervenant ne peut envoyer qu'à un admin ; un assistant peut
+      // écrire à l'admin ET aux intervenants (coordination opérationnelle) ; l'admin
+      // peut écrire à tout le monde.
+      if (user!.role === 'intervenant') {
         const { data: dest } = await supabase.from('profiles').select('role').eq('id', destinataire_id).single()
         if (!dest || dest.role !== 'admin') throw new Error('Vous ne pouvez envoyer des messages qu\'à l\'administrateur')
+      } else if (user!.role === 'assistant') {
+        const { data: dest } = await supabase.from('profiles').select('role').eq('id', destinataire_id).single()
+        if (!dest || (dest.role !== 'admin' && dest.role !== 'intervenant')) throw new Error('Vous ne pouvez envoyer des messages qu\'à l\'administrateur ou aux intervenants')
       }
       const org_id = orgId()
       if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
@@ -1274,7 +1333,7 @@ export function useSendMessage() {
       if (error) throw error
       // Telegram en priorité — push uniquement si Telegram non configuré ou échoue
       const senderName = `${user!.prenom || ''} ${user!.nom || ''}`.trim() || 'Kaytek'
-      const pushContenu = type === 'texte' ? contenu : type === 'audio' || type === 'vocal' ? '🎤 Message vocal' : '📷 Photo'
+      const pushContenu = type === 'texte' ? contenu : type === 'audio' ? '🎤 Message vocal' : '📷 Photo'
       const telegramMsg = [
         '💬 NOUVEAU MESSAGE',
         `${senderName} vous a envoyé un message.`,
@@ -1334,9 +1393,11 @@ export function useConversations() {
   return useQuery<(Profile & { lastMessage: any; unreadCount: number })[]>({
     queryKey: ['conversations', user?.id],
     queryFn: async () => {
-      // 1. Contacts disponibles
+      // 1. Contacts disponibles — admin : tout le monde ; assistant : admin + intervenants
+      // (coordination opérationnelle) ; intervenant : admin uniquement.
       let q = supabase.from('profiles').select('*').neq('id', user!.id).eq('actif', true)
-      if (user!.role !== 'admin') q = q.eq('role', 'admin')
+      if (user!.role === 'intervenant') q = q.eq('role', 'admin')
+      else if (user!.role === 'assistant') q = q.in('role', ['admin', 'intervenant'])
       const { data: profiles } = await q.order('nom')
       const profileList = (profiles || []) as Profile[]
       if (!profileList.length) return []
@@ -1423,7 +1484,7 @@ export function usePushSubscription() {
       if (!sub) {
         sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: b64urlToUint8(VAPID_PUBLIC_KEY),
+          applicationServerKey: b64urlToUint8(VAPID_PUBLIC_KEY) as BufferSource,
         })
         localStorage.setItem(VAPID_KEY_STORE, VAPID_PUBLIC_KEY)
       }
@@ -1536,7 +1597,7 @@ export function useDeleteJournalEntry() {
 
 export function useDeleteAllJournal() {
   const qc = useQueryClient()
-  return useMutation({
+  return useMutation<void, Error, void>({
     mutationFn: async () => {
       const org_id = orgId()
       if (!org_id) throw new Error('Organisation introuvable — reconnectez-vous')

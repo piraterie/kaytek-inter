@@ -5,7 +5,7 @@ import {
   FileSpreadsheet, CheckSquare, Trash2, Clock, AlertTriangle, Mail, MoreHorizontal,
   Search, X, Euro, FileText, CheckCircle2, XCircle, Link2, Loader2, Send, Check,
 } from 'lucide-react'
-import { useFactures, useUpdateFacture, useDeleteFacture, useDeleteAllFactures, useParametres, useCreatePublicLink, notifyAdmins, REQUIRED_PARAMS } from '@/lib/hooks'
+import { useFactures, useUpdateFacture, useDeleteFacture, useDeleteAllFactures, useParametres, usePublicParametres, useCreatePublicLink, notifyAdmins, REQUIRED_PARAMS } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
 import { pdfCache } from '@/lib/pdf/cache'
@@ -28,12 +28,17 @@ const ns = (s: string) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toL
 
 export default function FacturesPage() {
   const nav = useNavigate()
-  const { params: storeParams } = useParamsStore()
-  const { data: dbParams } = useParametres()
-  const params = storeParams || dbParams
-  const { add } = useToastStore()
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
+  const { params: storeParams } = useParamsStore()
+  // Admin : IBAN/BIC inclus (RLS admin-only). Non-admin : jamais
+  // iban/bic — SIRET/TVA/RC Pro restent sur le PDF (mentions légales
+  // publiques), storeParams (vue publique, chargée dès la connexion)
+  // sert de repli le temps du chargement de dbParams.
+  const { data: dbParams } = useParametres()
+  const { data: publicParams } = usePublicParametres()
+  const params = isAdmin ? (dbParams || storeParams || publicParams) : (storeParams || publicParams)
+  const { add } = useToastStore()
   const canSendEmail = isAdmin || (user?.can_create_documents === true && user?.can_bypass_validation === true)
   const canMarkPaid = !isAdmin && user?.can_create_documents === true && user?.can_bypass_validation === true
 

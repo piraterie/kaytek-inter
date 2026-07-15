@@ -293,6 +293,7 @@ export default function PlanningPage() {
   const { add }  = useToastStore()
   const { user } = useAuthStore()
   const isAdmin  = user?.role === 'admin'
+  const canManageOps = isAdmin || user?.role === 'assistant'
   const isMobile = useIsMobile()
   const calRef   = useRef<FullCalendar>(null)
 
@@ -404,9 +405,9 @@ export default function PlanningPage() {
   }, [])
 
   const handleEventDrop = useCallback(async (info: EventDropArg) => {
-    if (!isAdmin) {
+    if (!canManageOps) {
       info.revert()
-      add('Seul un admin peut modifier le planning', 'warning')
+      add('Seul un admin ou un assistant peut modifier le planning', 'warning')
       return
     }
     const newDate = info.event.start?.toISOString()
@@ -418,7 +419,7 @@ export default function PlanningPage() {
       info.revert()
       add('Erreur lors du déplacement', 'error')
     }
-  }, [isAdmin, updateIntervention, add])
+  }, [canManageOps, updateIntervention, add])
 
   // ── Vérification des rappels ───────────────────────────────────
   const checkRappels = useCallback(async (silent = false) => {
@@ -614,8 +615,8 @@ export default function PlanningPage() {
               timeGridWeek: 'Semaine',
             }}
             events={events}
-            editable={isAdmin}
-            droppable={isAdmin}
+            editable={canManageOps}
+            droppable={canManageOps}
             eventDrop={handleEventDrop}
             eventClick={handleEventClick}
             dateClick={handleDateClick}

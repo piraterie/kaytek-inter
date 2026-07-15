@@ -195,6 +195,14 @@ export async function getMyDevices(): Promise<DeviceRecord[]> {
   return data || []
 }
 
+// Limite connue (documentée, NOTIF-05) : devices et push_subscriptions ne
+// sont liées par aucune colonne commune (pas d'endpoint/device_id partagé)
+// — impossible de cibler ici uniquement l'abonnement push de CET appareil.
+// Cette action mono-appareil reste donc limitée à devices.actif=false ; pour
+// couper réellement les push d'un utilisateur, voir resetUserDevices()
+// ci-dessous (action complète, utilisée notamment en cas de compte
+// compromis). Amélioration future possible : stocker l'endpoint push sur la
+// ligne devices pour permettre une révocation ciblée par appareil.
 export async function disconnectDevice(deviceId: string): Promise<void> {
   await supabase.from('devices').update({ actif: false }).eq('id', deviceId)
 }
@@ -213,6 +221,8 @@ export async function getUserDevices(userId: string): Promise<DeviceRecord[]> {
   return data || []
 }
 
+// Même limite que disconnectDevice ci-dessus : ne coupe pas les push de cet
+// appareil précis (aucun lien device ↔ push_subscription n'existe).
 export async function revokeDevice(deviceDbId: string): Promise<void> {
   await supabase.from('devices').update({ actif: false }).eq('id', deviceDbId)
 }
@@ -221,6 +231,16 @@ export function isCurrentDevice(deviceId: string): boolean {
   return deviceId === getDeviceId()
 }
 
+// Action complète (NOTIF-05) : en plus de désactiver tous les appareils de
+// l'utilisateur, supprime TOUTES ses souscriptions push — faute de lien
+// device ↔ push_subscription, c'est la seule façon de garantir qu'un
+// utilisateur réinitialisé (compte compromis, appareil volé) ne reçoit
+// plus aucune notification push, sur aucun de ses appareils. Passe par la
+// RPC admin_delete_user_push_subscriptions (SECURITY DEFINER, migration
+// 20260711000005) plutôt qu'un DELETE direct : elle vérifie elle-même que
+// l'appelant est admin de la même organisation que l'utilisateur ciblé.
 export async function resetUserDevices(userId: string): Promise<void> {
   await supabase.from('devices').update({ actif: false }).eq('user_id', userId)
+  const { error } = await supabase.rpc('admin_delete_user_push_subscriptions', { target_user_id: userId })
+  if (error) console.error('Suppression push_subscriptions (reset devices) échouée:', error.message)
 }
