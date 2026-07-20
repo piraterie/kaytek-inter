@@ -54,7 +54,7 @@ export default function LoginPage() {
     return () => clearInterval(interval)
   }, [])
 
-  const { setUser, setSubscriptionBlocked } = useAuthStore()
+  const { setUser, setSubscriptionBlocked, setAppUnlocked } = useAuthStore()
   const nav = useNavigate()
 
   const bioAvailable  = isBiometricAvailable()
@@ -62,9 +62,13 @@ export default function LoginPage() {
   const bioEmail      = getBiometricEmail()
   const showBioFirst  = bioAvailable && bioRegistered && !showPwForm
 
+  // Appelé uniquement après une connexion interactive réussie (mot de passe ou
+  // empreinte depuis cette page) — jamais lors d'une simple restauration de
+  // session. C'est la seule façon légitime de déverrouiller l'app ici ; voir
+  // aussi LockScreen (déverrouillage local) qui suit la même règle.
   function activateSession(profile: Profile) {
-    sessionStorage.setItem('kaytek-active', '1')
     setUser(profile)
+    setAppUnlocked(true)
   }
 
   function redirectAfterLogin() {
@@ -141,10 +145,8 @@ export default function LoginPage() {
         return
       }
 
-      sessionStorage.setItem('kaytek-active', '1')
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) {
-        sessionStorage.removeItem('kaytek-active')
         setErr('Session expirée. Reconnectez-vous avec votre mot de passe.')
         clearBiometric()
         setShowPwForm(true)
@@ -154,13 +156,15 @@ export default function LoginPage() {
       const { data: profile } = await supabase
         .from('profiles').select('*').eq('id', session.user.id).single()
       if (!profile) {
-        sessionStorage.removeItem('kaytek-active')
         setErr('Profil introuvable.')
         setShowPwForm(true)
         return
       }
 
+      // Empreinte confirmée + session Supabase valide vérifiée ci-dessus :
+      // déverrouillage interactif légitime (même règle que activateSession).
       setUser(profile)
+      setAppUnlocked(true)
       setSubscriptionBlocked(await fetchSubscriptionBlocked())
       redirectAfterLogin()
     } catch {
