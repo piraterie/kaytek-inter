@@ -214,8 +214,8 @@ export default function ParamsPage() {
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14, paddingBottom:12, borderBottom:'1px solid var(--b0)' }}>
             <span style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--s1)', color: 'var(--t2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><FileText size={16} /></span>
             <div>
-              <div style={{ fontSize:13, fontWeight:700, color:'var(--t0)' }}>Conditions générales</div>
-              <div style={{ fontSize:11, color:'var(--t3)', marginTop:1 }}>Pied de page des PDF devis & factures</div>
+              <div style={{ fontSize:13, fontWeight:700, color:'var(--t0)' }}>Conditions générales de vente et d'intervention</div>
+              <div style={{ fontSize:11, color:'var(--t3)', marginTop:1 }}>Ce texte sera ajouté sur une ou plusieurs pages dédiées à la fin des devis et factures.</div>
             </div>
           </div>
           <textarea

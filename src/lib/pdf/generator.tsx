@@ -14,13 +14,47 @@ const base = StyleSheet.create({
   row:     { flexDirection: 'row' },
   muted:   { fontSize: 8, color: '#6b7280', lineHeight: 1.7 },
   upper:   { textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 7 },
-  footer:  { position: 'absolute', bottom: 24, left: 44, right: 44 },
+  // Footer de la 1ère page : contenu court et borné uniquement (jamais le texte légal complet des CGV)
+  footer:  { position: 'absolute', bottom: 32, left: 44, right: 44 },
   ftxt:    { fontSize: 7, color: '#9ca3af', textAlign: 'center', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 6, lineHeight: 1.5 },
+  pageNumber: { position: 'absolute', bottom: 14, left: 44, right: 44, fontSize: 7, color: '#c0c4cb', textAlign: 'center' },
+  cgvTitle: { fontFamily: 'Helvetica-Bold', fontSize: 15, color: '#1a1a1a', marginBottom: 22 },
+  cgvParagraph: { fontSize: 9, color: '#374151', lineHeight: 1.7, marginBottom: 2 },
 })
 
+// ── PAGE NUMBER (pied de page discret, répété sur chaque page) ───
+function PageNumberFooter() {
+  return (
+    <Text
+      fixed
+      style={base.pageNumber}
+      render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages}`}
+    />
+  )
+}
+
+// ── CGV — page(s) dédiée(s), texte en flux normal (jamais absolu) ─
+function CGVPage({ cgv }: { cgv: string }) {
+  const lines = cgv.split('\n')
+  return (
+    <Page size="A4" style={[base.page, { padding: 44, paddingBottom: 56 }]}>
+      <Text style={base.cgvTitle}>Conditions générales de vente et d'intervention</Text>
+      <View>
+        {lines.map((line, i) =>
+          line.trim() === ''
+            ? <View key={i} style={{ height: 10 }} />
+            : <Text key={i} style={base.cgvParagraph}>{line}</Text>
+        )}
+      </View>
+      <PageNumberFooter />
+    </Page>
+  )
+}
+
 // ── HEADER ──────────────────────────────────────────────────────
-function Header({ type, numero, date, valide, params, accent, primary }: {
-  type: string; numero: string; date: string; valide?: string
+function Header({ type, numero, date, secondaire, params, accent, primary }: {
+  type: string; numero: string; date: string
+  secondaire?: { label: string; value: string }
   params: ParametresEntreprise; accent: string; primary: string
 }) {
   return (
@@ -41,9 +75,9 @@ function Header({ type, numero, date, valide, params, accent, primary }: {
             {params.siret ? '\nSIRET : ' + params.siret : ''}
           </Text>
         </View>
-        {/* Droite : titre document + numéro */}
-        <View style={{ width: 185, backgroundColor: 'rgba(0,0,0,0.18)', padding: 32, paddingLeft: 20, justifyContent: 'space-between' }}>
-          <Text style={[base.bold, { color: '#fff', fontSize: 30, letterSpacing: 1 }]}>{type}</Text>
+        {/* Droite : titre document + numéro — largeur/police calibrées pour que DEVIS, FACTURE et AVOIR tiennent toujours sur une seule ligne */}
+        <View style={{ width: 205, backgroundColor: 'rgba(0,0,0,0.18)', padding: 32, paddingLeft: 16, justifyContent: 'space-between' }}>
+          <Text style={[base.bold, { color: '#fff', fontSize: 26, letterSpacing: 0.4 }]}>{type}</Text>
           <View>
             <View style={[base.row, { justifyContent: 'space-between', marginBottom: 3 }]}>
               <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 8 }}>Numéro</Text>
@@ -53,10 +87,10 @@ function Header({ type, numero, date, valide, params, accent, primary }: {
               <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 8 }}>Date</Text>
               <Text style={[base.bold, { color: '#fff', fontSize: 8 }]}>{date}</Text>
             </View>
-            {valide && (
+            {secondaire && (
               <View style={[base.row, { justifyContent: 'space-between' }]}>
-                <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 8 }}>Valide jusqu'au</Text>
-                <Text style={[base.bold, { color: accent, fontSize: 8 }]}>{valide}</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 8 }}>{secondaire.label}</Text>
+                <Text style={[base.bold, { color: accent, fontSize: 8 }]}>{secondaire.value}</Text>
               </View>
             )}
           </View>
@@ -91,8 +125,8 @@ function ClientSection({ clientNom, clientPhone, clientEmail, clientAdresse, rig
 function LignesTable({ lignes, accent, primary }: { lignes: Devis['lignes']; accent: string; primary: string }) {
   return (
     <View style={{ marginBottom: 16 }}>
-      {/* Header */}
-      <View style={[base.row, { backgroundColor: primary, borderRadius: 5, paddingVertical: 8, paddingHorizontal: 10 }]}>
+      {/* Header — répété automatiquement sur chaque page si le tableau déborde (fixed = flux normal, pas absolu) */}
+      <View fixed style={[base.row, { backgroundColor: primary, borderRadius: 5, paddingVertical: 8, paddingHorizontal: 10 }]}>
         <Text style={[base.bold, { color: '#fff', width: 26, fontSize: 8 }]}>N°</Text>
         <Text style={[base.bold, { color: '#fff', flex: 1, fontSize: 8 }]}>Désignation</Text>
         <Text style={[base.bold, { color: '#fff', width: 64, textAlign: 'right', fontSize: 8 }]}>P.U. HT</Text>
@@ -100,9 +134,9 @@ function LignesTable({ lignes, accent, primary }: { lignes: Devis['lignes']; acc
         <Text style={[base.bold, { color: '#fff', width: 44, textAlign: 'center', fontSize: 8 }]}>TVA</Text>
         <Text style={[base.bold, { color: accent, width: 64, textAlign: 'right', fontSize: 8 }]}>Total TTC</Text>
       </View>
-      {/* Rows */}
+      {/* Rows — wrap={false} : une ligne de prestation ne peut jamais être coupée au milieu par un saut de page */}
       {lignes.map((l, i) => (
-        <View key={i} style={[base.row, {
+        <View key={i} wrap={false} style={[base.row, {
           paddingVertical: 7, paddingHorizontal: 10,
           backgroundColor: i % 2 === 0 ? '#fff' : '#f8fafc',
           borderBottomWidth: 1, borderBottomColor: '#e5e7eb'
@@ -124,7 +158,7 @@ function Totals({ ht, tva, remisePct, remise, ttc, accent }: {
   ht: number; tva: number; remisePct?: number; remise?: number; ttc: number; accent: string
 }) {
   return (
-    <View style={{ alignItems: 'flex-end', marginBottom: 16 }}>
+    <View wrap={false} style={{ alignItems: 'flex-end', marginBottom: 16 }}>
       <View style={{ width: 220, backgroundColor: '#f8fafc', borderRadius: 6, padding: 14 }}>
         <View style={[base.row, { justifyContent: 'space-between', marginBottom: 5 }]}>
           <Text style={base.muted}>Sous-total HT</Text>
@@ -153,11 +187,16 @@ function Totals({ ht, tva, remisePct, remise, ttc, accent }: {
 export async function generateDevisPDF(devis: Devis, params: ParametresEntreprise, modeleId = 0): Promise<Blob> {
   const { primary, accent } = getTheme(modeleId)
   const clientNom = [devis.client?.nom, devis.client?.prenom].filter(Boolean).join(' ') || '—'
+  const hasCgv = !!params.cgv?.trim()
+  const footerLine = [
+    params.rc_pro ? 'RC Pro : ' + params.rc_pro : '',
+    hasCgv ? "Conditions générales de vente et d'intervention en page suivante." : '',
+  ].filter(Boolean).join('  ·  ')
 
   const doc = (
     <Document>
       <Page size="A4" style={[base.page, { padding: 44 }]}>
-        <Header type="DEVIS" numero={devis.numero} date={fmt(devis.created_at)} valide={devis.valide_jusqu_au ? fmt(devis.valide_jusqu_au) : undefined} params={params} accent={accent} primary={primary} />
+        <Header type="DEVIS" numero={devis.numero} date={fmt(devis.created_at)} secondaire={devis.valide_jusqu_au ? { label: "Valide jusqu'au", value: fmt(devis.valide_jusqu_au) } : undefined} params={params} accent={accent} primary={primary} />
 
         <ClientSection
           clientNom={clientNom}
@@ -213,10 +252,14 @@ export async function generateDevisPDF(devis: Devis, params: ParametresEntrepris
           )
         })()}
 
-        <View style={base.footer}>
-          <Text style={base.ftxt}>{[params.cgv, params.rc_pro ? 'RC Pro : ' + params.rc_pro : ''].filter(Boolean).join('  ·  ')}</Text>
-        </View>
+        {footerLine ? (
+          <View style={base.footer}>
+            <Text style={base.ftxt}>{footerLine}</Text>
+          </View>
+        ) : null}
+        <PageNumberFooter />
       </Page>
+      {hasCgv && <CGVPage cgv={params.cgv!.trim()} />}
     </Document>
   )
   return pdf(doc).toBlob()
@@ -228,11 +271,15 @@ export async function generateFacturePDF(facture: Facture, devis: Devis | null, 
   const lignes = devis?.lignes || []
   const clientNom = [facture.client?.nom, facture.client?.prenom].filter(Boolean).join(' ') || '—'
   const estPayee = facture.statut_paiement === 'payee'
+  const hasCgv = !!params.cgv?.trim()
+  const footerLine = hasCgv
+    ? "Conditions générales de vente et d'intervention en page suivante."
+    : 'Merci pour votre confiance.'
 
   const doc = (
     <Document>
       <Page size="A4" style={[base.page, { padding: 44 }]}>
-        <Header type="FACTURE" numero={facture.numero} date={fmt(facture.date_emission)} valide={facture.date_echeance ? 'Échéance : ' + fmt(facture.date_echeance) : undefined} params={params} accent={estPayee ? '#16a34a' : accent} primary={primary} />
+        <Header type="FACTURE" numero={facture.numero} date={fmt(facture.date_emission)} secondaire={facture.date_echeance ? { label: 'Échéance', value: fmt(facture.date_echeance) } : undefined} params={params} accent={estPayee ? '#16a34a' : accent} primary={primary} />
 
         <ClientSection
           clientNom={clientNom}
@@ -277,9 +324,11 @@ export async function generateFacturePDF(facture: Facture, devis: Devis | null, 
         )}
 
         <View style={base.footer}>
-          <Text style={base.ftxt}>{params.cgv || 'Merci pour votre confiance.'}</Text>
+          <Text style={base.ftxt}>{footerLine}</Text>
         </View>
+        <PageNumberFooter />
       </Page>
+      {hasCgv && <CGVPage cgv={params.cgv!.trim()} />}
     </Document>
   )
   return pdf(doc).toBlob()
