@@ -176,7 +176,9 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
           subject: `Devis ${_devis.numero} — ${_params.raison_sociale}`,
           html,
           pdfBase64,
-          pdfFilename: `${_devis.numero}.pdf`
+          pdfFilename: `${_devis.numero}.pdf`,
+          documentType: 'devis',
+          documentId: _devis.id,
         })
 
         if (response.error) {

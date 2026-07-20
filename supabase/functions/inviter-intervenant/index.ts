@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { validateEntrepriseReplyTo, REPLY_TO_INVALID_MESSAGE } from '../_shared/validateEntreprise.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,6 +34,9 @@ async function requireAdmin(req: Request): Promise<{ error: string | null; organ
 
 const respond = (data: object) =>
   new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+const respondStatus = (data: object, status: number) =>
+  new Response(JSON.stringify(data), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -181,15 +185,34 @@ serve(async (req) => {
     const senderName  = emailFromMatch ? emailFromMatch[1].trim() : 'Kaytek Inter'
     const senderEmail = emailFromMatch ? emailFromMatch[2].trim() : EMAIL_FROM.trim()
 
+    // Reply-To dynamique — adresse professionnelle de l'organisation qui invite,
+    // jamais l'adresse personnelle du compte Brevo (même correctif que envoyer-email).
+    // Blocage strict : aucun fallback silencieux si l'entreprise n'a pas un nom
+    // et un email valides — organisationId provient uniquement de requireAdmin
+    // (jamais d'un champ client), donc toujours celle de l'appelant.
+    const { data: entrepriseRow } = await admin
+      .from('parametres_entreprise')
+      .select('raison_sociale, email')
+      .eq('organisation_id', organisationId)
+      .maybeSingle()
+
+    const replyTo = validateEntrepriseReplyTo(entrepriseRow)
+    if (!replyTo) {
+      return respondStatus({ error: REPLY_TO_INVALID_MESSAGE }, 422)
+    }
+
+    const brevoPayload: Record<string, unknown> = {
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email }],
+      subject,
+      htmlContent: html,
+      replyTo: { name: replyTo.name, email: replyTo.email },
+    }
+
     const emailRes = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sender: { name: senderName, email: senderEmail },
-        to: [{ email }],
-        subject,
-        htmlContent: html
-      })
+      body: JSON.stringify(brevoPayload)
     })
 
     if (!emailRes.ok) {
