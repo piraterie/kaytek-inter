@@ -44,14 +44,25 @@ export const useAuthStore = create<{
 
 export const useUIStore = create(persist<{
   theme: 'light'|'dark'; sidebarOpen: boolean
+  // Masquage visuel des montants du dashboard — masqué par défaut (protège la
+  // confidentialité dès la première utilisation), préférence conservée par appareil.
+  hideAmounts: boolean
   toggleTheme: () => void; toggleSidebar: () => void; closeSidebar: () => void
+  toggleHideAmounts: () => void
 }>((set) => ({
-  theme: 'dark', sidebarOpen: true,
+  theme: 'dark', sidebarOpen: true, hideAmounts: true,
   toggleTheme: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
   toggleSidebar: () => set(s => ({ sidebarOpen: !s.sidebarOpen })),
-  closeSidebar: () => set({ sidebarOpen: false })
+  closeSidebar: () => set({ sidebarOpen: false }),
+  toggleHideAmounts: () => set(s => ({ hideAmounts: !s.hideAmounts }))
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-}), { name: 'kaytek-ui', partialize: (s: any) => ({ theme: s.theme }) } as any))
+}), {
+  name: 'kaytek-ui',
+  // partialize omet hideAmounts pour les blobs déjà persistés avant cette version :
+  // le merge par défaut de zustand ne réécrit que les clés présentes dans le
+  // storage, donc hideAmounts retombe sur son défaut (true) sans erreur ni migration explicite.
+  partialize: (s: any) => ({ theme: s.theme, hideAmounts: s.hideAmounts }),
+} as any))
 
 // Paramètres publics uniquement (jamais iban/bic) — branding/UI générale,
 // accessible à tout rôle. Voir usePublicParametres()/useParametres().
