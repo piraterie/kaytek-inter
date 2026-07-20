@@ -44,14 +44,14 @@ const DeleteAccountPage = lazy(() => import('@/pages/DeleteAccountPage'))
 function Guard({ children, adminOnly = false, requireCanCreateDocs = false, allowedRoles }: {
   children: React.ReactNode; adminOnly?: boolean; requireCanCreateDocs?: boolean; allowedRoles?: Role[]
 }) {
-  const { user, loading, error, isAppUnlocked, subscriptionBlocked } = useAuthStore()
+  const { user, authInitializing, error, isAppUnlocked, subscriptionBlocked } = useAuthStore()
   const location = useLocation()
   // Capturé une seule fois, au tout premier rendu (avant que le SDK Supabase ne
   // traite/nettoie le hash de façon asynchrone) — lire window.location.hash plus
-  // tard dans le rendu (ex. après résolution de `loading`) le trouverait déjà vidé.
+  // tard dans le rendu (ex. après résolution de `authInitializing`) le trouverait déjà vidé.
   const [initialAuthHash] = useState(() => window.location.hash)
 
-  if (loading) return <Loader />
+  if (authInitializing) return <Loader />
   if (error)   return <ErrorDisplay error={error} />
 
   if (!user) {
@@ -85,8 +85,8 @@ function Guard({ children, adminOnly = false, requireCanCreateDocs = false, allo
 
 // ── LockGuard : redirige si pas de user, ou si déjà déverrouillé ─────────────
 function LockGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading, isAppUnlocked } = useAuthStore()
-  if (loading) return <Loader />
+  const { user, authInitializing, isAppUnlocked } = useAuthStore()
+  if (authInitializing) return <Loader />
   if (!user) {
     console.log('[LockGuard] no user → /login')
     return <Navigate to="/login" replace />
@@ -155,7 +155,7 @@ function SubscriptionBlockedScreen({ role }: { role: string }) {
 }
 
 export default function App() {
-  const { setUser, setLoading, setError, setAppUnlocked, setSubscriptionBlocked } = useAuthStore()
+  const { setUser, setAuthInitializing, setError, setAppUnlocked, setSubscriptionBlocked } = useAuthStore()
   const { theme } = useUIStore()
   const { setParams } = useParamsStore()
   const qc = useQueryClient()
@@ -203,13 +203,21 @@ export default function App() {
     let timeoutId: ReturnType<typeof setTimeout>
 
     const initAuth = async () => {
-      setLoading(true)
+      setAuthInitializing(true)
       setError(null)
+
+      // Démarrage natif : toujours repartir verrouillé, indépendamment de la
+      // valeur persistée d'isAppUnlocked — couvre le cas où le process Android
+      // a été tué sans passer par l'arrière-plan (force-stop, crash). Le passage
+      // normal en arrière-plan verrouille déjà via appStateChange ; ceci garantit
+      // qu'un nouveau process JS démarre toujours verrouillé, comme une app bancaire.
+      if (Capacitor.isNativePlatform()) {
+        setAppUnlocked(false)
+      }
 
       // Ouverture depuis une notification push (push_open=1 ajouté par push-sw.js)
       const searchParams = new URLSearchParams(window.location.search)
       if (searchParams.get('push_open') === '1') {
-        sessionStorage.setItem('kaytek-active', '1')
         const cleanUrl = window.location.pathname + window.location.hash
         window.history.replaceState({}, '', cleanUrl)
       }
@@ -232,7 +240,7 @@ export default function App() {
           throw new Error(`Erreur de session: ${sessionError.message}`)
         }
 
-        if (session?.user && sessionStorage.getItem('kaytek-active')) {
+        if (session?.user) {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -247,9 +255,11 @@ export default function App() {
           if (profile && isMounted) {
             setUser(profile)
             // isAppUnlocked est persisté (localStorage) : un F5 / une réouverture
-            // de l'app ne reverrouille pas tant que l'utilisateur ne s'est pas
-            // déconnecté, n'a pas été inactif 30 min, ou (natif) n'a pas mis
-            // l'app en arrière-plan — voir useAuthStore et AppLayout.
+            // de l'app (process JS non tué) ne reverrouille pas tant que l'utilisateur
+            // ne s'est pas déconnecté, n'a pas été inactif 30 min, ou (natif) n'a pas mis
+            // l'app en arrière-plan — voir useAuthStore et AppLayout. Un démarrage natif
+            // à froid est en revanche toujours reverrouillé ci-dessus, quel que soit
+            // isAppUnlocked : Guard enverra donc vers /lock (biométrie), pas /login.
           }
 
           if (isMounted) {
@@ -274,7 +284,7 @@ export default function App() {
       } finally {
         clearTimeout(timeoutId)
         if (isMounted) {
-          setLoading(false)
+          setAuthInitializing(false)
         }
       }
     }
@@ -284,7 +294,14 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return
 
-      if (event === 'SIGNED_IN' && session?.user && sessionStorage.getItem('kaytek-active')) {
+      // Ce handler ne touche jamais isAppUnlocked, volontairement : SIGNED_IN
+      // peut être émis par le SDK pour une resynchronisation entre onglets ou
+      // au rattachement du listener, pas seulement pour une vraie connexion
+      // interactive — seuls LoginPage (activateSession/handleBiometricLogin)
+      // et LockScreen déverrouillent, sur une action utilisateur explicite.
+      // Le rafraîchissement automatique du token émet TOKEN_REFRESHED, non
+      // géré ici, et ne déverrouille donc jamais l'app tout seul.
+      if (event === 'SIGNED_IN' && session?.user) {
         try {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')

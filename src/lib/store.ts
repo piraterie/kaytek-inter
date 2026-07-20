@@ -5,7 +5,10 @@ import type { Profile, ParametresEntreprisePublic } from '@/types'
 
 export const useAuthStore = create<{
   user: Profile | null
-  loading: boolean
+  // true tant que la restauration de session Supabase (getSession + profil) n'est
+  // pas terminée — aucune redirection (/login, /lock, /dashboard) ne doit avoir
+  // lieu tant que ce flag est true, pour éviter tout flash ou course au démarrage.
+  authInitializing: boolean
   error: string | null
   subscriptionBlocked: boolean
   // Séparé de la session Supabase : persisté pour survivre à F5 / réouverture
@@ -13,7 +16,7 @@ export const useAuthStore = create<{
   // prolongée (30 min) ou le passage en arrière-plan de l'app native.
   isAppUnlocked: boolean
   setUser: (u: Profile | null) => void
-  setLoading: (v: boolean) => void
+  setAuthInitializing: (v: boolean) => void
   setError: (e: string | null) => void
   setSubscriptionBlocked: (v: boolean) => void
   setAppUnlocked: (v: boolean) => void
@@ -21,11 +24,11 @@ export const useAuthStore = create<{
 }>()(
   persist(
     (set, get) => ({
-      user: null, loading: true, error: null,
+      user: null, authInitializing: true, error: null,
       subscriptionBlocked: false,
       isAppUnlocked: false,
       setUser: u => set({ user: u }),
-      setLoading: v => set({ loading: v }),
+      setAuthInitializing: v => set({ authInitializing: v }),
       setError: e => set({ error: e }),
       setSubscriptionBlocked: v => set({ subscriptionBlocked: v }),
       setAppUnlocked: v => set({ isAppUnlocked: v }),
