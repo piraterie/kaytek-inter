@@ -2,10 +2,10 @@
 import { useNavigate } from 'react-router-dom'
 import {
   Wrench, Euro, AlertTriangle, DollarSign, Clock, MessagesSquare,
-  FileText, Mail, ArrowRight, Flame,
+  FileText, Mail, ArrowRight, Flame, Eye, EyeOff,
 } from 'lucide-react'
 import { useDashboard, useInterventions, useCommissions } from '@/lib/hooks'
-import { useAuthStore } from '@/lib/store'
+import { useAuthStore, useUIStore } from '@/lib/store'
 import { format } from 'date-fns'; import { fr } from 'date-fns/locale'
 
 const eur = (n: number) => (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
@@ -20,6 +20,7 @@ const ACT_PILL: Record<string, string> = {
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
+  const { hideAmounts, toggleHideAmounts } = useUIStore()
   const nav = useNavigate()
   const { data: stats, isLoading } = useDashboard()
   const { data: interventions = [] } = useInterventions()
@@ -27,6 +28,8 @@ export default function DashboardPage() {
   const isAdmin = user?.role === 'admin'
   const isAssistant = user?.role === 'assistant'
   const canManageOps = isAdmin || isAssistant
+  // L'assistant n'a aucune figure financière sur ce dashboard — pas de bouton à afficher.
+  const showAmountsToggle = !isAssistant
 
   const recent = interventions.slice(0, 5)
   const urgentes = interventions.filter(i => i.urgence && i.statut === 'en_attente').slice(0, 3)
@@ -35,30 +38,45 @@ export default function DashboardPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Bonjour, {user?.prenom}</h1>
-        <p className="page-subtitle">{format(new Date(), 'EEEE d MMMM yyyy', { locale: fr })}</p>
+        <div>
+          <h1 className="page-title">Bonjour, {user?.prenom}</h1>
+          <p className="page-subtitle">{format(new Date(), 'EEEE d MMMM yyyy', { locale: fr })}</p>
+        </div>
+        {showAmountsToggle && (
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={toggleHideAmounts}
+            aria-label={hideAmounts ? 'Afficher les montants' : 'Masquer les montants'}
+            title={hideAmounts ? 'Afficher les montants' : 'Masquer les montants'}
+          >
+            {hideAmounts ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        )}
       </div>
       <div className="grid-4 mb-4">
         {(isAdmin ? [
-          { l: "Interventions aujourd'hui", v: isLoading ? '…' : String(stats?.interventions_today ?? 0), ic: Wrench, c: 'blue' },
-          { l: 'CA du mois', v: isLoading ? '…' : eur(stats?.ca_mois ?? 0), ic: Euro, c: 'green' },
-          { l: 'Impayés', v: isLoading ? '…' : eur(stats?.montant_impaye ?? 0), ic: AlertTriangle, c: 'red' },
-          { l: 'Commissions dues', v: isLoading ? '…' : eur(stats?.commissions_dues ?? 0), ic: DollarSign, c: 'amber' },
+          { l: "Interventions aujourd'hui", v: isLoading ? '…' : String(stats?.interventions_today ?? 0), ic: Wrench, c: 'blue', money: false },
+          { l: 'CA du mois', v: isLoading ? '…' : eur(stats?.ca_mois ?? 0), ic: Euro, c: 'green', money: true },
+          { l: 'Impayés', v: isLoading ? '…' : eur(stats?.montant_impaye ?? 0), ic: AlertTriangle, c: 'red', money: true },
+          { l: 'Commissions dues', v: isLoading ? '…' : eur(stats?.commissions_dues ?? 0), ic: DollarSign, c: 'amber', money: true },
         ] : isAssistant ? [
-          { l: 'Interventions du jour', v: isLoading ? '…' : String(stats?.interventions_today ?? 0), ic: Wrench, c: 'blue' },
-          { l: 'À planifier', v: isLoading ? '…' : String(stats?.interventions_a_planifier ?? 0), ic: Clock, c: 'amber' },
-          { l: 'Messages non lus', v: isLoading ? '…' : String(stats?.messages_non_lus ?? 0), ic: MessagesSquare, c: 'blue' },
+          { l: 'Interventions du jour', v: isLoading ? '…' : String(stats?.interventions_today ?? 0), ic: Wrench, c: 'blue', money: false },
+          { l: 'À planifier', v: isLoading ? '…' : String(stats?.interventions_a_planifier ?? 0), ic: Clock, c: 'amber', money: false },
+          { l: 'Messages non lus', v: isLoading ? '…' : String(stats?.messages_non_lus ?? 0), ic: MessagesSquare, c: 'blue', money: false },
         ] : [
-          { l: "Mes interventions aujourd'hui", v: isLoading ? '…' : String(stats?.interventions_today ?? 0), ic: Wrench, c: 'blue' },
-          { l: 'Mes gains ce mois', v: isLoading ? '…' : eur(stats?.mes_commissions_mois ?? 0), ic: Euro, c: 'green' },
-          { l: 'À recevoir', v: isLoading ? '…' : eur(stats?.mes_commissions_dues ?? 0), ic: Clock, c: 'amber' },
-          { l: 'Messages non lus', v: isLoading ? '…' : String(stats?.messages_non_lus ?? 0), ic: MessagesSquare, c: 'blue' },
+          { l: "Mes interventions aujourd'hui", v: isLoading ? '…' : String(stats?.interventions_today ?? 0), ic: Wrench, c: 'blue', money: false },
+          { l: 'Mes gains ce mois', v: isLoading ? '…' : eur(stats?.mes_commissions_mois ?? 0), ic: Euro, c: 'green', money: true },
+          { l: 'À recevoir', v: isLoading ? '…' : eur(stats?.mes_commissions_dues ?? 0), ic: Clock, c: 'amber', money: true },
+          { l: 'Messages non lus', v: isLoading ? '…' : String(stats?.messages_non_lus ?? 0), ic: MessagesSquare, c: 'blue', money: false },
         ]).map(s => (
           <div key={s.l} className="stat-card">
             <div className="flex justify-between items-center">
               <div className={`stat-icon ${s.c}`}><s.ic size={18} strokeWidth={2} /></div>
             </div>
-            <div className="stat-value">{s.v}</div>
+            <div className="stat-value">
+              <span className={s.money && hideAmounts ? 'amount-hidden' : undefined}>{s.v}</span>
+            </div>
             <div className="stat-label">{s.l}</div>
           </div>
         ))}
@@ -142,7 +160,9 @@ export default function DashboardPage() {
                       <div style={{ fontSize: 13, fontWeight: 500 }}>{c.intervenant?.prenom} {c.intervenant?.nom}</div>
                       <div style={{ fontSize: 12, color: 'var(--t2)' }}>{c.intervention?.numero}</div>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--amTx)' }}>{eur(c.commission_admin)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--amTx)' }}>
+                      <span className={hideAmounts ? 'amount-hidden' : undefined}>{eur(c.commission_admin)}</span>
+                    </div>
                   </div>
                 ))}
               </div>

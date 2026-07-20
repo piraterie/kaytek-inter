@@ -254,6 +254,13 @@ textarea{resize:vertical;min-height:80px}
 .stat-icon.purple{background:var(--puBg);color:var(--pu)}
 .stat-decor{position:absolute;top:-10px;right:-10px;opacity:.06;color:var(--t0);pointer-events:none;transform:rotate(-8deg)}
 
+/* ── Masquage visuel des montants (dashboard) ───────────── */
+.amount-hidden{
+  filter:blur(8px);-webkit-filter:blur(8px);
+  user-select:none;-webkit-user-select:none;-moz-user-select:none;
+  pointer-events:none;
+}
+
 /* ── Pills / badges — modernes et doux ──────────────────── */
 .pill{
   display:inline-flex;align-items:center;gap:3px;
