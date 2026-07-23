@@ -1,10 +1,18 @@
 // tests/multi-tenant/01-isolation.spec.ts
 // Vérifie que les données d'une organisation ne sont pas visibles par une autre.
-// Prérequis : TEST_ADMIN_B_EMAIL défini dans .env.test (organisation B distincte).
+// Correction 6 (TEST-01) : ces tests critiques ne peuvent plus être ignorés
+// silencieusement. requireSecurityTestEnv() lève une erreur (interrompant la
+// collecte de ce fichier) si la configuration de sécurité dédiée est
+// incomplète — jamais un test.skip(). À exécuter via
+// `npm run test:security:playwright` (playwright.security.config.ts), qui
+// authentifie ces comptes dans tests/security.setup.ts.
 import { test, expect } from '@playwright/test'
+import { requireSecurityTestEnv } from '../security-env'
 
-const ADMIN_A_AUTH = 'tests/.auth/admin.json'
-const ADMIN_B_AUTH = 'tests/.auth/admin-b.json'
+requireSecurityTestEnv()
+
+const ADMIN_A_AUTH = 'tests/.auth/security-admin-a.json'
+const ADMIN_B_AUTH = 'tests/.auth/security-admin-b.json'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -27,8 +35,6 @@ async function addKaytekActive(ctx: any) {
 // ── Tests isolation ──────────────────────────────────────────────────────────
 
 test.describe('Multi-tenant — isolation des données', () => {
-  test.skip(!process.env.TEST_ADMIN_B_EMAIL, 'TEST_ADMIN_B_EMAIL non défini — tests multi-tenant ignorés')
-
   test('clients org A non visibles par org B', async ({ browser }) => {
     // Contexte A
     const ctxA = await browser.newContext({ storageState: ADMIN_A_AUTH })

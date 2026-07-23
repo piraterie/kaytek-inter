@@ -1,0 +1,29 @@
+-- DÉPLOIEMENT CONTRÔLÉ — nettoyage d'un doublon de trigger découvert par
+-- l'audit en lecture seule de production avant déploiement.
+--
+-- public.interventions porte actuellement DEUX triggers BEFORE INSERT
+-- appelant la même fonction gen_numero_intervention() :
+--   - set_intervention_numero   : créé par la migration
+--     20260610000024_fix_devis_intervention_numero_rls.sql (suivie par git)
+--   - trg_intervention_numero   : absent de TOUT fichier de migration de ce
+--     dépôt — dérive de schéma (créé directement en base, hors historique
+--     git), découvert par une requête en lecture seule sur pg_trigger.
+--
+-- Avec l'ancienne implémentation de gen_numero_intervention() (lecture pure
+-- MAX(numero), aucun effet de bord), ce doublon était inoffensif : les deux
+-- exécutions recalculaient exactement la même valeur.
+--
+-- La migration 20260725000001_organisation_scoped_document_numbering.sql
+-- remplace le corps de cette fonction par un appel à
+-- next_document_number(), qui incrémente réellement un compteur persistant
+-- (document_counters). Avec le doublon toujours en place, chaque insertion
+-- d'intervention consommerait deux valeurs de compteur en n'en gardant
+-- qu'une seule (numéro sauté à chaque fois — jamais dupliqué, jamais de
+-- perte de données, mais un effet de bord réel et évitable).
+--
+-- Ce correctif supprime uniquement le trigger dupliqué et non suivi. Le
+-- trigger suivi par git (set_intervention_numero) et la fonction
+-- gen_numero_intervention() elle-même ne sont pas modifiés — la
+-- numérotation continue de fonctionner normalement, une seule fois par
+-- insertion.
+DROP TRIGGER IF EXISTS trg_intervention_numero ON public.interventions;

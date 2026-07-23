@@ -16,7 +16,17 @@
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report",
     "test:setup": "playwright test tests/auth.setup.ts --project=setup",
-    "test:beta": "playwright test tests/beta --project=beta"
+    "test:beta": "playwright test tests/beta --project=beta",
+    "test:unit": "vitest run",
+    "test:security:preflight": "node scripts/test-security-preflight.mjs",
+    "test:security:seed": "node scripts/seed-security-fixtures.mjs",
+    "test:security:sql": "node scripts/run-security-sql-tests.mjs",
+    "test:security:storage": "node scripts/test-security-storage.mjs",
+    "test:security:edge-functions": "node scripts/test-security-edge-functions.mjs",
+    "test:security:concurrency": "node scripts/test-security-concurrency.mjs",
+    "test:security:playwright": "node scripts/run-security-playwright.mjs",
+    "test:security": "npm run test:security:preflight && npm run test:security:sql && npm run test:security:storage && npm run test:security:edge-functions && npm run test:security:concurrency && npm run test:security:playwright",
+    "test:all": "npm run typecheck && npm run build && npm run test:unit && npm run test:security"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",
@@ -48,6 +58,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "typescript": "^5.5.3",
     "vite": "^5.4.2",
-    "vite-plugin-pwa": "^0.20.5"
+    "vite-plugin-pwa": "^0.20.5",
+    "vitest": "2.1.9"
   }
 }

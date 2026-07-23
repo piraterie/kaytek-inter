@@ -13,6 +13,7 @@ dist
 
 # Playwright
 playwright-report/
+playwright-report-security/
 test-results/
 tests/.auth/
 
