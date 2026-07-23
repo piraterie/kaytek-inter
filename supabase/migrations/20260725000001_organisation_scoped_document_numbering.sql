@@ -64,6 +64,36 @@
 
 
 -- ================================================================
+-- 0. DÉPLOIEMENT CONTRÔLÉ (2026-07-23) — traitement préalable des 3
+--    contraintes UNIQUE globales connues, AVANT le garde-fou du §1
+-- ================================================================
+-- Audit en lecture seule effectué avant ce déploiement :
+--   · devis_numero_key / factures_numero_key / interventions_numero_key
+--     sont de simples UNIQUE(numero) (nom auto-généré Postgres),
+--     validées, actives ;
+--   · antérieures à toute migration suivie par ce dépôt (absentes du
+--     bootstrap reconstruit et de toutes les autres migrations) —
+--     dérive de schéma historique, jamais capturée ;
+--   · aucune clé étrangère ne les référence (vérifié via pg_constraint,
+--     contype = 'f' ... confrelid IN devis/factures/interventions) —
+--     suppression sans impact structurel ;
+--   · elles sont directement INCOMPATIBLES avec le schéma cible de
+--     cette migration : deux organisations distinctes doivent pouvoir
+--     partager le même numero (ex. DEV-2026-001 pour l'org A ET l'org
+--     B la même année — comportement voulu, déjà vérifié par les tests
+--     locaux de la Correction 4) ; les laisser actives ferait échouer
+--     la 2e organisation de chaque année sur un numero déjà pris par
+--     une autre organisation, sans rapport avec ses propres données.
+-- Autorisation explicite obtenue avant application de ce correctif.
+-- Placé AVANT le garde-fou du §1 ci-dessous : une fois ces 3 objets
+-- connus supprimés, ce garde-fou repasse au vert et conserve sa pleine
+-- valeur défensive pour tout AUTRE objet inattendu qu'il découvrirait.
+ALTER TABLE public.devis         DROP CONSTRAINT IF EXISTS devis_numero_key;
+ALTER TABLE public.factures      DROP CONSTRAINT IF EXISTS factures_numero_key;
+ALTER TABLE public.interventions DROP CONSTRAINT IF EXISTS interventions_numero_key;
+
+
+-- ================================================================
 -- 1. VÉRIFICATIONS PRÉALABLES DE SCHÉMA
 -- ================================================================
 -- Détecte toute contrainte/index UNIQUE portant sur numero SEUL
