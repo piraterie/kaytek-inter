@@ -1,0 +1,94 @@
+# Correction 6 (TEST-01) — suite de sécurité multi-tenant, exclusivement
+# contre une instance Supabase LOCALE démarrée dans ce workflow (Supabase
+# CLI + Docker, fournis par le runner ubuntu-latest). Aucun secret de
+# production n'est utilisé ici : toutes les variables SUPABASE_TEST_*/
+# TEST_ADMIN_*/TEST_INTERVENANT_* sont dérivées de `supabase status`
+# (projet local éphémère) ou de valeurs de test fixes non sensibles
+# (domaine example.test, RFC 2606).
+#
+# Le typecheck (`npm run typecheck`) est délibérément EXCLU de ce
+# workflow : une erreur TypeScript préexistante et non bloquante pour le
+# build est déjà documentée (voir audit-kaytek-inter/phase-10-tests-
+# production.md et le rapport de Correction 6) — l'inclure ici ferait
+# échouer CE workflow pour une raison sans rapport avec la sécurité
+# multi-tenant. C'est une dette assumée, pas un oubli : `npm run
+# typecheck` doit être traité séparément.
+name: Security tests (multi-tenant)
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches: [main]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase local (Docker)
+        run: supabase start
+
+      - name: Derive local Supabase test environment (never production)
+        id: supa
+        run: |
+          set -euo pipefail
+          STATUS_JSON="$(supabase status -o json)"
+          echo "SUPABASE_TEST_URL=$(echo "$STATUS_JSON" | jq -r '.API_URL')" >> "$GITHUB_ENV"
+          echo "SUPABASE_TEST_DB_URL=$(echo "$STATUS_JSON" | jq -r '.DB_URL')" >> "$GITHUB_ENV"
+          echo "SUPABASE_TEST_ANON_KEY=$(echo "$STATUS_JSON" | jq -r '.ANON_KEY')" >> "$GITHUB_ENV"
+          echo "SUPABASE_TEST_SERVICE_ROLE_KEY=$(echo "$STATUS_JSON" | jq -r '.SERVICE_ROLE_KEY')" >> "$GITHUB_ENV"
+
+      - name: Set fixture test accounts (non-sensitive, local-only)
+        run: |
+          {
+            echo "TEST_ADMIN_A_EMAIL=admin-a@security.example.test"
+            echo "TEST_ADMIN_A_PASSWORD=security-test-local-only-ci"
+            echo "TEST_ADMIN_B_EMAIL=admin-b@security.example.test"
+            echo "TEST_ADMIN_B_PASSWORD=security-test-local-only-ci"
+            echo "TEST_INTERVENANT_A_EMAIL=intervenant-a@security.example.test"
+            echo "TEST_INTERVENANT_A_PASSWORD=security-test-local-only-ci"
+          } >> "$GITHUB_ENV"
+
+      - name: Apply migrations
+        run: supabase db reset
+
+      - name: Seed dedicated security fixtures (orgs, admins, subscriptions)
+        run: npm run test:security:seed
+
+      - name: Unit tests (vitest)
+        run: npm run test:unit
+
+      - name: Security suite (preflight, SQL, storage, edge functions, concurrency, Playwright)
+        run: npm run test:security
+
+      - name: Upload Playwright report (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-security
+          path: playwright-report-security/
+          retention-days: 14
+
+      - name: Stop Supabase local
+        if: always()
+        run: supabase stop

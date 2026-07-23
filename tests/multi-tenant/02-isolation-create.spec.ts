@@ -2,12 +2,21 @@
 // Crée des données réelles dans org A via UI, vérifie que org B ne les voit pas.
 // ⚠️ Ce test écrit de vraies données dans Supabase (comptes de test dédiés).
 //    Les données créées restent en base — archiver manuellement si besoin.
+// Correction 6 (TEST-01) : test critique, ne peut plus être ignoré
+// silencieusement. requireSecurityTestEnv() lève une erreur (interrompant la
+// collecte de ce fichier) si la configuration de sécurité dédiée est
+// incomplète — jamais un test.skip(). À exécuter via
+// `npm run test:security:playwright` (playwright.security.config.ts, jamais
+// contre un projet Supabase distant/production — voir preflight).
 import { test, expect } from '@playwright/test'
 import fs from 'fs'
 import path from 'path'
+import { requireSecurityTestEnv } from '../security-env'
 
-const ADMIN_A_AUTH = 'tests/.auth/admin.json'
-const ADMIN_B_AUTH = 'tests/.auth/admin-b.json'
+requireSecurityTestEnv()
+
+const ADMIN_A_AUTH = 'tests/.auth/security-admin-a.json'
+const ADMIN_B_AUTH = 'tests/.auth/security-admin-b.json'
 const SCREENSHOTS_DIR = 'tests/screenshots/isolation-report'
 
 async function addKaytekActive(ctx: any) {
@@ -29,8 +38,6 @@ async function countInResults(page: any, text: string): Promise<number> {
 }
 
 test.describe('Multi-tenant — isolation données créées via UI', () => {
-  test.skip(!process.env.TEST_ADMIN_B_EMAIL, 'TEST_ADMIN_B_EMAIL non défini')
-
   test('isolation complète : créer dans org A, vérifier dans org B', async ({ browser }) => {
     test.slow() // timeout × 3
 
@@ -87,11 +94,26 @@ test.describe('Multi-tenant — isolation données créées via UI', () => {
 
     // CustomSelect client : 1er bouton type=button dans la modal
     await pageA.locator('.modal button[type="button"]:has-text("Sélectionner un client")').click()
-    await pageA.waitForTimeout(400)
-    // [data-selected] est l'attribut exclusif des options CustomSelect (CustomSelect.tsx)
-    // Évite de cliquer sur un élément en arrière-plan qui contient aussi le texte "TEST-ISO"
-    await pageA.locator('.modal [data-selected]').filter({ hasText: NOM }).first().click()
-    await pageA.waitForTimeout(300)
+    // CustomSelect.tsx rend sa liste déroulante via createPortal(..., document.body) :
+    // ce n'est PAS un descendant DOM de .modal, quelle que soit sa position visuelle
+    // (positionnement en `position: fixed` calculé par le composant), donc un
+    // sélecteur préfixé par `.modal ` ne matche jamais. `data-selected` est
+    // l'attribut exclusif des options CustomSelect (présent avec la valeur `true`
+    // ou `false` sur chaque option) et n'existe dans le DOM que pendant qu'une
+    // liste est réellement ouverte — cibler `[data-selected]` sans scope DOM
+    // identifie donc sans ambiguïté la liste actuellement affichée (une seule
+    // ouverte à la fois dans ce parcours). Filtré sur PRENOM (unique par run,
+    // horodaté) plutôt que NOM (constant "TEST-ISO" sur tous les runs passés dont
+    // les données restent en base, cf. commentaire d'en-tête du fichier) pour
+    // éviter de cliquer sur un client d'un run précédent.
+    const clientOptionIntervention = pageA.locator('[data-selected]').filter({ hasText: PRENOM }).first()
+    await clientOptionIntervention.waitFor({ state: 'visible' })
+    await clientOptionIntervention.click()
+    // Attend la fermeture réelle de la liste (CustomSelect démonte le portail à la
+    // sélection) plutôt qu'un délai arbitraire, puis vérifie que le client choisi
+    // est bien affiché dans le champ.
+    await pageA.locator('[data-selected]').waitFor({ state: 'detached' })
+    await pageA.locator('.modal button[type="button"]').filter({ hasText: NOM }).first().waitFor({ state: 'visible' })
 
     await pageA.locator('.modal input[placeholder*="Adresse"]').fill('1 Rue de Test, Paris 75001')
     await pageA.locator('.modal textarea').first().fill(`Test isolation ${UID}`)
@@ -109,11 +131,16 @@ test.describe('Multi-tenant — isolation données créées via UI', () => {
     await pageA.goto('/devis/nouveau')
     await pageA.waitForTimeout(1500)
 
-    // Sélectionner client — cibler PRENOM (unique par run) pour ne pas prendre un run précédent
+    // Sélectionner client — cibler PRENOM (unique par run) pour ne pas prendre un run précédent.
+    // Même portail React que le CustomSelect de l'intervention ci-dessus — voir
+    // commentaire détaillé plus haut. Attente sur état réel (visible/detached)
+    // plutôt qu'un délai arbitraire.
     await pageA.locator('button[type="button"]:has-text("Sélectionner un client")').first().click()
-    await pageA.waitForTimeout(400)
-    await pageA.locator('[data-selected]').filter({ hasText: PRENOM }).first().click()
-    await pageA.waitForTimeout(400)
+    const clientOptionDevis = pageA.locator('[data-selected]').filter({ hasText: PRENOM }).first()
+    await clientOptionDevis.waitFor({ state: 'visible' })
+    await clientOptionDevis.click()
+    await pageA.locator('[data-selected]').waitFor({ state: 'detached' })
+    await pageA.locator('button[type="button"]').filter({ hasText: PRENOM }).first().waitFor({ state: 'visible' })
 
     // Ajouter une prestation manuelle
     await pageA.locator('button:has-text("+ Ajouter une prestation manuelle")').click()
@@ -131,9 +158,13 @@ test.describe('Multi-tenant — isolation données créées via UI', () => {
 
     await shot(pageA, '04-admin-a-devis-prestation')
 
-    // Sauvegarder brouillon (bouton emoji 💾)
+    // Sauvegarder brouillon (bouton emoji 💾) — DevisFormPage.tsx (ligne ~285)
+    // navigue vers /devis/:id/apercu quand le devis n'est pas rattaché à une
+    // intervention (cas de ce parcours), jamais vers /devis (liste) : ce n'est
+    // pas un défaut, c'est le comportement actuel confirmé en lisant le
+    // composant (aucune modification de fichier applicatif nécessaire).
     await pageA.locator('button:has-text("Sauvegarder brouillon")').click()
-    await pageA.waitForURL('**/devis', { timeout: 15_000 })
+    await pageA.waitForURL(/\/devis\/[^/]+\/apercu/, { timeout: 15_000 })
     await pageA.waitForTimeout(1500)
 
     await shot(pageA, '05-admin-a-devis-cree')
@@ -141,6 +172,12 @@ test.describe('Multi-tenant — isolation données créées via UI', () => {
     report.push(`- ✅ Créé en brouillon pour \`${LABEL}\``)
     report.push(`- Screenshot : \`05-admin-a-devis-cree.png\``)
     report.push(``)
+
+    // Retour à la liste des devis pour la suite du parcours (recherche de la
+    // ligne créée, transformation en facture) — la sauvegarde a navigué vers
+    // la page d'aperçu du devis, pas vers la liste.
+    await pageA.goto('/devis')
+    await pageA.waitForTimeout(1500)
 
     // ── 1d. Convertir le devis en facture ───────────────────
     let factureCreated = false
@@ -150,8 +187,10 @@ test.describe('Multi-tenant — isolation données créées via UI', () => {
     const rowCount = await devisRow.count()
 
     if (rowCount > 0) {
-      // Ouvrir le DocSheet via le bouton ···
-      await devisRow.first().locator('button:has-text("···")').click()
+      // Ouvrir le DocSheet via le bouton actions — DevisPage.tsx (ligne ~596)
+      // rend une icône Lucide (MoreHorizontal), sans texte "···" ; title="Actions"
+      // est l'attribut stable et accessible réellement présent dans le DOM.
+      await devisRow.first().locator('button[title="Actions"]').click()
       await pageA.waitForTimeout(500)
 
       // Marquer comme envoyé (passage brouillon → envoye)
@@ -162,8 +201,8 @@ test.describe('Multi-tenant — isolation données créées via UI', () => {
       report.push(`### Facture`)
       report.push(`- Devis trouvé — marqué comme envoyé`)
 
-      // Rouvrir le DocSheet
-      await devisRow.first().locator('button:has-text("···")').click()
+      // Rouvrir le DocSheet — voir commentaire ci-dessus (icône, pas de texte "···")
+      await devisRow.first().locator('button[title="Actions"]').click()
       await pageA.waitForTimeout(500)
 
       // Transformer en facture

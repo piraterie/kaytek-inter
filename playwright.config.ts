@@ -65,6 +65,15 @@ export default defineConfig({
       testIgnore: /responsive|multi-tenant/,
     },
 
+    // NB : les tests tests/multi-tenant/*.spec.ts ne sont plus rattachés à un
+    // projet de cette configuration (Correction 6 / TEST-01). Ils exigent
+    // désormais une configuration de sécurité dédiée (SUPABASE_TEST_*,
+    // TEST_ADMIN_A_*) via requireSecurityTestEnv() et s'exécutent
+    // exclusivement sous playwright.security.config.ts
+    // (`npm run test:security:playwright`), jamais sous ce fichier — pour
+    // ne jamais dépendre du 'setup' non-bloquant ci-dessus (qui écrit un
+    // storageState vide + un avertissement si un identifiant est absent).
+
     // ── 3. Desktop Firefox ──────────────────────────────────────────────
     {
       name: 'firefox',
@@ -108,14 +117,6 @@ export default defineConfig({
       use: { ...devices['iPad (gen 7)'] },
       dependencies: ['setup'],
       testMatch: /responsive\/.*\.spec\.ts/,
-    },
-
-    // ── 8. Multi-tenant — Chrome Desktop ───────────────────────────────
-    {
-      name: 'multi-tenant',
-      use: { ...devices['Desktop Chrome'] },
-      dependencies: ['setup'],
-      testMatch: /multi-tenant\/.*\.spec\.ts/,
     },
 
     // ── 9. Beta accounts — validation des 5 comptes bêta serruriers ────
