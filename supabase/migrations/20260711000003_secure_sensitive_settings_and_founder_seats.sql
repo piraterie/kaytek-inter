@@ -19,7 +19,15 @@
 -- et BIC (risque réel de fraude au virement) passent en admin-only.
 --
 -- SELECT complet (incluant iban/bic) : admin uniquement.
+-- DÉPLOIEMENT CONTRÔLÉ (2026-07-23) : DROP POLICY IF EXISTS ajouté pour
+-- params_select_admin — cette migration n'a jamais été appliquée avec
+-- succès (ledger vide), mais une policy de même nom et même définition
+-- existait déjà en production (dérive de schéma hors migration, comme
+-- params_select déjà absente). CREATE POLICY seul échouait avec
+-- "policy already exists" (SQLSTATE 42710) ; ce correctif suit le même
+-- motif DROP-puis-CREATE que toutes les autres policies de ce fichier.
 DROP POLICY IF EXISTS "params_select" ON public.parametres_entreprise;
+DROP POLICY IF EXISTS "params_select_admin" ON public.parametres_entreprise;
 CREATE POLICY "params_select_admin" ON public.parametres_entreprise
   FOR SELECT USING (is_same_org(organisation_id) AND is_admin_in_org(organisation_id));
 
