@@ -4,6 +4,17 @@ import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 export default defineConfig({
+  server: {
+    // Bind explicite sur le loopback IPv4 (jamais 0.0.0.0 — pas d'exposition
+    // réseau supplémentaire, la sécurité n'est pas affaiblie). Sans cette
+    // option, Vite bind sur "localhost", dont la résolution dépend de l'OS/
+    // machine (souvent ::1 en priorité sur Windows) — Playwright cible
+    // http://127.0.0.1:5183 en dur dans playwright.security.config.ts, et
+    // un mismatch IPv4/IPv6 fait alors échouer le health-check du
+    // webServer (timeout) même quand Vite a démarré avec succès. Aligne
+    // aussi playwright.config.ts (BASE_URL par défaut, voir ce fichier).
+    host: '127.0.0.1',
+  },
   plugins: [
     react(),
     VitePWA({

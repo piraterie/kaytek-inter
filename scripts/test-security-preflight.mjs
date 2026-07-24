@@ -18,15 +18,15 @@ import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { loadSecurityTestEnv } from './lib/load-env.mjs'
+import { KNOWN_PRODUCTION_REF, extractHostname } from './lib/production-guard.mjs'
 
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
 
-// Référence de projet Supabase déjà publique dans ce dépôt (visible en
-// clair dans supabase/migrations/20260708000008_security_phase1_critical_
-// hardening.sql, correctif SEC-06 — une URL de projet Supabase n'est
-// jamais un secret, seules les clés le sont) — filet de sécurité
-// supplémentaire, indépendant de la lecture des fichiers .env ci-dessous.
-const KNOWN_PRODUCTION_REF = 'dimrukkxehcwzemslwiz'
+// KNOWN_PRODUCTION_REF / extractHostname viennent désormais de
+// scripts/lib/production-guard.mjs (source unique de vérité, partagée
+// avec scripts/guard-no-production.mjs et playwright.config.ts — avant
+// cette correction, chacun aurait dupliqué sa propre référence de
+// production, avec le risque qu'elles divergent silencieusement).
 
 const FORBIDDEN_BYPASS_VARS = ['ALLOW_PRODUCTION_TESTS', 'FORCE_SECURITY_TESTS', 'SKIP_PRODUCTION_GUARD']
 
@@ -41,18 +41,6 @@ function fail(detail) {
   console.error('REFUS : les tests de sécurité ne peuvent jamais être exécutés contre la production.')
   if (detail) console.error(`  → ${detail}`)
   process.exit(1)
-}
-
-function extractHostname(urlLike) {
-  if (!urlLike) return null
-  try {
-    return new URL(urlLike).hostname.toLowerCase()
-  } catch {
-    // Chaînes de connexion Postgres non conformes à WHATWG URL dans de
-    // rares cas — extraction de secours par expression régulière.
-    const m = /@([^:/?#]+)/.exec(urlLike)
-    return m ? m[1].toLowerCase() : null
-  }
 }
 
 function isLocalHostname(host) {

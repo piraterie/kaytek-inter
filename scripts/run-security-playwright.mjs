@@ -47,8 +47,22 @@ function main() {
     {
       stdio: ['inherit', 'inherit', 'inherit'],
       env: { ...process.env, PLAYWRIGHT_JSON_OUTPUT_NAME: jsonReportPath },
+      // shell: true — requis sur Windows : Node ne peut pas spawnSync() un
+      // .cmd (npx.cmd) directement sans passer par un shell (EINVAL sinon,
+      // constaté ici). Sans lien avec un quelconque garde anti-production :
+      // tous les arguments passés à spawnSync sont des littéraux statiques
+      // ci-dessus, jamais une entrée utilisateur/variable non contrôlée —
+      // aucun risque d'injection de commande via ce shell.
+      shell: process.platform === 'win32',
     }
   )
+
+  if (result.error) {
+    console.error('[test:security:playwright] ÉCHEC — impossible de lancer le processus Playwright.')
+    console.error(`  → ${result.error.message}`)
+    rmSync(tmpDir, { recursive: true, force: true })
+    process.exit(1)
+  }
 
   let stats = null
   try {

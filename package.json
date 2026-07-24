@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/guard-no-production.mjs",
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",

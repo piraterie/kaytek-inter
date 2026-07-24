@@ -1,5 +1,17 @@
 import { defineConfig, devices } from '@playwright/test'
 import { existsSync, readFileSync } from 'fs'
+import { guardViteEnvOrExit } from './scripts/lib/production-guard.mjs'
+
+// Exécuté au chargement de ce fichier — avant toute chose, y compris la
+// construction de defineConfig() et le démarrage du webServer (`npm run
+// dev`, qui est de toute façon protégé indépendamment par le hook predev,
+// voir scripts/guard-no-production.mjs). Défense en profondeur : cette
+// suite (tests/e2e, tests/responsive, tests/beta) n'avait jusqu'ici AUCUNE
+// vérification anti-production, contrairement à playwright.security.
+// config.ts — elle héritait silencieusement de VITE_SUPABASE_URL tel que
+// défini dans .env.local, qui pointait vers la production avant cette
+// correction.
+guardViteEnvOrExit('playwright.config.ts (suite Playwright fonctionnelle : e2e/responsive/beta)')
 
 // Charge un fichier .env spécifié si présent
 function loadEnvFile(file: string) {
@@ -19,7 +31,11 @@ function loadEnvFile(file: string) {
 loadEnvFile('.env.test')       // credentials tests E2E standards
 loadEnvFile('.env.beta-test')  // credentials comptes bêta
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:5173'
+// 127.0.0.1 explicite (pas "localhost") — cohérent avec vite.config.ts
+// (server.host: '127.0.0.1') et avec playwright.security.config.ts (déjà
+// en 127.0.0.1 en dur) : évite tout mismatch IPv4/IPv6 selon la
+// résolution DNS locale de "localhost" sur la machine.
+const BASE_URL = process.env.TEST_BASE_URL || 'http://127.0.0.1:5173'
 
 export default defineConfig({
   testDir: './tests',
