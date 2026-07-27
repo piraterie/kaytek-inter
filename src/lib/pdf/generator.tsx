@@ -15,9 +15,52 @@ const base = StyleSheet.create({
   row:     { flexDirection: 'row' },
   muted:   { fontSize: 8, color: '#6b7280', lineHeight: 1.7 },
   upper:   { textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 7 },
-  footer:  { position: 'absolute', bottom: 24, left: 44, right: 44 },
-  ftxt:    { fontSize: 7, color: '#9ca3af', textAlign: 'center', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 6, lineHeight: 1.5 },
+  // Pied de page COURT, répété sur chaque page (fixed) — jamais le texte
+  // intégral des CGV, qui a sa propre page dédiée (voir LegalPage) :
+  // un position:'absolute' n'est jamais redimensionné par son contenu,
+  // donc tout texte long placé ici chevauche mécaniquement ce qui est
+  // au-dessus, quelle que soit la page où il atterrit.
+  pageFooter:    { position: 'absolute', bottom: 24, left: 44, right: 44 },
+  pageFooterTxt: { fontSize: 7, color: '#9ca3af', textAlign: 'center', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 6, lineHeight: 1.5 },
+  pageNum:       { fontSize: 7, color: '#cbd5e1', textAlign: 'center', marginTop: 2 },
 })
+
+// ── PIED DE PAGE (répété sur chaque page — fixed) ─────────────────
+// Ne contient jamais les CGV complètes : uniquement un rappel court
+// (RC Pro / mention courte) + la numérotation de page (utile dès qu'un
+// document dépasse une page, ce que les CGV dédiées peuvent désormais
+// provoquer légitimement).
+function PageFooter({ text }: { text?: string }) {
+  return (
+    <View style={base.pageFooter} fixed>
+      {text ? <Text style={base.pageFooterTxt}>{text}</Text> : null}
+      <Text
+        style={base.pageNum}
+        render={({ pageNumber, totalPages }) => (totalPages > 1 ? `Page ${pageNumber} / ${totalPages}` : '')}
+      />
+    </View>
+  )
+}
+
+// ── PAGE CGV / MENTIONS LÉGALES DÉDIÉE ─────────────────────────────
+// Jamais mélangée au contenu commercial : une page à part (react-pdf la
+// prolonge automatiquement sur d'autres pages si le texte est long,
+// exactement comme le contenu principal le fait déjà pour de nombreuses
+// lignes). N'est ajoutée au document que si des CGV existent réellement.
+function LegalPage({ docType, numero, cgv, primary, accent, footerText }: {
+  docType: string; numero: string; cgv: string; primary: string; accent: string; footerText?: string
+}) {
+  return (
+    <Page size="A4" style={[base.page, { padding: 44 }]} wrap>
+      <View style={{ marginBottom: 20, borderBottomWidth: 2, borderBottomColor: accent, paddingBottom: 12 }}>
+        <Text style={[base.bold, { fontSize: 14, color: primary }]}>Conditions générales</Text>
+        <Text style={{ fontSize: 8, color: '#6b7280', marginTop: 3 }}>{docType} {numero}</Text>
+      </View>
+      <Text style={{ fontSize: 9, color: '#374151', lineHeight: 1.7 }}>{cgv}</Text>
+      <PageFooter text={footerText} />
+    </Page>
+  )
+}
 
 // ── HEADER ──────────────────────────────────────────────────────
 function Header({ type, numero, date, valide, params, accent, primary }: {
@@ -162,10 +205,12 @@ export async function generateDevisPDF(devis: Devis, params: ParametresEntrepris
   const identity = resolveClientIdentity(devis.client_snapshot, devis.client)
   const clientNom = identity?.displayName || '—'
   const addressLines = formatAddressLines(identity)
+  const rcProLine = params.rc_pro ? `RC Pro : ${params.rc_pro}` : undefined
+  const cgv = params.cgv?.trim()
 
   const doc = (
     <Document>
-      <Page size="A4" style={[base.page, { padding: 44 }]}>
+      <Page size="A4" style={[base.page, { padding: 44 }]} wrap>
         <Header type="DEVIS" numero={devis.numero} date={fmt(devis.created_at)} valide={devis.valide_jusqu_au ? fmt(devis.valide_jusqu_au) : undefined} params={params} accent={accent} primary={primary} />
 
         <ClientSection
@@ -223,10 +268,14 @@ export async function generateDevisPDF(devis: Devis, params: ParametresEntrepris
           )
         })()}
 
-        <View style={base.footer}>
-          <Text style={base.ftxt}>{[params.cgv, params.rc_pro ? 'RC Pro : ' + params.rc_pro : ''].filter(Boolean).join('  ·  ')}</Text>
-        </View>
+        <PageFooter text={rcProLine} />
       </Page>
+
+      {/* CGV sur une page dédiée — jamais mélangées au contenu commercial
+          ci-dessus. N'existe que si des CGV sont réellement renseignées. */}
+      {cgv ? (
+        <LegalPage docType="Devis" numero={devis.numero} cgv={cgv} primary={primary} accent={accent} footerText={rcProLine} />
+      ) : null}
     </Document>
   )
   return pdf(doc).toBlob()
@@ -243,10 +292,11 @@ export async function generateFacturePDF(facture: Facture, devis: Devis | null, 
   const clientNom = identity?.displayName || '—'
   const addressLines = formatAddressLines(identity)
   const estPayee = facture.statut_paiement === 'payee'
+  const cgv = params.cgv?.trim()
 
   const doc = (
     <Document>
-      <Page size="A4" style={[base.page, { padding: 44 }]}>
+      <Page size="A4" style={[base.page, { padding: 44 }]} wrap>
         <Header type="FACTURE" numero={facture.numero} date={fmt(facture.date_emission)} valide={facture.date_echeance ? 'Échéance : ' + fmt(facture.date_echeance) : undefined} params={params} accent={estPayee ? '#16a34a' : accent} primary={primary} />
 
         <ClientSection
@@ -293,10 +343,14 @@ export async function generateFacturePDF(facture: Facture, devis: Devis | null, 
           </View>
         )}
 
-        <View style={base.footer}>
-          <Text style={base.ftxt}>{params.cgv || 'Merci pour votre confiance.'}</Text>
-        </View>
+        <PageFooter text="Merci pour votre confiance." />
       </Page>
+
+      {/* CGV sur une page dédiée — jamais mélangées au contenu commercial
+          ci-dessus. N'existe que si des CGV sont réellement renseignées. */}
+      {cgv ? (
+        <LegalPage docType="Facture" numero={facture.numero} cgv={cgv} primary={primary} accent={estPayee ? '#16a34a' : accent} footerText="Merci pour votre confiance." />
+      ) : null}
     </Document>
   )
   return pdf(doc).toBlob()
