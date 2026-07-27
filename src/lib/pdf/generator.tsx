@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import type { Devis, Facture, ParametresEntreprise } from '@/types'
 import { getTheme } from '@/lib/themes'
+import { resolveClientIdentity, formatAddressLines } from '@/lib/clientIdentity'
 
 const fmt = (d?: string) => { try { return d ? format(new Date(d), 'dd/MM/yyyy', { locale: fr }) : '—' } catch { return '—' } }
 const eur = (n?: number) => (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
@@ -69,8 +70,8 @@ function Header({ type, numero, date, valide, params, accent, primary }: {
 }
 
 // ── CLIENT SECTION ──────────────────────────────────────────────
-function ClientSection({ clientNom, clientPhone, clientEmail, clientAdresse, right, accent }: {
-  clientNom: string; clientPhone?: string; clientEmail?: string; clientAdresse?: string
+function ClientSection({ clientNom, clientContactName, clientPhone, clientEmail, addressLines, right, accent }: {
+  clientNom: string; clientContactName?: string; clientPhone?: string; clientEmail?: string; addressLines?: string[]
   right?: React.ReactNode; accent: string
 }) {
   return (
@@ -78,9 +79,12 @@ function ClientSection({ clientNom, clientPhone, clientEmail, clientAdresse, rig
       <View style={{ backgroundColor: '#f8fafc', borderRadius: 6, padding: 14, flex: 1, marginRight: 12, borderLeftWidth: 3, borderLeftColor: accent }}>
         <Text style={[base.bold, base.upper, { color: '#6b7280', marginBottom: 6 }]}>Facturé à</Text>
         <Text style={[base.bold, { fontSize: 11, marginBottom: 3 }]}>{clientNom}</Text>
+        {/* N'apparaît que pour un professionnel (société en clientNom) —
+            pour un particulier, clientNom EST déjà le nom du contact. */}
+        {clientContactName && <Text style={base.muted}>{clientContactName}</Text>}
         {clientPhone && <Text style={base.muted}>{clientPhone}</Text>}
         {clientEmail && <Text style={base.muted}>{clientEmail}</Text>}
-        {clientAdresse && <Text style={base.muted}>{clientAdresse}</Text>}
+        {addressLines?.map((line, i) => <Text key={i} style={base.muted}>{line}</Text>)}
       </View>
       {right && <View style={{ width: 170 }}>{right}</View>}
     </View>
@@ -152,7 +156,12 @@ function Totals({ ht, tva, remisePct, remise, ttc, accent }: {
 // ── DEVIS PDF ────────────────────────────────────────────────────
 export async function generateDevisPDF(devis: Devis, params: ParametresEntreprise, modeleId = 0): Promise<Blob> {
   const { primary, accent } = getTheme(modeleId)
-  const clientNom = [devis.client?.nom, devis.client?.prenom].filter(Boolean).join(' ') || '—'
+  // Priorité : snapshot figé sur le devis > fiche client jointe (repli
+  // pour les devis créés avant l'introduction du snapshot) — voir
+  // src/lib/clientIdentity.ts.
+  const identity = resolveClientIdentity(devis.client_snapshot, devis.client)
+  const clientNom = identity?.displayName || '—'
+  const addressLines = formatAddressLines(identity)
 
   const doc = (
     <Document>
@@ -161,9 +170,10 @@ export async function generateDevisPDF(devis: Devis, params: ParametresEntrepris
 
         <ClientSection
           clientNom={clientNom}
-          clientPhone={devis.client?.telephone}
-          clientEmail={devis.client?.email}
-          clientAdresse={devis.client?.adresse_intervention}
+          clientContactName={identity?.contactName}
+          clientPhone={identity?.phone}
+          clientEmail={identity?.email}
+          addressLines={addressLines}
           accent={accent}
           right={devis.intervenant ? (
             <View style={{ backgroundColor: '#f8fafc', borderRadius: 6, padding: 14, borderLeftWidth: 3, borderLeftColor: primary }}>
@@ -226,7 +236,12 @@ export async function generateDevisPDF(devis: Devis, params: ParametresEntrepris
 export async function generateFacturePDF(facture: Facture, devis: Devis | null, params: ParametresEntreprise): Promise<Blob> {
   const { primary, accent } = getTheme(devis?.modele_id ?? (params as any).modele_pdf_defaut)
   const lignes = devis?.lignes || []
-  const clientNom = [facture.client?.nom, facture.client?.prenom].filter(Boolean).join(' ') || '—'
+  // Priorité : snapshot figé sur la facture (repris du devis source lors
+  // d'une conversion, ou calculé à la création directe) > fiche client
+  // jointe (repli pour les factures créées avant le snapshot).
+  const identity = resolveClientIdentity(facture.client_snapshot, facture.client)
+  const clientNom = identity?.displayName || '—'
+  const addressLines = formatAddressLines(identity)
   const estPayee = facture.statut_paiement === 'payee'
 
   const doc = (
@@ -236,8 +251,10 @@ export async function generateFacturePDF(facture: Facture, devis: Devis | null, 
 
         <ClientSection
           clientNom={clientNom}
-          clientPhone={facture.client?.telephone}
-          clientEmail={facture.client?.email}
+          clientContactName={identity?.contactName}
+          clientPhone={identity?.phone}
+          clientEmail={identity?.email}
+          addressLines={addressLines}
           accent={estPayee ? '#16a34a' : accent}
           right={
             <View style={{ backgroundColor: estPayee ? '#dcfce7' : '#fef2f2', borderRadius: 6, padding: 14, borderLeftWidth: 3, borderLeftColor: estPayee ? '#16a34a' : '#dc2626' }}>

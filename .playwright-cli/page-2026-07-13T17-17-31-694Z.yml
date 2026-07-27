@@ -1,0 +1,358 @@
+- generic [ref=e10]:
+  - complementary [ref=e11]:
+    - generic [ref=e12]:
+      - img [ref=e13]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Kaytek Inter
+        - generic [ref=e20]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+    - navigation [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Pilotage
+        - button "Dashboard" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - generic [ref=e33]: Dashboard
+        - button "Messagerie" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e38]: Messagerie
+      - generic [ref=e39]:
+        - generic [ref=e40]: Terrain
+        - button "Interventions 1" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Interventions
+          - generic [ref=e45]: "1"
+        - button "Planning" [ref=e46] [cursor=pointer]:
+          - img [ref=e47]
+          - generic [ref=e49]: Planning
+        - button "Devis" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - generic [ref=e54]: Devis
+        - button "Factures" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - generic [ref=e59]: Factures
+      - generic [ref=e60]:
+        - generic [ref=e61]: Gestion
+        - button "Clients" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+          - generic [ref=e68]: Clients
+        - button "Catalogue" [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - generic [ref=e74]: Catalogue
+        - button "Commissions" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e78]: Commissions
+        - button "Guide" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e82]: Guide
+      - generic [ref=e83]:
+        - generic [ref=e84]: Administration
+        - button "Réseau partenaires" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e91]: Réseau partenaires
+        - button "Utilisateurs" [ref=e92] [cursor=pointer]:
+          - img [ref=e93]
+          - generic [ref=e95]: Utilisateurs
+        - button "Paramètres" [ref=e96] [cursor=pointer]:
+          - img [ref=e97]
+          - generic [ref=e100]: Paramètres
+        - button "Journal" [ref=e101] [cursor=pointer]:
+          - img [ref=e102]
+          - generic [ref=e105]: Journal
+    - generic [ref=e106]:
+      - link "Confidentialité" [ref=e107] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e108]: ·
+      - link "Supprimer mon compte" [ref=e109] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e111]:
+      - button "A Admin A Admin B AdminTestB Administrateur · Kaytek Inter" [ref=e112] [cursor=pointer]:
+        - generic [ref=e113]:
+          - generic [ref=e114]: A
+          - generic [ref=e115]:
+            - generic [ref=e116]: Admin A Admin B AdminTestB
+            - generic [ref=e117]: Administrateur · Kaytek Inter
+      - generic [ref=e118]:
+        - button "Clair" [ref=e119] [cursor=pointer]:
+          - img [ref=e120]
+          - text: Clair
+        - button "Quitter" [ref=e126] [cursor=pointer]:
+          - img [ref=e127]
+          - text: Quitter
+  - generic [ref=e130]:
+    - banner [ref=e131]:
+      - button "Menu" [ref=e132] [cursor=pointer]:
+        - img [ref=e133]
+      - generic [ref=e134]: Réseau partenaires
+      - generic [ref=e135]:
+        - button [ref=e136] [cursor=pointer]:
+          - img [ref=e137]
+        - button "9+" [ref=e140] [cursor=pointer]:
+          - img [ref=e141]
+          - generic [ref=e144]: 9+
+        - button "+ Nouveau" [ref=e145] [cursor=pointer]
+        - button [ref=e146] [cursor=pointer]:
+          - img [ref=e147]
+    - generic [ref=e153]:
+      - img [ref=e154]
+      - generic [ref=e156]:
+        - strong [ref=e157]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e158] [cursor=pointer]
+    - main [ref=e159]:
+      - generic [ref=e160]:
+        - generic [ref=e162]:
+          - heading "Réseau partenaires" [level=1] [ref=e163]
+          - paragraph [ref=e164]: Connectez votre organisation à d'autres entreprises Kaytek Inter, sans partager vos données privées.
+        - generic [ref=e166]:
+          - generic [ref=e167]: Or
+          - generic [ref=e168]:
+            - generic [ref=e169]: Org Test B — Plomberie
+            - generic [ref=e170]: Plomberie · Marseille
+            - generic [ref=e171]:
+              - generic [ref=e172]: KTK-ZH5PUP
+              - button "Copier le code partenaire" [ref=e173] [cursor=pointer]:
+                - img [ref=e174]
+              - generic [ref=e177]: Visible dans le réseau
+          - button "Modifier mon profil" [ref=e178] [cursor=pointer]
+        - generic [ref=e179]:
+          - img [ref=e180]
+          - textbox "Rechercher par code partenaire, pseudo, métier, ville ou email exact…" [ref=e183]
+        - generic [ref=e184]:
+          - button "Mes partenaires 1" [ref=e185] [cursor=pointer]:
+            - img [ref=e186]
+            - text: Mes partenaires
+            - generic [ref=e191]: "1"
+          - button "Demandes reçues" [ref=e192] [cursor=pointer]:
+            - img [ref=e193]
+            - text: Demandes reçues
+          - button "Demandes envoyées" [ref=e196] [cursor=pointer]:
+            - img [ref=e197]
+            - text: Demandes envoyées
+          - button "Interventions reçues 1" [ref=e518] [cursor=pointer]:
+            - img [ref=e201]
+            - text: Interventions reçues
+            - generic [ref=e203]: "1"
+          - button "Interventions envoyées" [ref=e204] [cursor=pointer]:
+            - img [ref=e205]
+            - text: Interventions envoyées
+        - generic [ref=e207]:
+          - generic [ref=e209]:
+            - generic [ref=e210]: Or
+            - generic [ref=e211]:
+              - generic [ref=e212]:
+                - generic [ref=e213]: Org Test A — Serrurerie
+                - generic [ref=e214]: Refusée
+              - generic [ref=e215]:
+                - generic [ref=e216]: plomberie
+                - generic [ref=e217]:
+                  - img [ref=e218]
+                  - text: Marseille
+              - generic [ref=e225]: Fuite eau
+              - generic [ref=e519]: "Motif du refus : Test refus via UI - pas dispo cette semaine"
+            - button "Message" [ref=e227] [cursor=pointer]:
+              - img [ref=e228]
+              - text: Message
+            - button "Historique" [ref=e238] [cursor=pointer]:
+              - img [ref=e239]
+              - img [ref=e243]
+          - generic [ref=e246]:
+            - generic [ref=e247]: Or
+            - generic [ref=e248]:
+              - generic [ref=e249]:
+                - generic [ref=e250]: Org Test A — Serrurerie
+                - generic [ref=e251]: En attente
+              - generic [ref=e252]:
+                - generic [ref=e253]: plomberie
+                - generic [ref=e254]:
+                  - img [ref=e255]
+                  - text: Marseille
+              - generic [ref=e258]:
+                - img [ref=e259]
+                - text: Coordonnées client masquées jusqu'à votre décision
+              - generic [ref=e262]: Fuite eau
+            - generic [ref=e263]:
+              - button "Message" [ref=e264] [cursor=pointer]:
+                - img [ref=e265]
+                - text: Message
+              - button "Accepter" [ref=e267] [cursor=pointer]:
+                - img [ref=e268]
+                - text: Accepter
+              - button "Refuser" [ref=e271] [cursor=pointer]:
+                - img [ref=e272]
+                - text: Refuser
+            - button "Historique" [ref=e275] [cursor=pointer]:
+              - img [ref=e276]
+              - img [ref=e280]
+          - generic [ref=e283]:
+            - generic [ref=e284]: Or
+            - generic [ref=e285]:
+              - generic [ref=e286]:
+                - generic [ref=e287]: Org Test A — Serrurerie
+                - generic [ref=e288]: URGENT
+                - generic [ref=e289]: Acceptée
+              - generic [ref=e290]:
+                - generic [ref=e291]: serrurerie
+                - generic [ref=e292]:
+                  - img [ref=e293]
+                  - text: Lyon
+              - generic [ref=e296]:
+                - generic [ref=e297]: "Client : SECRET Martin"
+                - generic [ref=e298]: "Tél. : 0755443322"
+                - generic [ref=e299]: "Adresse : 12 rue Secrete, 69001 Lyon"
+              - generic [ref=e300]: Serrure bloquee
+              - generic [ref=e301]: 120 €
+            - generic [ref=e302]:
+              - button "Message" [ref=e303] [cursor=pointer]:
+                - img [ref=e304]
+                - text: Message
+              - button "Marquer en cours" [ref=e306] [cursor=pointer]:
+                - img [ref=e307]
+                - text: Marquer en cours
+              - button "Créer une intervention" [ref=e310] [cursor=pointer]:
+                - img [ref=e311]
+                - text: Créer une intervention
+            - button "Historique" [ref=e314] [cursor=pointer]:
+              - img [ref=e315]
+              - img [ref=e319]
+          - generic [ref=e322]:
+            - generic [ref=e323]: Or
+            - generic [ref=e324]:
+              - generic [ref=e325]:
+                - generic [ref=e326]: Org Test A — Serrurerie
+                - generic [ref=e327]: Acceptée
+              - generic [ref=e328]:
+                - generic [ref=e329]: vitrerie
+                - generic [ref=e330]:
+                  - img [ref=e331]
+                  - text: Marseille
+              - generic [ref=e334]:
+                - generic [ref=e335]: "Client : Sombre ModeTest"
+                - generic [ref=e336]: "Tél. : 0699887766"
+                - generic [ref=e337]: "Adresse : 2 place DarkMode 13002 Marseille"
+            - generic [ref=e338]:
+              - button "Message" [ref=e339] [cursor=pointer]:
+                - img [ref=e340]
+                - text: Message
+              - button "Marquer en cours" [ref=e342] [cursor=pointer]:
+                - img [ref=e343]
+                - text: Marquer en cours
+              - button "Créer une intervention" [ref=e346] [cursor=pointer]:
+                - img [ref=e347]
+                - text: Créer une intervention
+            - button "Historique" [ref=e350] [cursor=pointer]:
+              - img [ref=e351]
+              - img [ref=e355]
+          - generic [ref=e358]:
+            - generic [ref=e359]: Or
+            - generic [ref=e360]:
+              - generic [ref=e361]:
+                - generic [ref=e362]: Org Test A — Serrurerie
+                - generic [ref=e363]: URGENT
+                - generic [ref=e364]: Acceptée
+              - generic [ref=e365]:
+                - generic [ref=e366]: electricite
+                - generic [ref=e367]:
+                  - img [ref=e368]
+                  - text: Marseille
+                - generic [ref=e371]:
+                  - img [ref=e372]
+                  - text: 09/07/2026
+              - generic [ref=e374]:
+                - generic [ref=e375]: "Client : Paul UITest"
+                - generic [ref=e376]: "Tél. : 0611223344"
+                - generic [ref=e377]: "Adresse : 9 rue Playwright 13001 Marseille"
+              - generic [ref=e378]: Panne de courant totale
+              - generic [ref=e379]: "Consignes : Interphone cassé, appeler avant"
+            - generic [ref=e380]:
+              - button "Message" [ref=e381] [cursor=pointer]:
+                - img [ref=e382]
+                - text: Message
+              - button "Marquer en cours" [ref=e384] [cursor=pointer]:
+                - img [ref=e385]
+                - text: Marquer en cours
+              - button "Voir l'intervention" [ref=e388] [cursor=pointer]:
+                - img [ref=e389]
+                - text: Voir l'intervention
+            - button "Historique" [ref=e392] [cursor=pointer]:
+              - img [ref=e393]
+              - img [ref=e397]
+          - generic [ref=e400]:
+            - generic [ref=e401]: Or
+            - generic [ref=e402]:
+              - generic [ref=e403]:
+                - generic [ref=e404]: Org Test A — Serrurerie
+                - generic [ref=e405]: Refusée
+              - generic [ref=e406]: "Motif du refus : Pas disponible"
+            - button "Message" [ref=e408] [cursor=pointer]:
+              - img [ref=e409]
+              - text: Message
+            - button "Historique" [ref=e411] [cursor=pointer]:
+              - img [ref=e412]
+              - img [ref=e416]
+          - generic [ref=e419]:
+            - generic [ref=e420]: Or
+            - generic [ref=e421]:
+              - generic [ref=e422]:
+                - generic [ref=e423]: Org Test A — Serrurerie
+                - generic [ref=e424]: URGENT
+                - generic [ref=e425]: Terminée
+              - generic [ref=e426]:
+                - generic [ref=e427]: serrurerie
+                - generic [ref=e428]:
+                  - img [ref=e429]
+                  - text: Lyon
+                - generic [ref=e432]:
+                  - img [ref=e433]
+                  - text: 09/07/2026
+              - generic [ref=e436]: "Adresse : 12 rue de Test 69000 Lyon"
+              - generic [ref=e437]: Porte claquée, besoin ouverture
+              - generic [ref=e438]: "Consignes : Sonner fort, chien dans le jardin"
+              - generic [ref=e439]: "Compte-rendu : Porte réparée, clé changée"
+            - button "Message" [ref=e441] [cursor=pointer]:
+              - img [ref=e442]
+              - text: Message
+            - button "Historique" [ref=e444] [cursor=pointer]:
+              - img [ref=e445]
+              - img [ref=e449]
+          - generic [ref=e452]:
+            - generic [ref=e453]: Or
+            - generic [ref=e454]:
+              - generic [ref=e455]:
+                - generic [ref=e456]: Org Test A — Serrurerie
+                - generic [ref=e457]: Refusée
+              - generic [ref=e458]: "Motif du refus : Pas disponible"
+            - button "Message" [ref=e460] [cursor=pointer]:
+              - img [ref=e461]
+              - text: Message
+            - button "Historique" [ref=e463] [cursor=pointer]:
+              - img [ref=e464]
+              - img [ref=e468]
+          - generic [ref=e471]:
+            - generic [ref=e472]: Or
+            - generic [ref=e473]:
+              - generic [ref=e474]:
+                - generic [ref=e475]: Org Test A — Serrurerie
+                - generic [ref=e476]: URGENT
+                - generic [ref=e477]: Terminée
+              - generic [ref=e478]:
+                - generic [ref=e479]: serrurerie
+                - generic [ref=e480]:
+                  - img [ref=e481]
+                  - text: Lyon
+                - generic [ref=e484]:
+                  - img [ref=e485]
+                  - text: 09/07/2026
+              - generic [ref=e488]: "Adresse : 12 rue de Test 69000 Lyon"
+              - generic [ref=e489]: Porte claquée, besoin ouverture
+              - generic [ref=e490]: "Consignes : Sonner fort, chien dans le jardin"
+              - generic [ref=e491]: "Compte-rendu : Porte réparée, clé changée"
+            - button "Message" [ref=e493] [cursor=pointer]:
+              - img [ref=e494]
+              - text: Message
+            - button "Historique" [ref=e496] [cursor=pointer]:
+              - img [ref=e497]
+              - img [ref=e501]
+  - generic [ref=e520]:
+    - img [ref=e522]
+    - text: Demande refusée

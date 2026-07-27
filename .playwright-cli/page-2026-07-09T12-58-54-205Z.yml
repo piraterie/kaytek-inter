@@ -1,0 +1,5 @@
+- generic [ref=e67]:
+  - generic [ref=e68]: 🔒
+  - paragraph [ref=e69]: Abonnement inactif
+  - paragraph [ref=e70]: L'abonnement de votre organisation n'est plus actif. Merci de contacter votre administrateur pour régulariser la situation.
+  - button "Se déconnecter" [ref=e71] [cursor=pointer]

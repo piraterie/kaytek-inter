@@ -1,0 +1,198 @@
+- generic [ref=e10]:
+  - complementary [ref=e11]:
+    - generic [ref=e12]:
+      - img [ref=e13]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Kaytek Inter
+        - generic [ref=e20]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+    - navigation [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Pilotage
+        - button "Dashboard" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - generic [ref=e33]: Dashboard
+        - button "Messagerie" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e38]: Messagerie
+      - generic [ref=e39]:
+        - generic [ref=e40]: Terrain
+        - button "Interventions 9" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Interventions
+          - generic [ref=e45]: "9"
+        - button "Planning" [ref=e46] [cursor=pointer]:
+          - img [ref=e47]
+          - generic [ref=e49]: Planning
+        - button "Devis" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - generic [ref=e54]: Devis
+        - button "Factures" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - generic [ref=e59]: Factures
+      - generic [ref=e60]:
+        - generic [ref=e61]: Gestion
+        - button "Clients" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+          - generic [ref=e68]: Clients
+        - button "Catalogue" [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - generic [ref=e74]: Catalogue
+        - button "Commissions" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e78]: Commissions
+        - button "Guide" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e82]: Guide
+      - generic [ref=e83]:
+        - generic [ref=e84]: Administration
+        - button "Utilisateurs" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e88]: Utilisateurs
+        - button "Paramètres" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - generic [ref=e93]: Paramètres
+        - button "Journal" [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+          - generic [ref=e98]: Journal
+    - generic [ref=e99]:
+      - link "Confidentialité" [ref=e100] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e101]: ·
+      - link "Supprimer mon compte" [ref=e102] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e104]:
+      - button "AA Admin B AdminTestA Administrateur · Kaytek Inter" [ref=e105] [cursor=pointer]:
+        - generic [ref=e106]:
+          - generic [ref=e107]: AA
+          - generic [ref=e108]:
+            - generic [ref=e109]: Admin B AdminTestA
+            - generic [ref=e110]: Administrateur · Kaytek Inter
+      - generic [ref=e111]:
+        - button "Clair" [ref=e112] [cursor=pointer]:
+          - img [ref=e113]
+          - text: Clair
+        - button "Quitter" [ref=e119] [cursor=pointer]:
+          - img [ref=e120]
+          - text: Quitter
+  - generic [ref=e123]:
+    - banner [ref=e124]:
+      - button "Menu" [ref=e125] [cursor=pointer]:
+        - img [ref=e126]
+      - generic [ref=e127]: Paramètres
+      - generic [ref=e128]:
+        - button [ref=e129] [cursor=pointer]:
+          - img [ref=e130]
+        - button "9+" [ref=e133] [cursor=pointer]:
+          - img [ref=e134]
+          - generic [ref=e137]: 9+
+        - button "+ Nouveau" [ref=e138] [cursor=pointer]
+        - button [ref=e139] [cursor=pointer]:
+          - img [ref=e140]
+    - generic [ref=e146]:
+      - img [ref=e147]
+      - generic [ref=e149]:
+        - strong [ref=e150]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e151] [cursor=pointer]
+    - main [ref=e152]:
+      - generic [ref=e153]:
+        - generic [ref=e154]:
+          - heading "Paramètres" [level=1] [ref=e155]
+          - paragraph [ref=e156]: Ces informations apparaissent sur tous les devis, factures et emails
+        - generic [ref=e157]:
+          - generic [ref=e158]: Entreprise
+          - generic [ref=e159]:
+            - generic [ref=e160]:
+              - generic [ref=e161]:
+                - img [ref=e163]
+                - generic [ref=e167]:
+                  - generic [ref=e168]: Identité
+                  - generic [ref=e169]: Coordonnées, logo, contact
+              - generic [ref=e170]:
+                - generic [ref=e171]: Logo
+                - button "Changer" [ref=e173] [cursor=pointer]:
+                  - img [ref=e174]
+                  - text: Changer
+              - generic [ref=e177]:
+                - generic [ref=e178]: Raison sociale*
+                - textbox [ref=e179]
+              - generic [ref=e180]:
+                - generic [ref=e181]: Téléphone*
+                - textbox [ref=e182]
+              - generic [ref=e183]:
+                - generic [ref=e184]: Email*
+                - textbox [ref=e185]
+              - generic [ref=e186]:
+                - generic [ref=e187]: Site web
+                - textbox "www.exemple.fr" [ref=e188]
+              - generic [ref=e189]:
+                - generic [ref=e190]: Adresse*
+                - textbox [ref=e191]
+              - generic [ref=e192]:
+                - generic [ref=e193]: Code postal
+                - textbox [ref=e194]
+              - generic [ref=e195]:
+                - generic [ref=e196]: Ville
+                - textbox [ref=e197]
+            - generic [ref=e198]:
+              - generic [ref=e199]:
+                - img [ref=e201]
+                - generic [ref=e205]:
+                  - generic [ref=e206]: Légal & bancaire
+                  - generic [ref=e207]: SIRET, TVA, IBAN, RC Pro
+              - generic [ref=e208]:
+                - generic [ref=e209]: SIRET
+                - textbox [ref=e210]
+              - generic [ref=e211]:
+                - generic [ref=e212]: N° TVA
+                - textbox [ref=e213]
+              - generic [ref=e214]:
+                - generic [ref=e215]: IBAN
+                - textbox [ref=e216]
+              - generic [ref=e217]:
+                - generic [ref=e218]: BIC
+                - textbox [ref=e219]
+              - generic [ref=e220]:
+                - generic [ref=e221]: RC Pro
+                - textbox [ref=e222]
+              - generic [ref=e223]:
+                - generic [ref=e224]: TVA par défaut
+                - combobox [ref=e225] [cursor=pointer]:
+                  - option "0%"
+                  - option "5.5%"
+                  - option "10%" [selected]
+                  - option "20%"
+              - generic [ref=e226]:
+                - generic [ref=e227]: Modèle PDF par défaut
+                - generic [ref=e228]:
+                  - generic [ref=e229] [cursor=pointer]:
+                    - generic [ref=e231]: DEVIS KAYTEK
+                    - generic [ref=e233]: Navy · Orange
+                  - generic [ref=e234] [cursor=pointer]:
+                    - generic [ref=e236]: DEVIS KAYTEK
+                    - generic [ref=e238]: Bleu · Ambre
+                  - generic [ref=e239] [cursor=pointer]:
+                    - generic [ref=e241]: DEVIS KAYTEK
+                    - generic [ref=e243]: Noir · Violet
+                  - generic [ref=e244] [cursor=pointer]:
+                    - generic [ref=e246]: DEVIS KAYTEK
+                    - generic [ref=e248]: Vert · Émeraude
+                  - generic [ref=e249] [cursor=pointer]:
+                    - generic [ref=e251]: DEVIS KAYTEK
+                    - generic [ref=e253]: Violet · Orange
+          - generic [ref=e254]: Documents
+          - generic [ref=e255]:
+            - generic [ref=e256]:
+              - img [ref=e258]
+              - generic [ref=e261]:
+                - generic [ref=e262]: Conditions générales
+                - generic [ref=e263]: Pied de page des PDF devis & factures
+            - textbox "Conditions de paiement, mentions légales…" [ref=e264]
+          - generic [ref=e265]: "* Champs obligatoires pour l'envoi de devis et factures par email"
+          - generic [ref=e266]:
+            - button "Annuler" [ref=e267] [cursor=pointer]
+            - button "Sauvegarder" [ref=e268] [cursor=pointer]:
+              - img [ref=e269]
+              - text: Sauvegarder

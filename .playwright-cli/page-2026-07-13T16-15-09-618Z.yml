@@ -1,0 +1,148 @@
+- generic [ref=e10]:
+  - complementary [ref=e11]:
+    - generic [ref=e12]:
+      - img [ref=e13]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Kaytek Inter
+        - generic [ref=e20]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+    - navigation [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Pilotage
+        - button "Dashboard" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - generic [ref=e33]: Dashboard
+        - button "Messagerie" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e38]: Messagerie
+      - generic [ref=e39]:
+        - generic [ref=e40]: Terrain
+        - button "Interventions 4" [ref=e432] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Interventions
+          - generic [ref=e45]: "4"
+        - button "Planning" [ref=e46] [cursor=pointer]:
+          - img [ref=e47]
+          - generic [ref=e49]: Planning
+        - button "Devis" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - generic [ref=e54]: Devis
+        - button "Factures" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - generic [ref=e59]: Factures
+      - generic [ref=e60]:
+        - generic [ref=e61]: Gestion
+        - button "Commissions" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+          - generic [ref=e65]: Commissions
+        - button "Guide" [ref=e66] [cursor=pointer]:
+          - img [ref=e67]
+          - generic [ref=e69]: Guide
+    - generic [ref=e70]:
+      - link "Confidentialité" [ref=e71] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e72]: ·
+      - link "Supprimer mon compte" [ref=e73] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e75]:
+      - button "IT Intervenant Test Intervenant · Kaytek Inter" [ref=e76] [cursor=pointer]:
+        - generic [ref=e77]:
+          - generic [ref=e78]: IT
+          - generic [ref=e79]:
+            - generic [ref=e80]: Intervenant Test
+            - generic [ref=e81]: Intervenant · Kaytek Inter
+      - generic [ref=e82]:
+        - button "Clair" [ref=e83] [cursor=pointer]:
+          - img [ref=e84]
+          - text: Clair
+        - button "Quitter" [ref=e90] [cursor=pointer]:
+          - img [ref=e91]
+          - text: Quitter
+  - generic [ref=e94]:
+    - banner [ref=e95]:
+      - button "Menu" [ref=e96] [cursor=pointer]:
+        - img [ref=e97]
+      - generic [ref=e98]: Interventions
+      - generic [ref=e99]:
+        - button [ref=e100] [cursor=pointer]:
+          - img [ref=e101]
+        - button "1" [ref=e433] [cursor=pointer]:
+          - img [ref=e105]
+          - generic [ref=e434]: "1"
+        - button "+ Nouveau" [ref=e108] [cursor=pointer]
+        - button [ref=e109] [cursor=pointer]:
+          - img [ref=e110]
+    - main [ref=e116]:
+      - generic [ref=e435]:
+        - generic [ref=e436]:
+          - button [ref=e437] [cursor=pointer]:
+            - img [ref=e438]
+          - generic [ref=e440]:
+            - heading "INT-2026-062" [level=1] [ref=e441]
+            - paragraph [ref=e442]: TEST-PLAN Client UI · 10 Rue de l'Est 75020 Paris
+          - generic [ref=e444]: en attente
+        - generic [ref=e445]:
+          - generic [ref=e446]:
+            - img [ref=e448]
+            - generic [ref=e451]:
+              - paragraph [ref=e452]: Nouvelle intervention vous a été assignée
+              - paragraph [ref=e453]: serrurerie · 10 Rue de l'Est 75020 Paris
+          - generic [ref=e454]:
+            - button "Accepter" [ref=e455] [cursor=pointer]:
+              - img [ref=e456]
+              - text: Accepter
+            - button "Refuser" [ref=e459] [cursor=pointer]:
+              - img [ref=e460]
+              - text: Refuser
+            - button "Faire une proposition" [ref=e464] [cursor=pointer]:
+              - img [ref=e465]
+              - text: Faire une proposition
+        - button "Actions" [ref=e468] [cursor=pointer]:
+          - img [ref=e469]
+          - text: Actions
+        - generic [ref=e471]:
+          - button "Détail" [ref=e472] [cursor=pointer]:
+            - img [ref=e473]
+            - text: Détail
+          - button "Photos (0)" [ref=e476] [cursor=pointer]:
+            - img [ref=e477]
+            - text: Photos (0)
+          - button "Compte-rendu" [ref=e480] [cursor=pointer]:
+            - img [ref=e481]
+            - text: Compte-rendu
+          - button "Commission" [ref=e484] [cursor=pointer]:
+            - img [ref=e485]
+            - text: Commission
+          - button "Devis / Facture" [ref=e487] [cursor=pointer]:
+            - img [ref=e488]
+            - text: Devis / Facture
+        - generic [ref=e491]:
+          - generic [ref=e492]:
+            - generic [ref=e493]:
+              - generic [ref=e494]: Client
+              - generic [ref=e495]: TEST-PLAN Client UI
+            - generic [ref=e496]:
+              - generic [ref=e497]: Tél.
+              - generic [ref=e498]: —
+            - generic [ref=e499]:
+              - generic [ref=e500]: Adresse
+              - generic [ref=e501]: 10 Rue de l'Est 75020 Paris
+            - generic [ref=e502]:
+              - generic [ref=e503]: Code accès
+              - generic [ref=e504]: —
+            - generic [ref=e505]:
+              - generic [ref=e506]: Type
+              - generic [ref=e507]: serrurerie
+            - generic [ref=e508]:
+              - generic [ref=e509]: Intervenant
+              - generic [ref=e510]: Intervenant Test
+            - generic [ref=e511]:
+              - generic [ref=e512]: Date
+              - generic [ref=e513]: —
+            - generic [ref=e514]:
+              - generic [ref=e515]: Montant TTC
+              - generic [ref=e516]: —
+          - generic [ref=e517]:
+            - paragraph [ref=e518]: Avancement
+            - generic [ref=e520]: En attente de votre réponse ci-dessus

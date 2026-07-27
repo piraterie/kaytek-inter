@@ -1,0 +1,175 @@
+- generic [ref=e10]:
+  - complementary [ref=e11]:
+    - generic [ref=e12]:
+      - img [ref=e13]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Kaytek Inter
+        - generic [ref=e20]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+    - navigation [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Pilotage
+        - button "Dashboard" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - generic [ref=e33]: Dashboard
+        - button "Messagerie" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e38]: Messagerie
+      - generic [ref=e39]:
+        - generic [ref=e40]: Terrain
+        - button "Interventions 9" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Interventions
+          - generic [ref=e45]: "9"
+        - button "Planning" [ref=e46] [cursor=pointer]:
+          - img [ref=e47]
+          - generic [ref=e49]: Planning
+        - button "Devis" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - generic [ref=e54]: Devis
+        - button "Factures" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - generic [ref=e59]: Factures
+      - generic [ref=e60]:
+        - generic [ref=e61]: Gestion
+        - button "Clients" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+          - generic [ref=e68]: Clients
+        - button "Catalogue" [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - generic [ref=e74]: Catalogue
+        - button "Commissions" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e78]: Commissions
+        - button "Guide" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e82]: Guide
+      - generic [ref=e83]:
+        - generic [ref=e84]: Administration
+        - button "Utilisateurs" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e88]: Utilisateurs
+        - button "Paramètres" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - generic [ref=e93]: Paramètres
+        - button "Journal" [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+          - generic [ref=e98]: Journal
+    - generic [ref=e99]:
+      - link "Confidentialité" [ref=e100] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e101]: ·
+      - link "Supprimer mon compte" [ref=e102] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e104]:
+      - button "AA Admin B AdminTestA Administrateur · Kaytek Inter" [ref=e105] [cursor=pointer]:
+        - generic [ref=e106]:
+          - generic [ref=e107]: AA
+          - generic [ref=e108]:
+            - generic [ref=e109]: Admin B AdminTestA
+            - generic [ref=e110]: Administrateur · Kaytek Inter
+      - generic [ref=e111]:
+        - button "Clair" [ref=e112] [cursor=pointer]:
+          - img [ref=e113]
+          - text: Clair
+        - button "Quitter" [ref=e119] [cursor=pointer]:
+          - img [ref=e120]
+          - text: Quitter
+  - generic [ref=e123]:
+    - banner [ref=e124]:
+      - button "Menu" [ref=e125] [cursor=pointer]:
+        - img [ref=e126]
+      - generic [ref=e127]: Commissions
+      - generic [ref=e128]:
+        - button [ref=e129] [cursor=pointer]:
+          - img [ref=e130]
+        - button "9+" [ref=e133] [cursor=pointer]:
+          - img [ref=e134]
+          - generic [ref=e137]: 9+
+        - button "+ Nouveau" [ref=e138] [cursor=pointer]
+        - button [ref=e139] [cursor=pointer]:
+          - img [ref=e140]
+    - generic [ref=e146]:
+      - img [ref=e147]
+      - generic [ref=e149]:
+        - strong [ref=e150]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e151] [cursor=pointer]
+    - main [ref=e152]:
+      - generic [ref=e153]:
+        - generic [ref=e154]:
+          - generic [ref=e155]:
+            - heading "Commissions" [level=1] [ref=e156]
+            - paragraph [ref=e157]: Calculées sur les factures payées · 1 entrée
+          - button "Excel" [ref=e158] [cursor=pointer]:
+            - img [ref=e159]
+            - text: Excel
+        - generic [ref=e162]:
+          - combobox [ref=e163] [cursor=pointer]:
+            - option "Tous les intervenants" [selected]
+            - option "Intervenant Test"
+          - button "Toutes" [active] [ref=e164] [cursor=pointer]
+          - button "À recevoir" [ref=e165] [cursor=pointer]
+          - button "Reçue" [ref=e166] [cursor=pointer]
+          - textbox "Depuis le" [ref=e167]
+          - textbox "Jusqu'au" [ref=e168]
+        - generic [ref=e249]:
+          - generic [ref=e250]:
+            - img [ref=e252]
+            - generic [ref=e254]: 54,00 €
+            - generic [ref=e255]: Total commissions intervenants
+          - generic [ref=e256]:
+            - img [ref=e258]
+            - generic [ref=e262]: 126,00 €
+            - generic [ref=e263]: Reste entreprise
+        - generic [ref=e264]:
+          - generic [ref=e265]:
+            - generic [ref=e266]:
+              - generic [ref=e267]: IT
+              - generic [ref=e268]: Intervenant Test
+            - generic [ref=e270]: Commission 30 %
+          - generic [ref=e271]:
+            - generic [ref=e272]:
+              - generic [ref=e273]:
+                - generic [ref=e274]: CA total TTC
+                - generic [ref=e275]: 180,00 €
+              - generic [ref=e276]:
+                - generic [ref=e277]: Base commissionnable
+                - generic [ref=e278]: 180,00 €
+              - generic [ref=e279]:
+                - generic [ref=e280]: Commission intervenant
+                - generic [ref=e281]: 54,00 €
+              - generic [ref=e282]:
+                - generic [ref=e283]: Reste entreprise
+                - generic [ref=e284]: 126,00 €
+            - table [ref=e286]:
+              - rowgroup [ref=e287]:
+                - row "Facture Intervention Client CA TTC Matériel Base Commission Reste entrep. Date paiement Reçue" [ref=e288]:
+                  - columnheader "Facture" [ref=e289]
+                  - columnheader "Intervention" [ref=e290]
+                  - columnheader "Client" [ref=e291]
+                  - columnheader "CA TTC" [ref=e292]
+                  - columnheader "Matériel" [ref=e293]
+                  - columnheader "Base" [ref=e294]
+                  - columnheader "Commission" [ref=e295]
+                  - columnheader "Reste entrep." [ref=e296]
+                  - columnheader "Date paiement" [ref=e297]
+                  - columnheader "Reçue" [ref=e298]
+              - rowgroup [ref=e299]:
+                - row "FAC-2026-063 INT-2026-062 TEST-PLAN Client UI 180,00 € Matériel 180,00 € 54,00 € 126,00 € 13/07/2026" [ref=e300]:
+                  - cell "FAC-2026-063" [ref=e301]
+                  - cell "INT-2026-062" [ref=e302]
+                  - cell "TEST-PLAN Client UI" [ref=e303]
+                  - cell "180,00 €" [ref=e304]
+                  - cell "Matériel" [ref=e305]:
+                    - button "Matériel" [ref=e306] [cursor=pointer]:
+                      - generic [ref=e307]:
+                        - img [ref=e308]
+                        - text: Matériel
+                  - cell "180,00 €" [ref=e312]
+                  - cell "54,00 €" [ref=e313]
+                  - cell "126,00 €" [ref=e314]
+                  - cell "13/07/2026" [ref=e315]
+                  - cell [ref=e316]:
+                    - img [ref=e318]

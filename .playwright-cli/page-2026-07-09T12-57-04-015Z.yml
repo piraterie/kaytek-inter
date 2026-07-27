@@ -1,0 +1,5 @@
+- generic [ref=e33]:
+  - generic [ref=e34]: 🔒
+  - paragraph [ref=e35]: Abonnement inactif
+  - paragraph [ref=e36]: L'abonnement de votre organisation est inactif ou a expiré. Merci de le régulariser pour continuer à utiliser Kaytek Inter.
+  - button "Se déconnecter" [ref=e37] [cursor=pointer]

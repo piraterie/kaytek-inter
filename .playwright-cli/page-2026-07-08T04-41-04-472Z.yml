@@ -1,0 +1,81 @@
+- generic [ref=e32]:
+  - complementary [ref=e33]:
+    - generic [ref=e34]:
+      - img [ref=e35]
+      - generic [ref=e40]:
+        - generic [ref=e41]: Kaytek Inter
+        - generic [ref=e42]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e43] [cursor=pointer]:
+        - img [ref=e44]
+    - navigation [ref=e46]:
+      - generic [ref=e47]:
+        - generic [ref=e48]: Pilotage
+        - button "Dashboard" [ref=e49] [cursor=pointer]:
+          - img [ref=e50]
+          - generic [ref=e55]: Dashboard
+        - button "Messagerie" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - generic [ref=e60]: Messagerie
+      - generic [ref=e61]:
+        - generic [ref=e62]: Terrain
+        - button "Interventions 9" [ref=e63] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e66]: Interventions
+          - generic [ref=e67]: "9"
+        - button "Planning" [ref=e68] [cursor=pointer]:
+          - img [ref=e69]
+          - generic [ref=e71]: Planning
+      - generic [ref=e72]:
+        - generic [ref=e73]: Gestion
+        - button "Clients" [ref=e74] [cursor=pointer]:
+          - img [ref=e75]
+          - generic [ref=e80]: Clients
+    - generic [ref=e81]:
+      - link "Confidentialité" [ref=e82] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e83]: ·
+      - link "Supprimer mon compte" [ref=e84] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e86]:
+      - button "IT Intervenant Test Intervenant · Kaytek Inter" [ref=e87] [cursor=pointer]:
+        - generic [ref=e88]:
+          - generic [ref=e89]: IT
+          - generic [ref=e90]:
+            - generic [ref=e91]: Intervenant Test
+            - generic [ref=e92]: Intervenant · Kaytek Inter
+      - generic [ref=e93]:
+        - button "Clair" [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+          - text: Clair
+        - button "Quitter" [ref=e101] [cursor=pointer]:
+          - img [ref=e102]
+          - text: Quitter
+  - generic [ref=e105]:
+    - banner [ref=e106]:
+      - button "Menu" [ref=e107] [cursor=pointer]:
+        - img [ref=e108]
+      - generic [ref=e109]: Messagerie
+      - generic [ref=e110]:
+        - button [ref=e111] [cursor=pointer]:
+          - img [ref=e112]
+        - button "1" [ref=e115] [cursor=pointer]:
+          - img [ref=e116]
+          - generic [ref=e119]: "1"
+        - button [ref=e120] [cursor=pointer]:
+          - img [ref=e121]
+    - main [ref=e127]:
+      - generic [ref=e247]:
+        - generic [ref=e248]:
+          - generic [ref=e249]: ID
+          - generic [ref=e250]:
+            - generic [ref=e251]: Intervenant Deuxieme
+            - generic [ref=e252]: Intervenant
+        - generic [ref=e255]:
+          - img [ref=e257]
+          - text: Commencez la conversation
+        - generic [ref=e259]:
+          - button "Photo" [ref=e260] [cursor=pointer]:
+            - img [ref=e261]
+          - textbox "Message…" [ref=e265]
+          - button "Maintenir pour enregistrer" [ref=e266] [cursor=pointer]:
+            - img [ref=e267]

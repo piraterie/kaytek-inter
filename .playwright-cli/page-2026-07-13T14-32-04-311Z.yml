@@ -1,0 +1,149 @@
+- generic [ref=e40]:
+  - complementary [ref=e41]:
+    - generic [ref=e42]:
+      - img [ref=e43]
+      - generic [ref=e48]:
+        - generic [ref=e49]: Kaytek Inter
+        - generic [ref=e50]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e51] [cursor=pointer]:
+        - img [ref=e52]
+    - navigation [ref=e54]:
+      - generic [ref=e55]:
+        - generic [ref=e56]: Pilotage
+        - button "Dashboard" [ref=e57] [cursor=pointer]:
+          - img [ref=e58]
+          - generic [ref=e63]: Dashboard
+        - button "Messagerie" [ref=e64] [cursor=pointer]:
+          - img [ref=e65]
+          - generic [ref=e68]: Messagerie
+      - generic [ref=e69]:
+        - generic [ref=e70]: Terrain
+        - button "Interventions 3" [ref=e71] [cursor=pointer]:
+          - img [ref=e72]
+          - generic [ref=e74]: Interventions
+          - generic [ref=e75]: "3"
+        - button "Planning" [ref=e76] [cursor=pointer]:
+          - img [ref=e77]
+          - generic [ref=e79]: Planning
+        - button "Devis" [ref=e80] [cursor=pointer]:
+          - img [ref=e81]
+          - generic [ref=e84]: Devis
+        - button "Factures" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e89]: Factures
+      - generic [ref=e90]:
+        - generic [ref=e91]: Gestion
+        - button "Commissions" [ref=e92] [cursor=pointer]:
+          - img [ref=e93]
+          - generic [ref=e95]: Commissions
+        - button "Guide" [ref=e96] [cursor=pointer]:
+          - img [ref=e97]
+          - generic [ref=e99]: Guide
+    - generic [ref=e100]:
+      - link "Confidentialité" [ref=e101] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e102]: ·
+      - link "Supprimer mon compte" [ref=e103] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e105]:
+      - button "IT Intervenant Test Intervenant · Kaytek Inter" [ref=e106] [cursor=pointer]:
+        - generic [ref=e107]:
+          - generic [ref=e108]: IT
+          - generic [ref=e109]:
+            - generic [ref=e110]: Intervenant Test
+            - generic [ref=e111]: Intervenant · Kaytek Inter
+      - generic [ref=e112]:
+        - button "Clair" [ref=e113] [cursor=pointer]:
+          - img [ref=e114]
+          - text: Clair
+        - button "Quitter" [ref=e120] [cursor=pointer]:
+          - img [ref=e121]
+          - text: Quitter
+  - generic [ref=e124]:
+    - banner [ref=e125]:
+      - button "Menu" [ref=e126] [cursor=pointer]:
+        - img [ref=e127]
+      - generic [ref=e128]: Dashboard
+      - generic [ref=e129]:
+        - button [ref=e130] [cursor=pointer]:
+          - img [ref=e131]
+        - button [ref=e134] [cursor=pointer]:
+          - img [ref=e135]
+        - button [ref=e138] [cursor=pointer]:
+          - img [ref=e139]
+    - main [ref=e145]:
+      - generic [ref=e146]:
+        - generic [ref=e147]:
+          - heading "Bonjour, Intervenant" [level=1] [ref=e148]
+          - paragraph [ref=e149]: lundi 13 juillet 2026
+        - generic [ref=e150]:
+          - generic [ref=e151]:
+            - img [ref=e154]
+            - generic [ref=e156]: "0"
+            - generic [ref=e157]: Mes interventions aujourd'hui
+          - generic [ref=e158]:
+            - img [ref=e161]
+            - generic [ref=e163]: 0 €
+            - generic [ref=e164]: Mes gains ce mois
+          - generic [ref=e165]:
+            - img [ref=e168]
+            - generic [ref=e171]: 0 €
+            - generic [ref=e172]: À recevoir
+          - generic [ref=e173]:
+            - img [ref=e176]
+            - generic [ref=e179]: "0"
+            - generic [ref=e180]: Messages non lus
+        - generic [ref=e181]:
+          - generic [ref=e182]:
+            - generic [ref=e183]:
+              - generic [ref=e184]: Interventions récentes
+              - button "Voir tout" [ref=e185] [cursor=pointer]:
+                - text: Voir tout
+                - img [ref=e186]
+            - table [ref=e189]:
+              - rowgroup [ref=e190]:
+                - row "N° Client Type Statut" [ref=e191]:
+                  - columnheader "N°" [ref=e192]
+                  - columnheader "Client" [ref=e193]
+                  - columnheader "Type" [ref=e194]
+                  - columnheader "Statut" [ref=e195]
+              - rowgroup [ref=e196]:
+                - row "INT-2026-039 TEST-WORKFLOW PW-1781301130756 serrurerie en cours" [ref=e197] [cursor=pointer]:
+                  - cell "INT-2026-039" [ref=e198]:
+                    - generic [ref=e199]: INT-2026-039
+                  - cell "TEST-WORKFLOW PW-1781301130756" [ref=e200]
+                  - cell "serrurerie" [ref=e201]:
+                    - generic [ref=e202]: serrurerie
+                  - cell "en cours" [ref=e203]:
+                    - generic [ref=e204]: en cours
+                - row "INT-2026-038 TEST-WORKFLOW PW-1781300962277 serrurerie en attente" [ref=e205] [cursor=pointer]:
+                  - cell "INT-2026-038" [ref=e206]:
+                    - generic [ref=e207]: INT-2026-038
+                  - cell "TEST-WORKFLOW PW-1781300962277" [ref=e208]
+                  - cell "serrurerie" [ref=e209]:
+                    - generic [ref=e210]: serrurerie
+                  - cell "en attente" [ref=e211]:
+                    - generic [ref=e212]: en attente
+                - row "INT-2026-037 TEST-WORKFLOW PW-1781297822070 serrurerie en attente" [ref=e213] [cursor=pointer]:
+                  - cell "INT-2026-037" [ref=e214]:
+                    - generic [ref=e215]: INT-2026-037
+                  - cell "TEST-WORKFLOW PW-1781297822070" [ref=e216]
+                  - cell "serrurerie" [ref=e217]:
+                    - generic [ref=e218]: serrurerie
+                  - cell "en attente" [ref=e219]:
+                    - generic [ref=e220]: en attente
+                - row "INT-2026-036 TEST-WORKFLOW PW-1781297747189 serrurerie en attente" [ref=e221] [cursor=pointer]:
+                  - cell "INT-2026-036" [ref=e222]:
+                    - generic [ref=e223]: INT-2026-036
+                  - cell "TEST-WORKFLOW PW-1781297747189" [ref=e224]
+                  - cell "serrurerie" [ref=e225]:
+                    - generic [ref=e226]: serrurerie
+                  - cell "en attente" [ref=e227]:
+                    - generic [ref=e228]: en attente
+          - generic [ref=e231]:
+            - button "Messagerie" [ref=e232] [cursor=pointer]:
+              - img [ref=e233]
+              - text: Messagerie
+            - button "Mes commissions" [ref=e236] [cursor=pointer]:
+              - img [ref=e237]
+              - text: Mes commissions

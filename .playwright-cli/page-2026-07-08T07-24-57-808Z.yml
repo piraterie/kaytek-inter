@@ -1,0 +1,114 @@
+- generic [ref=e58]:
+  - complementary [ref=e59]:
+    - generic [ref=e60]:
+      - img [ref=e61]
+      - generic [ref=e66]:
+        - generic [ref=e67]: Kaytek Inter
+        - generic [ref=e68]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e69] [cursor=pointer]:
+        - img [ref=e70]
+    - navigation [ref=e72]:
+      - generic [ref=e73]:
+        - generic [ref=e74]: Pilotage
+        - button "Dashboard" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e81]: Dashboard
+        - button "Messagerie" [ref=e82] [cursor=pointer]:
+          - img [ref=e83]
+          - generic [ref=e86]: Messagerie
+      - generic [ref=e87]:
+        - generic [ref=e88]: Terrain
+        - button "Interventions 9" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - generic [ref=e92]: Interventions
+          - generic [ref=e93]: "9"
+        - button "Planning" [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+          - generic [ref=e97]: Planning
+      - generic [ref=e98]:
+        - generic [ref=e99]: Gestion
+        - button "Clients" [ref=e100] [cursor=pointer]:
+          - img [ref=e101]
+          - generic [ref=e106]: Clients
+    - generic [ref=e107]:
+      - link "Confidentialité" [ref=e108] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e109]: ·
+      - link "Supprimer mon compte" [ref=e110] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e112]:
+      - button "AL Assistant LiveE2E3 Intervenant · Kaytek Inter" [ref=e113] [cursor=pointer]:
+        - generic [ref=e114]:
+          - generic [ref=e115]: AL
+          - generic [ref=e116]:
+            - generic [ref=e117]: Assistant LiveE2E3
+            - generic [ref=e118]: Intervenant · Kaytek Inter
+      - generic [ref=e119]:
+        - button "Clair" [ref=e120] [cursor=pointer]:
+          - img [ref=e121]
+          - text: Clair
+        - button "Quitter" [ref=e127] [cursor=pointer]:
+          - img [ref=e128]
+          - text: Quitter
+  - generic [ref=e131]:
+    - banner [ref=e132]:
+      - button "Menu" [ref=e133] [cursor=pointer]:
+        - img [ref=e134]
+      - generic [ref=e135]: Dashboard
+      - generic [ref=e136]:
+        - button [ref=e137] [cursor=pointer]:
+          - img [ref=e138]
+        - button [ref=e141] [cursor=pointer]:
+          - img [ref=e142]
+        - button [ref=e145] [cursor=pointer]:
+          - img [ref=e146]
+    - main [ref=e152]:
+      - generic [ref=e153]:
+        - generic [ref=e154]:
+          - heading "Bonjour, Assistant" [level=1] [ref=e155]
+          - paragraph [ref=e156]: mercredi 8 juillet 2026
+        - generic [ref=e157]:
+          - generic [ref=e158]:
+            - img [ref=e161]
+            - generic [ref=e163]: "1"
+            - generic [ref=e164]: Interventions du jour
+          - generic [ref=e165]:
+            - img [ref=e168]
+            - generic [ref=e171]: "9"
+            - generic [ref=e172]: À planifier
+          - generic [ref=e173]:
+            - img [ref=e176]
+            - generic [ref=e179]: "0"
+            - generic [ref=e180]: Messages non lus
+        - generic [ref=e181]:
+          - generic [ref=e182]:
+            - generic [ref=e183]:
+              - generic [ref=e184]: Interventions récentes
+              - button "Voir tout" [ref=e185] [cursor=pointer]:
+                - text: Voir tout
+                - img [ref=e186]
+            - table [ref=e189]:
+              - rowgroup [ref=e190]:
+                - row "N° Client Type Statut" [ref=e191]:
+                  - columnheader "N°" [ref=e192]
+                  - columnheader "Client" [ref=e193]
+                  - columnheader "Type" [ref=e194]
+                  - columnheader "Statut" [ref=e195]
+              - rowgroup [ref=e196]:
+                - row "Aucune intervention" [ref=e197]:
+                  - cell "Aucune intervention" [ref=e198]
+          - generic [ref=e201]:
+            - button "Nouvelle intervention" [ref=e202] [cursor=pointer]:
+              - img [ref=e203]
+              - text: Nouvelle intervention
+            - button "Messagerie" [ref=e205] [cursor=pointer]:
+              - img [ref=e206]
+              - text: Messagerie
+  - generic [ref=e210]:
+    - generic [ref=e211]: 📚
+    - heading "Bienvenue sur Kaytek Inter" [level=2] [ref=e212]
+    - paragraph [ref=e213]: Bonjour Assistant ! Souhaitez-vous découvrir le guide d'utilisation ?
+    - generic [ref=e214]:
+      - button "📖 Voir le guide" [ref=e215] [cursor=pointer]
+      - button "Plus tard" [ref=e216] [cursor=pointer]
+      - button "Ne plus afficher" [ref=e217] [cursor=pointer]

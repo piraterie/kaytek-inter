@@ -1,0 +1,282 @@
+- generic [ref=e10]:
+  - complementary [ref=e11]:
+    - generic [ref=e12]:
+      - img [ref=e13]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Kaytek Inter
+        - generic [ref=e20]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+    - navigation [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Pilotage
+        - button "Dashboard" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - generic [ref=e33]: Dashboard
+        - button "Messagerie" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e38]: Messagerie
+      - generic [ref=e39]:
+        - generic [ref=e40]: Terrain
+        - button "Interventions 8" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Interventions
+          - generic [ref=e45]: "8"
+        - button "Planning" [ref=e46] [cursor=pointer]:
+          - img [ref=e47]
+          - generic [ref=e49]: Planning
+        - button "Devis" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - generic [ref=e54]: Devis
+        - button "Factures" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - generic [ref=e59]: Factures
+      - generic [ref=e60]:
+        - generic [ref=e61]: Gestion
+        - button "Clients" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+          - generic [ref=e68]: Clients
+        - button "Catalogue" [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - generic [ref=e74]: Catalogue
+        - button "Commissions" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e78]: Commissions
+        - button "Guide" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e82]: Guide
+      - generic [ref=e83]:
+        - generic [ref=e84]: Administration
+        - button "Utilisateurs" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e88]: Utilisateurs
+        - button "Paramètres" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - generic [ref=e93]: Paramètres
+        - button "Journal" [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+          - generic [ref=e98]: Journal
+    - generic [ref=e99]:
+      - link "Confidentialité" [ref=e100] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e101]: ·
+      - link "Supprimer mon compte" [ref=e102] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e104]:
+      - button "AA Admin B AdminTestA Administrateur · Kaytek Inter" [ref=e105] [cursor=pointer]:
+        - generic [ref=e106]:
+          - generic [ref=e107]: AA
+          - generic [ref=e108]:
+            - generic [ref=e109]: Admin B AdminTestA
+            - generic [ref=e110]: Administrateur · Kaytek Inter
+      - generic [ref=e111]:
+        - button "Clair" [ref=e112] [cursor=pointer]:
+          - img [ref=e113]
+          - text: Clair
+        - button "Quitter" [ref=e119] [cursor=pointer]:
+          - img [ref=e120]
+          - text: Quitter
+  - generic [ref=e123]:
+    - banner [ref=e124]:
+      - button "Menu" [ref=e125] [cursor=pointer]:
+        - img [ref=e126]
+      - generic [ref=e127]: Devis
+      - generic [ref=e128]:
+        - button [ref=e129] [cursor=pointer]:
+          - img [ref=e130]
+        - button "9+" [ref=e133] [cursor=pointer]:
+          - img [ref=e134]
+          - generic [ref=e137]: 9+
+        - button "+ Nouveau" [ref=e138] [cursor=pointer]
+        - button [ref=e139] [cursor=pointer]:
+          - img [ref=e140]
+    - generic [ref=e146]:
+      - img [ref=e147]
+      - generic [ref=e149]:
+        - strong [ref=e150]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e151] [cursor=pointer]
+    - main [ref=e152]:
+      - generic [ref=e595]:
+        - generic [ref=e596]:
+          - button "←" [ref=e597] [cursor=pointer]
+          - generic [ref=e598]:
+            - heading "Modifier le devis" [level=1] [ref=e599]
+            - paragraph [ref=e600]: DEV-2026-189 · Brouillon
+        - generic [ref=e601]:
+          - generic [ref=e603]:
+            - generic [ref=e604]: ✓
+            - generic [ref=e605]: Client
+          - generic [ref=e608]:
+            - generic [ref=e609]: ✓
+            - generic [ref=e610]: Prestations
+          - generic [ref=e613]:
+            - generic [ref=e614]: "3"
+            - generic [ref=e615]: Options
+          - generic [ref=e618]:
+            - generic [ref=e619]: "4"
+            - generic [ref=e620]: Envoi
+        - generic [ref=e622]:
+          - generic [ref=e624]:
+            - generic [ref=e625]: JA
+            - generic [ref=e626]:
+              - generic [ref=e628]: AUDIT-TEST Dupont Jean
+              - generic [ref=e630]: 📞 0612345678
+              - generic [ref=e631]: ✉ jean.audit@test.fr
+            - button "✏" [ref=e632] [cursor=pointer]
+          - generic [ref=e633]:
+            - generic [ref=e634]:
+              - generic [ref=e635]: Activité
+              - combobox [ref=e636] [cursor=pointer]:
+                - option "🔒 Serrurerie"
+                - option "🔧 Plomberie"
+                - option "⚡ Électricité"
+                - option "🪟 Vitrerie"
+                - option "🔥 Chauffagiste" [selected]
+            - generic [ref=e637]:
+              - generic [ref=e638]: Valide jusqu'au
+              - textbox [ref=e639]: 2026-08-12
+          - generic [ref=e640]:
+            - generic [ref=e641]: Intervenant
+            - button "Admin B AdminTestA ▼" [ref=e643] [cursor=pointer]:
+              - generic [ref=e644]: Admin B AdminTestA
+              - generic: ▼
+          - generic [ref=e645]: ℹ Ce devis sera valable jusqu'au 12/08/2026. Date modifiable ci-dessus.
+        - generic [ref=e646]:
+          - generic [ref=e647]:
+            - generic [ref=e648]:
+              - generic [ref=e649]: 🔧
+              - generic [ref=e650]: Prestations
+              - generic [ref=e651]: 1 ligne
+            - generic [ref=e652]:
+              - generic [ref=e653]: 🔍
+              - textbox "Rechercher dans le catalogue…" [ref=e654]
+            - generic [ref=e655]:
+              - button "🔥 Dépannage chaudière 120€ HT + Ajouter" [ref=e656] [cursor=pointer]:
+                - generic [ref=e657]:
+                  - generic [ref=e658]: 🔥
+                  - generic [ref=e660]: Dépannage chaudière
+                - generic [ref=e661]:
+                  - generic [ref=e662]: 120€ HT
+                  - button "+ Ajouter" [ref=e663]
+              - button "🔥 Entretien chaudière 100€ HT + Ajouter" [ref=e664] [cursor=pointer]:
+                - generic [ref=e665]:
+                  - generic [ref=e666]: 🔥
+                  - generic [ref=e668]: Entretien chaudière
+                - generic [ref=e669]:
+                  - generic [ref=e670]: 100€ HT
+                  - button "+ Ajouter" [ref=e671]
+              - button "🔥 Remplacement thermostat 140€ HT + Ajouter" [ref=e672] [cursor=pointer]:
+                - generic [ref=e673]:
+                  - generic [ref=e674]: 🔥
+                  - generic [ref=e676]: Remplacement thermostat
+                - generic [ref=e677]:
+                  - generic [ref=e678]: 140€ HT
+                  - button "+ Ajouter" [ref=e679]
+              - button "🔥 Purge radiateur 80€ HT + Ajouter" [ref=e680] [cursor=pointer]:
+                - generic [ref=e681]:
+                  - generic [ref=e682]: 🔥
+                  - generic [ref=e684]: Purge radiateur
+                - generic [ref=e685]:
+                  - generic [ref=e686]: 80€ HT
+                  - button "+ Ajouter" [ref=e687]
+              - button "🔥 Réparation radiateur 130€ HT + Ajouter" [ref=e688] [cursor=pointer]:
+                - generic [ref=e689]:
+                  - generic [ref=e690]: 🔥
+                  - generic [ref=e692]: Réparation radiateur
+                - generic [ref=e693]:
+                  - generic [ref=e694]: 130€ HT
+                  - button "+ Ajouter" [ref=e695]
+              - button "🔥 Recherche panne chauffage 120€ HT + Ajouter" [ref=e696] [cursor=pointer]:
+                - generic [ref=e697]:
+                  - generic [ref=e698]: 🔥
+                  - generic [ref=e700]: Recherche panne chauffage
+                - generic [ref=e701]:
+                  - generic [ref=e702]: 120€ HT
+                  - button "+ Ajouter" [ref=e703]
+              - button "🔥 Remplacement circulateur 220€ HT + Ajouter" [ref=e704] [cursor=pointer]:
+                - generic [ref=e705]:
+                  - generic [ref=e706]: 🔥
+                  - generic [ref=e708]: Remplacement circulateur
+                - generic [ref=e709]:
+                  - generic [ref=e710]: 220€ HT
+                  - button "+ Ajouter" [ref=e711]
+              - button "🔥 Désembouage circuit chauffage 350€ HT + Ajouter" [ref=e712] [cursor=pointer]:
+                - generic [ref=e713]:
+                  - generic [ref=e714]: 🔥
+                  - generic [ref=e716]: Désembouage circuit chauffage
+                - generic [ref=e717]:
+                  - generic [ref=e718]: 350€ HT
+                  - button "+ Ajouter" [ref=e719]
+              - button "🔥 Remplacement robinet thermostatique 90€ HT + Ajouter" [ref=e720] [cursor=pointer]:
+                - generic [ref=e721]:
+                  - generic [ref=e722]: 🔥
+                  - generic [ref=e724]: Remplacement robinet thermostatique
+                - generic [ref=e725]:
+                  - generic [ref=e726]: 90€ HT
+                  - button "+ Ajouter" [ref=e727]
+              - button "🔥 Mise en service chauffage 150€ HT + Ajouter" [ref=e728] [cursor=pointer]:
+                - generic [ref=e729]:
+                  - generic [ref=e730]: 🔥
+                  - generic [ref=e732]: Mise en service chauffage
+                - generic [ref=e733]:
+                  - generic [ref=e734]: 150€ HT
+                  - button "+ Ajouter" [ref=e735]
+          - generic [ref=e737]:
+            - generic [ref=e738]: Sélectionnées (1)
+            - generic [ref=e740]:
+              - generic [ref=e741]:
+                - textbox "Description…" [ref=e742]: Dépannage chaudière
+                - generic [ref=e743]:
+                  - button "+C" [ref=e744] [cursor=pointer]
+                  - button "🗑" [ref=e745] [cursor=pointer]
+              - generic [ref=e746]:
+                - generic [ref=e747]:
+                  - button "−" [ref=e748] [cursor=pointer]
+                  - generic [ref=e749]: "1"
+                  - button "+" [ref=e750] [cursor=pointer]
+                  - combobox [ref=e751] [cursor=pointer]:
+                    - option "0%"
+                    - option "5.5%"
+                    - option "10%" [selected]
+                    - option "20%"
+                - generic [ref=e752]:
+                  - generic [ref=e753]:
+                    - spinbutton [ref=e754]: "120"
+                    - generic [ref=e755]: € HT × 1
+                  - generic [ref=e756]: 132,00 €
+          - button "+ Ajouter une prestation manuelle" [ref=e758] [cursor=pointer]
+        - generic [ref=e759]:
+          - generic [ref=e760]:
+            - generic [ref=e761]: 💰
+            - generic [ref=e762]: Récapitulatif
+          - generic [ref=e763]:
+            - generic [ref=e764]: Total HT
+            - generic [ref=e765]: 120,00 €
+          - generic [ref=e766]:
+            - generic [ref=e767]: TVA
+            - generic [ref=e768]: 12,00 €
+          - generic [ref=e769]:
+            - generic [ref=e770]: Total TTC
+            - generic [ref=e771]: 132,00 €
+        - button "⚙ Options avancées Modèle PDF, conditions, remise… ∨" [ref=e773] [cursor=pointer]:
+          - generic [ref=e774]:
+            - generic [ref=e775]: ⚙
+            - generic [ref=e776]: Options avancées
+            - generic [ref=e777]: Modèle PDF, conditions, remise…
+          - generic [ref=e778]: ∨
+        - generic [ref=e781]:
+          - generic [ref=e782]:
+            - generic [ref=e783]: ✍
+            - generic [ref=e784]:
+              - generic [ref=e785]: Signature client
+              - generic [ref=e786]: Le client signe ici pour accepter le devis
+          - button "✍ Signer maintenant" [ref=e787] [cursor=pointer]
+        - generic [ref=e788]:
+          - button "Annuler" [ref=e789] [cursor=pointer]
+          - button "📄 Aperçu PDF" [ref=e790] [cursor=pointer]
+          - button "💾 Sauvegarder brouillon" [ref=e791] [cursor=pointer]
+          - button "✉ Enregistrer & Envoyer" [ref=e792] [cursor=pointer]
+  - generic [ref=e793]:
+    - img [ref=e795]
+    - text: Devis dupliqué en brouillon

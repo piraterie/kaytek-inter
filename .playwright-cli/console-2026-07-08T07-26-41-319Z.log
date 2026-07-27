@@ -1,0 +1,2 @@
+[     610ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[     665ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0

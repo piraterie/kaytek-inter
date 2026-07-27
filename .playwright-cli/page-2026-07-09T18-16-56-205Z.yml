@@ -1,0 +1,198 @@
+- generic [ref=e33]:
+  - complementary [ref=e34]:
+    - generic [ref=e35]:
+      - img [ref=e36]
+      - generic [ref=e41]:
+        - generic [ref=e42]: Kaytek Inter
+        - generic [ref=e43]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e44] [cursor=pointer]:
+        - img [ref=e45]
+    - navigation [ref=e47]:
+      - generic [ref=e48]:
+        - generic [ref=e49]: Pilotage
+        - button "Dashboard" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - generic [ref=e56]: Dashboard
+        - button "Messagerie" [ref=e57] [cursor=pointer]:
+          - img [ref=e58]
+          - generic [ref=e61]: Messagerie
+      - generic [ref=e62]:
+        - generic [ref=e63]: Terrain
+        - button "Interventions 9" [ref=e64] [cursor=pointer]:
+          - img [ref=e65]
+          - generic [ref=e67]: Interventions
+          - generic [ref=e68]: "9"
+        - button "Planning" [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - generic [ref=e72]: Planning
+        - button "Devis" [ref=e73] [cursor=pointer]:
+          - img [ref=e74]
+          - generic [ref=e77]: Devis
+        - button "Factures" [ref=e78] [cursor=pointer]:
+          - img [ref=e79]
+          - generic [ref=e82]: Factures
+      - generic [ref=e83]:
+        - generic [ref=e84]: Gestion
+        - button "Clients" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e91]: Clients
+        - button "Catalogue" [ref=e92] [cursor=pointer]:
+          - img [ref=e93]
+          - generic [ref=e97]: Catalogue
+        - button "Commissions" [ref=e98] [cursor=pointer]:
+          - img [ref=e99]
+          - generic [ref=e101]: Commissions
+        - button "Guide" [ref=e102] [cursor=pointer]:
+          - img [ref=e103]
+          - generic [ref=e105]: Guide
+      - generic [ref=e106]:
+        - generic [ref=e107]: Administration
+        - button "Réseau partenaires" [ref=e108] [cursor=pointer]:
+          - img [ref=e109]
+          - generic [ref=e114]: Réseau partenaires
+        - button "Utilisateurs" [ref=e115] [cursor=pointer]:
+          - img [ref=e116]
+          - generic [ref=e118]: Utilisateurs
+        - button "Paramètres" [ref=e119] [cursor=pointer]:
+          - img [ref=e120]
+          - generic [ref=e123]: Paramètres
+        - button "Journal" [ref=e124] [cursor=pointer]:
+          - img [ref=e125]
+          - generic [ref=e128]: Journal
+    - generic [ref=e129]:
+      - link "Confidentialité" [ref=e130] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e131]: ·
+      - link "Supprimer mon compte" [ref=e132] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e134]:
+      - button "AA Admin B AdminTestA Administrateur · Kaytek Inter" [ref=e135] [cursor=pointer]:
+        - generic [ref=e136]:
+          - generic [ref=e137]: AA
+          - generic [ref=e138]:
+            - generic [ref=e139]: Admin B AdminTestA
+            - generic [ref=e140]: Administrateur · Kaytek Inter
+      - generic [ref=e141]:
+        - button "Clair" [ref=e142] [cursor=pointer]:
+          - img [ref=e143]
+          - text: Clair
+        - button "Quitter" [ref=e149] [cursor=pointer]:
+          - img [ref=e150]
+          - text: Quitter
+  - generic [ref=e153]:
+    - banner [ref=e154]:
+      - button "Menu" [ref=e155] [cursor=pointer]:
+        - img [ref=e156]
+      - generic [ref=e157]: Dashboard
+      - generic [ref=e158]:
+        - button [ref=e159] [cursor=pointer]:
+          - img [ref=e160]
+        - button "9+" [ref=e163] [cursor=pointer]:
+          - img [ref=e164]
+          - generic [ref=e167]: 9+
+        - button "+ Nouveau" [ref=e168] [cursor=pointer]
+        - button [ref=e169] [cursor=pointer]:
+          - img [ref=e170]
+    - generic [ref=e176]:
+      - img [ref=e177]
+      - generic [ref=e179]:
+        - strong [ref=e180]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e181] [cursor=pointer]
+    - main [ref=e182]:
+      - generic [ref=e183]:
+        - generic [ref=e184]:
+          - heading "Bonjour, Admin B" [level=1] [ref=e185]
+          - paragraph [ref=e186]: jeudi 9 juillet 2026
+        - generic [ref=e187]:
+          - generic [ref=e188]:
+            - img [ref=e191]
+            - generic [ref=e193]: "1"
+            - generic [ref=e194]: Interventions aujourd'hui
+          - generic [ref=e195]:
+            - img [ref=e198]
+            - generic [ref=e200]: 0 €
+            - generic [ref=e201]: CA du mois
+          - generic [ref=e202]:
+            - img [ref=e205]
+            - generic [ref=e207]: 0 €
+            - generic [ref=e208]: Impayés
+          - generic [ref=e209]:
+            - img [ref=e212]
+            - generic [ref=e214]: 0 €
+            - generic [ref=e215]: Commissions dues
+        - generic [ref=e216]:
+          - generic [ref=e217]:
+            - generic [ref=e218]:
+              - generic [ref=e219]: Interventions récentes
+              - button "Voir tout" [ref=e220] [cursor=pointer]:
+                - text: Voir tout
+                - img [ref=e221]
+            - table [ref=e224]:
+              - rowgroup [ref=e225]:
+                - row "N° Client Type Statut" [ref=e226]:
+                  - columnheader "N°" [ref=e227]
+                  - columnheader "Client" [ref=e228]
+                  - columnheader "Type" [ref=e229]
+                  - columnheader "Statut" [ref=e230]
+              - rowgroup [ref=e231]:
+                - row "INT-2026-054 TEST-ISO PW-1781295531342 serrurerie en attente" [ref=e232] [cursor=pointer]:
+                  - cell "INT-2026-054" [ref=e233]:
+                    - generic [ref=e234]: INT-2026-054
+                  - cell "TEST-ISO PW-1781295531342" [ref=e236]
+                  - cell "serrurerie" [ref=e237]:
+                    - generic [ref=e238]: serrurerie
+                  - cell "en attente" [ref=e239]:
+                    - generic [ref=e240]: en attente
+                - row "INT-2026-044 AUDIT-TEST Dupont Jean serrurerie accepte" [ref=e241] [cursor=pointer]:
+                  - cell "INT-2026-044" [ref=e242]:
+                    - generic [ref=e243]: INT-2026-044
+                  - cell "AUDIT-TEST Dupont Jean" [ref=e244]
+                  - cell "serrurerie" [ref=e245]:
+                    - generic [ref=e246]: serrurerie
+                  - cell "accepte" [ref=e247]:
+                    - generic [ref=e248]: accepte
+                - row "INT-2026-040 TEST-ISO PW-1781295531342 serrurerie en attente" [ref=e249] [cursor=pointer]:
+                  - cell "INT-2026-040" [ref=e250]:
+                    - generic [ref=e251]: INT-2026-040
+                  - cell "TEST-ISO PW-1781295531342" [ref=e252]
+                  - cell "serrurerie" [ref=e253]:
+                    - generic [ref=e254]: serrurerie
+                  - cell "en attente" [ref=e255]:
+                    - generic [ref=e256]: en attente
+                - row "INT-2026-039 TEST-WORKFLOW PW-1781301130756 serrurerie en cours" [ref=e257] [cursor=pointer]:
+                  - cell "INT-2026-039" [ref=e258]:
+                    - generic [ref=e259]: INT-2026-039
+                  - cell "TEST-WORKFLOW PW-1781301130756" [ref=e260]
+                  - cell "serrurerie" [ref=e261]:
+                    - generic [ref=e262]: serrurerie
+                  - cell "en cours" [ref=e263]:
+                    - generic [ref=e264]: en cours
+                - row "INT-2026-038 TEST-WORKFLOW PW-1781300962277 serrurerie en attente" [ref=e265] [cursor=pointer]:
+                  - cell "INT-2026-038" [ref=e266]:
+                    - generic [ref=e267]: INT-2026-038
+                  - cell "TEST-WORKFLOW PW-1781300962277" [ref=e268]
+                  - cell "serrurerie" [ref=e269]:
+                    - generic [ref=e270]: serrurerie
+                  - cell "en attente" [ref=e271]:
+                    - generic [ref=e272]: en attente
+          - generic [ref=e273]:
+            - generic [ref=e274]:
+              - generic [ref=e276]:
+                - img [ref=e277]
+                - text: Urgences
+              - generic [ref=e280] [cursor=pointer]:
+                - img [ref=e282]
+                - generic [ref=e284]:
+                  - generic [ref=e285]: TEST-ISO · Porte claquée, besoin ouverture
+                  - generic [ref=e286]: 12 rue de Test
+            - generic [ref=e288]:
+              - button "Nouvelle intervention" [ref=e289] [cursor=pointer]:
+                - img [ref=e290]
+                - text: Nouvelle intervention
+              - button "Créer un devis" [ref=e292] [cursor=pointer]:
+                - img [ref=e293]
+                - text: Créer un devis
+              - button "Messagerie" [ref=e296] [cursor=pointer]:
+                - img [ref=e297]
+                - text: Messagerie

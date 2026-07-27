@@ -1,0 +1,1 @@
+import{j as e}from"./query-CUJLPcet.js";import{u as o}from"./index-BuNlEDiA.js";import{N as r}from"./vendor-Dod7ugZV.js";import"./supabase-DE1hIS3_.js";function m(){const{user:t}=o();return(t==null?void 0:t.role)==="admin"?e.jsx(r,{to:"/guide/admin",replace:!0}):e.jsx(r,{to:"/guide/intervenant",replace:!0})}export{m as default};

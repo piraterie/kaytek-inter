@@ -1,0 +1,163 @@
+- generic [ref=e39]:
+  - complementary [ref=e40]:
+    - generic [ref=e41]:
+      - img [ref=e42]
+      - generic [ref=e47]:
+        - generic [ref=e48]: Kaytek Inter
+        - generic [ref=e49]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e50] [cursor=pointer]:
+        - img [ref=e51]
+    - navigation [ref=e53]:
+      - generic [ref=e54]:
+        - generic [ref=e55]: Pilotage
+        - button "Dashboard" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - generic [ref=e62]: Dashboard
+        - button "Messagerie" [ref=e63] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e67]: Messagerie
+      - generic [ref=e68]:
+        - generic [ref=e69]: Terrain
+        - button "Interventions 1" [ref=e70] [cursor=pointer]:
+          - img [ref=e71]
+          - generic [ref=e73]: Interventions
+          - generic [ref=e74]: "1"
+        - button "Planning" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e78]: Planning
+        - button "Devis" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e83]: Devis
+        - button "Factures" [ref=e84] [cursor=pointer]:
+          - img [ref=e85]
+          - generic [ref=e88]: Factures
+      - generic [ref=e89]:
+        - generic [ref=e90]: Gestion
+        - button "Clients" [ref=e91] [cursor=pointer]:
+          - img [ref=e92]
+          - generic [ref=e97]: Clients
+        - button "Catalogue" [ref=e98] [cursor=pointer]:
+          - img [ref=e99]
+          - generic [ref=e103]: Catalogue
+        - button "Commissions" [ref=e104] [cursor=pointer]:
+          - img [ref=e105]
+          - generic [ref=e107]: Commissions
+        - button "Guide" [ref=e108] [cursor=pointer]:
+          - img [ref=e109]
+          - generic [ref=e111]: Guide
+      - generic [ref=e112]:
+        - generic [ref=e113]: Administration
+        - button "Utilisateurs" [ref=e114] [cursor=pointer]:
+          - img [ref=e115]
+          - generic [ref=e117]: Utilisateurs
+        - button "Paramètres" [ref=e118] [cursor=pointer]:
+          - img [ref=e119]
+          - generic [ref=e122]: Paramètres
+        - button "Journal" [ref=e123] [cursor=pointer]:
+          - img [ref=e124]
+          - generic [ref=e127]: Journal
+    - generic [ref=e128]:
+      - link "Confidentialité" [ref=e129] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e130]: ·
+      - link "Supprimer mon compte" [ref=e131] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e133]:
+      - button "T Admin A Test Administrateur · Kaytek Inter" [ref=e134] [cursor=pointer]:
+        - generic [ref=e135]:
+          - generic [ref=e136]: T
+          - generic [ref=e137]:
+            - generic [ref=e138]: Admin A Test
+            - generic [ref=e139]: Administrateur · Kaytek Inter
+      - generic [ref=e140]:
+        - button "Clair" [ref=e141] [cursor=pointer]:
+          - img [ref=e142]
+          - text: Clair
+        - button "Quitter" [ref=e148] [cursor=pointer]:
+          - img [ref=e149]
+          - text: Quitter
+  - generic [ref=e152]:
+    - banner [ref=e153]:
+      - button "Menu" [ref=e154] [cursor=pointer]:
+        - img [ref=e155]
+      - generic [ref=e156]: Dashboard
+      - generic [ref=e157]:
+        - button [ref=e158] [cursor=pointer]:
+          - img [ref=e159]
+        - button "9+" [ref=e162] [cursor=pointer]:
+          - img [ref=e163]
+          - generic [ref=e166]: 9+
+        - button "+ Nouveau" [ref=e167] [cursor=pointer]
+        - button [ref=e168] [cursor=pointer]:
+          - img [ref=e169]
+    - generic [ref=e175]:
+      - img [ref=e176]
+      - generic [ref=e178]:
+        - strong [ref=e179]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e180] [cursor=pointer]
+    - main [ref=e181]:
+      - generic [ref=e182]:
+        - generic [ref=e183]:
+          - heading "Bonjour, Admin A" [level=1] [ref=e184]
+          - paragraph [ref=e185]: lundi 13 juillet 2026
+        - generic [ref=e186]:
+          - generic [ref=e187]:
+            - img [ref=e190]
+            - generic [ref=e192]: "0"
+            - generic [ref=e193]: Interventions aujourd'hui
+          - generic [ref=e194]:
+            - img [ref=e197]
+            - generic [ref=e199]: 0 €
+            - generic [ref=e200]: CA du mois
+          - generic [ref=e201]:
+            - img [ref=e204]
+            - generic [ref=e206]: 0 €
+            - generic [ref=e207]: Impayés
+          - generic [ref=e208]:
+            - img [ref=e211]
+            - generic [ref=e213]: 0 €
+            - generic [ref=e214]: Commissions dues
+        - generic [ref=e215]:
+          - generic [ref=e216]:
+            - generic [ref=e217]:
+              - generic [ref=e218]: Interventions récentes
+              - button "Voir tout" [ref=e219] [cursor=pointer]:
+                - text: Voir tout
+                - img [ref=e220]
+            - table [ref=e223]:
+              - rowgroup [ref=e224]:
+                - row "N° Client Type Statut" [ref=e225]:
+                  - columnheader "N°" [ref=e226]
+                  - columnheader "Client" [ref=e227]
+                  - columnheader "Type" [ref=e228]
+                  - columnheader "Statut" [ref=e229]
+              - rowgroup [ref=e230]:
+                - row "INT-2026-055 UITest Paul electricite en attente" [ref=e231] [cursor=pointer]:
+                  - cell "INT-2026-055" [ref=e232]:
+                    - generic [ref=e233]: INT-2026-055
+                  - cell "UITest Paul" [ref=e235]
+                  - cell "electricite" [ref=e236]:
+                    - generic [ref=e237]: electricite
+                  - cell "en attente" [ref=e238]:
+                    - generic [ref=e239]: en attente
+          - generic [ref=e240]:
+            - generic [ref=e241]:
+              - generic [ref=e243]:
+                - img [ref=e244]
+                - text: Urgences
+              - generic [ref=e247] [cursor=pointer]:
+                - img [ref=e249]
+                - generic [ref=e251]:
+                  - generic [ref=e252]: UITest · Panne de courant totale Interphone
+                  - generic [ref=e253]: 9 rue Playwright 13001 Marseille
+            - generic [ref=e255]:
+              - button "Nouvelle intervention" [ref=e256] [cursor=pointer]:
+                - img [ref=e257]
+                - text: Nouvelle intervention
+              - button "Créer un devis" [ref=e259] [cursor=pointer]:
+                - img [ref=e260]
+                - text: Créer un devis
+              - button "Messagerie" [ref=e263] [cursor=pointer]:
+                - img [ref=e264]
+                - text: Messagerie

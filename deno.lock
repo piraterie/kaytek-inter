@@ -1,0 +1,70 @@
+{
+  "version": "5",
+  "redirects": {
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.110.8",
+    "https://esm.sh/iceberg-js@^0.8.1?target=denonext": "https://esm.sh/iceberg-js@0.8.1?target=denonext"
+  },
+  "remote": {
+    "https://deno.land/std@0.168.0/async/abortable.ts": "80b2ac399f142cc528f95a037a7d0e653296352d95c681e284533765961de409",
+    "https://deno.land/std@0.168.0/async/deadline.ts": "2c2deb53c7c28ca1dda7a3ad81e70508b1ebc25db52559de6b8636c9278fd41f",
+    "https://deno.land/std@0.168.0/async/debounce.ts": "60301ffb37e730cd2d6f9dadfd0ecb2a38857681bd7aaf6b0a106b06e5210a98",
+    "https://deno.land/std@0.168.0/async/deferred.ts": "77d3f84255c3627f1cc88699d8472b664d7635990d5358c4351623e098e917d6",
+    "https://deno.land/std@0.168.0/async/delay.ts": "5a9bfba8de38840308a7a33786a0155a7f6c1f7a859558ddcec5fe06e16daf57",
+    "https://deno.land/std@0.168.0/async/mod.ts": "7809ad4bb223e40f5fdc043e5c7ca04e0e25eed35c32c3c32e28697c553fa6d9",
+    "https://deno.land/std@0.168.0/async/mux_async_iterator.ts": "770a0ff26c59f8bbbda6b703a2235f04e379f73238e8d66a087edc68c2a2c35f",
+    "https://deno.land/std@0.168.0/async/pool.ts": "6854d8cd675a74c73391c82005cbbe4cc58183bddcd1fbbd7c2bcda42b61cf69",
+    "https://deno.land/std@0.168.0/async/retry.ts": "e8e5173623915bbc0ddc537698fa418cf875456c347eda1ed453528645b42e67",
+    "https://deno.land/std@0.168.0/async/tee.ts": "3a47cc4e9a940904fd4341f0224907e199121c80b831faa5ec2b054c6d2eff5e",
+    "https://deno.land/std@0.168.0/fmt/colors.ts": "03ad95e543d2808bc43c17a3dd29d25b43d0f16287fe562a0be89bf632454a12",
+    "https://deno.land/std@0.168.0/http/server.ts": "e99c1bee8a3f6571ee4cdeb2966efad465b8f6fe62bec1bdb59c1f007cc4d155",
+    "https://deno.land/std@0.168.0/testing/_diff.ts": "a23e7fc2b4d8daa3e158fa06856bedf5334ce2a2831e8bf9e509717f455adb2c",
+    "https://deno.land/std@0.168.0/testing/_format.ts": "cd11136e1797791045e639e9f0f4640d5b4166148796cad37e6ef75f7d7f3832",
+    "https://deno.land/std@0.168.0/testing/asserts.ts": "51353e79437361d4b02d8e32f3fc83b22231bc8f8d4c841d86fd32b0b0afe940",
+    "https://esm.sh/@supabase/auth-js@2.110.8/denonext/auth-js.mjs": "83281dd97f0ecc0e22fe53e5c45d6720f64247421eaa444e516b7c77e2890d08",
+    "https://esm.sh/@supabase/functions-js@2.110.8/denonext/functions-js.mjs": "96731d9e0375d60f2e510288cc38c805e752e5f4407c161320e85b114872e128",
+    "https://esm.sh/@supabase/phoenix@0.4.5/denonext/phoenix.mjs": "40bd2a70829cd847848baac58e635bacd83fd62188f6624b44e2c295341004eb",
+    "https://esm.sh/@supabase/postgrest-js@2.110.8/denonext/postgrest-js.mjs": "3fe9b0f0242b22f91593630f7ad4fb5ae5697397bd1ea68b6c392ec77da65e33",
+    "https://esm.sh/@supabase/realtime-js@2.110.8/denonext/realtime-js.mjs": "7095c973828e88c6e326f529e7f8eac6ac9542f59e0ecddfdbbf673f7e3280cd",
+    "https://esm.sh/@supabase/storage-js@2.110.8/denonext/storage-js.mjs": "6aaf8acf249dd40db52a4b46c4a3ff23cd1f110c06030cc2f966755557273149",
+    "https://esm.sh/@supabase/supabase-js@2.110.8": "3fe5b529aba9ea7d19e980feb977d4da1f9300cb5378942b32f1522c21649623",
+    "https://esm.sh/@supabase/supabase-js@2.110.8/denonext/supabase-js.mjs": "cbc4dc3f19df167306090a1df41644b9e88869a7925e850c9289a9b669827ba3",
+    "https://esm.sh/iceberg-js@0.8.1/denonext/iceberg-js.mjs": "d839d81a2e3966500ca2cdd0c1cb458e9608bacfc91f7bb67a69b2e878dcdb4f",
+    "https://esm.sh/iceberg-js@0.8.1?target=denonext": "58c849d7fe2bf4eca4a84eb501e83c161a7d8c34ca1bec15a962b3bec3062633",
+    "https://esm.sh/tslib@2.8.1/denonext/tslib.mjs": "c38da5dd6da6281964435002ce204cd586634fe3bdfb24a0ee116f48cf3292e9"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@fullcalendar/core@^6.1.20",
+        "npm:@fullcalendar/daygrid@^6.1.20",
+        "npm:@fullcalendar/interaction@^6.1.20",
+        "npm:@fullcalendar/list@^6.1.20",
+        "npm:@fullcalendar/react@^6.1.20",
+        "npm:@fullcalendar/timegrid@^6.1.20",
+        "npm:@playwright/cli@~0.1.14",
+        "npm:@playwright/test@^1.60.0",
+        "npm:@react-pdf/renderer@^3.4.4",
+        "npm:@supabase/supabase-js@^2.45.4",
+        "npm:@tanstack/react-query@^5.56.2",
+        "npm:@types/react-dom@^18.3.0",
+        "npm:@types/react@^18.3.5",
+        "npm:@vitejs/plugin-react@^4.3.1",
+        "npm:date-fns@^3.6.0",
+        "npm:exceljs@^4.4.0",
+        "npm:lucide-react@^1.17.0",
+        "npm:react-dom@^18.3.1",
+        "npm:react-hook-form@^7.53.0",
+        "npm:react-router-dom@^6.26.2",
+        "npm:react@^18.3.1",
+        "npm:signature_pad@^4.2.0",
+        "npm:typescript@^5.5.3",
+        "npm:vite-plugin-pwa@~0.20.5",
+        "npm:vite@^5.4.2",
+        "npm:vitest@2.1.9",
+        "npm:xlsx@~0.18.5",
+        "npm:zod@^3.23.8",
+        "npm:zustand@^4.5.5"
+      ]
+    }
+  }
+}

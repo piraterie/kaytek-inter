@@ -1,0 +1,11 @@
+[     133ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-5PWU34Q3.js?v=0378f426:21550
+[     183ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=a44473ca:4426
+[     184ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:5173/node_modules/.vite/deps/react-router-dom.js?v=a44473ca:4426
+[     187ms] [LOG] [App] aucune session → affichage login @ http://localhost:5173/src/App.tsx:307
+[     255ms] [LOG] [LoginPage] bioAvailable: true bioRegistered: false @ http://localhost:5173/src/pages/LoginPage.tsx:63
+[     255ms] [LOG] [LoginPage] bioAvailable: true bioRegistered: false @ http://localhost:5173/src/pages/LoginPage.tsx:63
+[   16785ms] [LOG] [LoginPage] tentative connexion pour admin-test-b@kaytek.fr @ http://localhost:5173/src/pages/LoginPage.tsx:119
+[   17430ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/devices?select=id&user_id=eq.2a24f524-e528-468a-958c-5b7145a167f0&device_id=eq.1dc8a118-fbd6-4397-aef9-af88f74ba7ff:0
+[   17745ms] [ERROR] Failed to load resource: the server responded with a status of 406 () @ https://dimrukkxehcwzemslwiz.supabase.co/rest/v1/parametres_entreprise?select=*:0
+[   17746ms] [LOG] [LoginPage] session activée pour admin-test-b@kaytek.fr @ http://localhost:5173/src/pages/LoginPage.tsx:94
+[   17746ms] [LOG] [LoginPage] proposition activation biométrie @ http://localhost:5173/src/pages/LoginPage.tsx:153

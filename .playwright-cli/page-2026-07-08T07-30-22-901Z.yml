@@ -1,0 +1,6 @@
+- generic [ref=e27]:
+  - generic [ref=e28]: 👆
+  - heading "Connexion rapide" [level=2] [ref=e51]
+  - paragraph [ref=e35]: Activer la connexion par empreinte digitale pour ne plus saisir votre mot de passe ?
+  - button "Activer l'empreinte" [ref=e52] [cursor=pointer]
+  - button "Non merci, continuer" [ref=e53] [cursor=pointer]

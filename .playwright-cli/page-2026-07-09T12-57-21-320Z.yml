@@ -1,0 +1,22 @@
+- generic [ref=e39]:
+  - generic [ref=e40]:
+    - img [ref=e42]
+    - heading "Kaytek Inter" [level=1] [ref=e47]
+    - paragraph [ref=e48]: Devis · Factures · Interventions · Messagerie
+  - generic [ref=e49]:
+    - heading "Connexion" [level=2] [ref=e50]
+    - generic [ref=e51]:
+      - generic [ref=e52]:
+        - generic [ref=e53]: Email
+        - textbox "vous@email.fr" [active] [ref=e54]
+      - generic [ref=e55]:
+        - generic [ref=e56]: Mot de passe
+        - textbox "••••••••••••" [ref=e57]
+      - button "Se connecter" [ref=e58] [cursor=pointer]
+    - button "Mot de passe oublié ?" [ref=e59] [cursor=pointer]
+  - generic [ref=e60]:
+    - link "Confidentialité" [ref=e61] [cursor=pointer]:
+      - /url: /confidentialite
+    - generic [ref=e62]: ·
+    - link "Suppression de compte" [ref=e63] [cursor=pointer]:
+      - /url: /delete-account

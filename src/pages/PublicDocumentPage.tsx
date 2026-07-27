@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import KaytekLogo from '@/components/KaytekLogo'
 import { generateDevisPDF, generateFacturePDF, downloadBlob } from '@/lib/pdf/generator'
+import { resolveClientIdentity, formatAddressLines } from '@/lib/clientIdentity'
 
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-public-document`
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
@@ -147,6 +148,8 @@ export default function PublicDocumentPage() {
 
   const lignes: any[] = isDevis ? (doc.lignes || []) : (doc.devis?.lignes || [])
   const client = doc.client || null
+  const clientIdentity = resolveClientIdentity(doc.client_snapshot, client)
+  const clientAddressLines = formatAddressLines(clientIdentity)
   const totalHT    = isDevis ? doc.total_ht   : doc.montant_ht
   const tvaMontant = doc.tva_montant
   const totalTTC   = isDevis ? doc.total_ttc  : doc.montant_ttc
@@ -234,18 +237,21 @@ export default function PublicDocumentPage() {
               </div>
             )}
 
-            {/* Client */}
-            {client && (
+            {/* Client — priorité au snapshot figé à la création du document
+                (voir src/lib/clientIdentity.ts), repli sur la fiche client
+                pour les documents créés avant cette fonctionnalité. */}
+            {clientIdentity && (
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 18px', marginBottom: 22 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Client</div>
                 <div style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>
-                  {[client.nom, client.prenom].filter(Boolean).join(' ') || '—'}
+                  {clientIdentity.displayName}
                 </div>
-                {client.telephone && <div style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>{client.telephone}</div>}
-                {client.email && <div style={{ fontSize: 13, color: '#64748b' }}>{client.email}</div>}
-                {client.adresse_intervention && (
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>{client.adresse_intervention}</div>
-                )}
+                {clientIdentity.contactName && <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{clientIdentity.contactName}</div>}
+                {clientIdentity.phone && <div style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>{clientIdentity.phone}</div>}
+                {clientIdentity.email && <div style={{ fontSize: 13, color: '#64748b' }}>{clientIdentity.email}</div>}
+                {clientAddressLines.map((line, i) => (
+                  <div key={i} style={{ fontSize: 12, color: '#94a3b8', marginTop: i === 0 ? 6 : 0 }}>{line}</div>
+                ))}
               </div>
             )}
 

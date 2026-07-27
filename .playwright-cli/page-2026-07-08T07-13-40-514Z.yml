@@ -1,0 +1,8 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - generic [ref=e6]: 🔐
+    - generic [ref=e7]: Activez votre compte
+    - generic [ref=e8]: Définissez votre mot de passe pour accéder à Kaytek Inter.
+  - generic [ref=e10]:
+    - generic [ref=e11]: Lien invalide, expiré ou déjà utilisé. Demandez une nouvelle invitation à votre administrateur.
+    - button "Retour à la connexion" [ref=e12] [cursor=pointer]

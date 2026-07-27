@@ -1,0 +1,22 @@
+- generic [ref=e394]:
+  - generic [ref=e395]:
+    - img [ref=e397]
+    - heading "Kaytek Inter" [level=1] [ref=e402]
+    - paragraph [ref=e403]: Devis · Factures · Interventions · Messagerie
+  - generic [ref=e404]:
+    - heading "Connexion" [level=2] [ref=e405]
+    - generic [ref=e406]:
+      - generic [ref=e407]:
+        - generic [ref=e408]: Email
+        - textbox "vous@email.fr" [ref=e409]: admin-test-a@kaytek.fr
+      - generic [ref=e410]:
+        - generic [ref=e411]: Mot de passe
+        - textbox "••••••••••••" [ref=e412]: KaytekTest2026!
+      - button "Connexion…" [disabled] [ref=e419]
+    - button "Mot de passe oublié ?" [ref=e414] [cursor=pointer]
+  - generic [ref=e415]:
+    - link "Confidentialité" [ref=e416] [cursor=pointer]:
+      - /url: /confidentialite
+    - generic [ref=e417]: ·
+    - link "Suppression de compte" [ref=e418] [cursor=pointer]:
+      - /url: /delete-account

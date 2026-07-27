@@ -1,0 +1,216 @@
+- generic [ref=e10]:
+  - complementary [ref=e11]:
+    - generic [ref=e12]:
+      - img [ref=e13]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Kaytek Inter
+        - generic [ref=e20]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+    - navigation [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Pilotage
+        - button "Dashboard" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - generic [ref=e33]: Dashboard
+        - button "Messagerie" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e38]: Messagerie
+      - generic [ref=e39]:
+        - generic [ref=e40]: Terrain
+        - button "Interventions 3" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Interventions
+          - generic [ref=e45]: "3"
+        - button "Planning" [ref=e46] [cursor=pointer]:
+          - img [ref=e47]
+          - generic [ref=e49]: Planning
+        - button "Devis" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - generic [ref=e54]: Devis
+        - button "Factures" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - generic [ref=e59]: Factures
+      - generic [ref=e60]:
+        - generic [ref=e61]: Gestion
+        - button "Commissions" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+          - generic [ref=e65]: Commissions
+        - button "Guide" [ref=e66] [cursor=pointer]:
+          - img [ref=e67]
+          - generic [ref=e69]: Guide
+    - generic [ref=e70]:
+      - link "Confidentialité" [ref=e71] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e72]: ·
+      - link "Supprimer mon compte" [ref=e73] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e75]:
+      - button "IT Intervenant Test Intervenant · Kaytek Inter" [ref=e76] [cursor=pointer]:
+        - generic [ref=e77]:
+          - generic [ref=e78]: IT
+          - generic [ref=e79]:
+            - generic [ref=e80]: Intervenant Test
+            - generic [ref=e81]: Intervenant · Kaytek Inter
+      - generic [ref=e82]:
+        - button "Clair" [ref=e83] [cursor=pointer]:
+          - img [ref=e84]
+          - text: Clair
+        - button "Quitter" [ref=e90] [cursor=pointer]:
+          - img [ref=e91]
+          - text: Quitter
+  - generic [ref=e94]:
+    - banner [ref=e95]:
+      - button "Menu" [ref=e96] [cursor=pointer]:
+        - img [ref=e97]
+      - generic [ref=e98]: Devis
+      - generic [ref=e99]:
+        - button [ref=e100] [cursor=pointer]:
+          - img [ref=e101]
+        - button [ref=e104] [cursor=pointer]:
+          - img [ref=e105]
+        - button "+ Nouveau" [ref=e108] [cursor=pointer]
+        - button [ref=e109] [cursor=pointer]:
+          - img [ref=e110]
+    - main [ref=e116]:
+      - generic [ref=e117]:
+        - generic [ref=e118]:
+          - button "←" [ref=e119] [cursor=pointer]
+          - heading "Créer un devis" [level=1] [ref=e121]
+          - button "📅 RDV" [ref=e276] [cursor=pointer]
+        - generic [ref=e122]:
+          - generic [ref=e124]:
+            - generic [ref=e125]: ✓
+            - generic [ref=e126]: Client
+          - generic [ref=e129]:
+            - generic [ref=e130]: ✓
+            - generic [ref=e131]: Prestations
+          - generic [ref=e134]:
+            - generic [ref=e135]: "3"
+            - generic [ref=e136]: Options
+          - generic [ref=e139]:
+            - generic [ref=e140]: "4"
+            - generic [ref=e141]: Envoi
+        - generic [ref=e142]: ℹ Votre devis sera soumis à validation de l'administrateur avant d'être actif.
+        - generic [ref=e144]:
+          - generic [ref=e277]:
+            - generic [ref=e278]: T
+            - generic [ref=e281]: TEST-PLAN Client UI
+            - button "✏" [ref=e283] [cursor=pointer]
+          - generic [ref=e153]:
+            - generic [ref=e154]:
+              - generic [ref=e155]: Activité
+              - combobox [ref=e156] [cursor=pointer]:
+                - option "🔒 Serrurerie" [selected]
+                - option "🔧 Plomberie"
+                - option "⚡ Électricité"
+                - option "🪟 Vitrerie"
+                - option "🔥 Chauffagiste"
+            - generic [ref=e157]:
+              - generic [ref=e158]: Valide jusqu'au
+              - textbox [ref=e159]: 2026-08-12
+          - generic [ref=e160]: ℹ Ce devis sera valable jusqu'au 12/08/2026. Date modifiable ci-dessus.
+        - generic [ref=e161]:
+          - generic [ref=e162]:
+            - generic [ref=e163]:
+              - generic [ref=e164]: 🔧
+              - generic [ref=e165]: Prestations
+              - generic [ref=e289]: 1 ligne
+            - generic [ref=e166]:
+              - generic [ref=e167]: 🔍
+              - textbox "Rechercher dans le catalogue…" [ref=e168]
+            - generic [ref=e169]:
+              - button "🔒 Ouverture porte claquée 150€ HT + Ajouter" [ref=e170] [cursor=pointer]:
+                - generic [ref=e171]:
+                  - generic [ref=e172]: 🔒
+                  - generic [ref=e174]: Ouverture porte claquée
+                - generic [ref=e175]:
+                  - generic [ref=e176]: 150€ HT
+                  - button "+ Ajouter" [active] [ref=e177]
+              - button "🔒 Ouverture porte verrouillée 200€ HT + Ajouter" [ref=e178] [cursor=pointer]:
+                - generic [ref=e179]:
+                  - generic [ref=e180]: 🔒
+                  - generic [ref=e182]: Ouverture porte verrouillée
+                - generic [ref=e183]:
+                  - generic [ref=e184]: 200€ HT
+                  - button "+ Ajouter" [ref=e185]
+              - button "🔒 Changement de cylindre 120€ HT + Ajouter" [ref=e186] [cursor=pointer]:
+                - generic [ref=e187]:
+                  - generic [ref=e188]: 🔒
+                  - generic [ref=e190]: Changement de cylindre
+                - generic [ref=e191]:
+                  - generic [ref=e192]: 120€ HT
+                  - button "+ Ajouter" [ref=e193]
+              - button "🔒 Blindage porte 800€ HT + Ajouter" [ref=e194] [cursor=pointer]:
+                - generic [ref=e195]:
+                  - generic [ref=e196]: 🔒
+                  - generic [ref=e198]: Blindage porte
+                - generic [ref=e199]:
+                  - generic [ref=e200]: 800€ HT
+                  - button "+ Ajouter" [ref=e201]
+              - button "🔒 Réparation gâche électrique 180€ HT + Ajouter" [ref=e202] [cursor=pointer]:
+                - generic [ref=e203]:
+                  - generic [ref=e204]: 🔒
+                  - generic [ref=e206]: Réparation gâche électrique
+                - generic [ref=e207]:
+                  - generic [ref=e208]: 180€ HT
+                  - button "+ Ajouter" [ref=e209]
+              - button "🔒 Remplacement serrure 3 points 350€ HT + Ajouter" [ref=e210] [cursor=pointer]:
+                - generic [ref=e211]:
+                  - generic [ref=e212]: 🔒
+                  - generic [ref=e214]: Remplacement serrure 3 points
+                - generic [ref=e215]:
+                  - generic [ref=e216]: 350€ HT
+                  - button "+ Ajouter" [ref=e217]
+          - generic [ref=e291]:
+            - generic [ref=e292]: Sélectionnées (1)
+            - generic [ref=e294]:
+              - generic [ref=e295]:
+                - textbox "Description…" [ref=e296]: Ouverture porte claquée
+                - button "🗑" [ref=e298] [cursor=pointer]
+              - generic [ref=e299]:
+                - generic [ref=e300]:
+                  - button "−" [ref=e301] [cursor=pointer]
+                  - generic [ref=e302]: "1"
+                  - button "+" [ref=e303] [cursor=pointer]
+                  - combobox [ref=e304] [cursor=pointer]:
+                    - option "0%"
+                    - option "5.5%"
+                    - option "10%" [selected]
+                    - option "20%"
+                - generic [ref=e305]:
+                  - generic [ref=e306]:
+                    - spinbutton [ref=e307]: "150"
+                    - generic [ref=e308]: € HT × 1
+                  - generic [ref=e309]: 165,00 €
+          - button "+ Ajouter une prestation manuelle" [ref=e219] [cursor=pointer]
+        - generic [ref=e220]:
+          - generic [ref=e221]:
+            - generic [ref=e222]: 💰
+            - generic [ref=e223]: Récapitulatif
+          - generic [ref=e224]:
+            - generic [ref=e225]: Total HT
+            - generic [ref=e226]: 150,00 €
+          - generic [ref=e227]:
+            - generic [ref=e228]: TVA
+            - generic [ref=e229]: 15,00 €
+          - generic [ref=e230]:
+            - generic [ref=e231]: Total TTC
+            - generic [ref=e232]: 165,00 €
+        - button "⚙ Options avancées Conditions, remise… ∨" [ref=e234] [cursor=pointer]:
+          - generic [ref=e235]:
+            - generic [ref=e236]: ⚙
+            - generic [ref=e237]: Options avancées
+            - generic [ref=e238]: Conditions, remise…
+          - generic [ref=e239]: ∨
+        - generic [ref=e241]:
+          - generic [ref=e242]: ✍
+          - generic [ref=e243]:
+            - generic [ref=e244]: Signature client
+            - generic [ref=e245]: Disponible après enregistrement du devis.
+        - generic [ref=e246]:
+          - button "Annuler" [ref=e247] [cursor=pointer]
+          - button "📤 Soumettre pour validation" [ref=e248] [cursor=pointer]
+  - generic [ref=e310]:
+    - img [ref=e312]
+    - text: Ouverture porte claquée ajouté

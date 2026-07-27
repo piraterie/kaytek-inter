@@ -1,0 +1,305 @@
+- generic [ref=e423]:
+  - complementary [ref=e424]:
+    - generic [ref=e425]:
+      - img [ref=e426]
+      - generic [ref=e431]:
+        - generic [ref=e432]: Kaytek Inter
+        - generic [ref=e433]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e434] [cursor=pointer]:
+        - img [ref=e435]
+    - navigation [ref=e437]:
+      - generic [ref=e438]:
+        - generic [ref=e439]: Pilotage
+        - button "Dashboard" [ref=e440] [cursor=pointer]:
+          - img [ref=e441]
+          - generic [ref=e446]: Dashboard
+        - button "Messagerie" [ref=e447] [cursor=pointer]:
+          - img [ref=e448]
+          - generic [ref=e451]: Messagerie
+      - generic [ref=e452]:
+        - generic [ref=e453]: Terrain
+        - button "Interventions 9" [ref=e454] [cursor=pointer]:
+          - img [ref=e455]
+          - generic [ref=e457]: Interventions
+          - generic [ref=e458]: "9"
+        - button "Planning" [ref=e459] [cursor=pointer]:
+          - img [ref=e460]
+          - generic [ref=e462]: Planning
+        - button "Devis" [ref=e463] [cursor=pointer]:
+          - img [ref=e464]
+          - generic [ref=e467]: Devis
+        - button "Factures" [ref=e468] [cursor=pointer]:
+          - img [ref=e469]
+          - generic [ref=e472]: Factures
+      - generic [ref=e473]:
+        - generic [ref=e474]: Gestion
+        - button "Clients" [ref=e475] [cursor=pointer]:
+          - img [ref=e476]
+          - generic [ref=e481]: Clients
+        - button "Catalogue" [ref=e482] [cursor=pointer]:
+          - img [ref=e483]
+          - generic [ref=e487]: Catalogue
+        - button "Commissions" [ref=e488] [cursor=pointer]:
+          - img [ref=e489]
+          - generic [ref=e491]: Commissions
+        - button "Guide" [ref=e492] [cursor=pointer]:
+          - img [ref=e493]
+          - generic [ref=e495]: Guide
+      - generic [ref=e496]:
+        - generic [ref=e497]: Administration
+        - button "Réseau partenaires" [ref=e498] [cursor=pointer]:
+          - img [ref=e499]
+          - generic [ref=e504]: Réseau partenaires
+        - button "Utilisateurs" [ref=e505] [cursor=pointer]:
+          - img [ref=e506]
+          - generic [ref=e508]: Utilisateurs
+        - button "Paramètres" [ref=e509] [cursor=pointer]:
+          - img [ref=e510]
+          - generic [ref=e513]: Paramètres
+        - button "Journal" [ref=e514] [cursor=pointer]:
+          - img [ref=e515]
+          - generic [ref=e518]: Journal
+    - generic [ref=e519]:
+      - link "Confidentialité" [ref=e520] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e521]: ·
+      - link "Supprimer mon compte" [ref=e522] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e524]:
+      - button "AA Admin B AdminTestA Administrateur · Kaytek Inter" [ref=e525] [cursor=pointer]:
+        - generic [ref=e526]:
+          - generic [ref=e527]: AA
+          - generic [ref=e528]:
+            - generic [ref=e529]: Admin B AdminTestA
+            - generic [ref=e530]: Administrateur · Kaytek Inter
+      - generic [ref=e531]:
+        - button "Clair" [ref=e532] [cursor=pointer]:
+          - img [ref=e533]
+          - text: Clair
+        - button "Quitter" [ref=e539] [cursor=pointer]:
+          - img [ref=e540]
+          - text: Quitter
+  - generic [ref=e543]:
+    - banner [ref=e544]:
+      - button "Menu" [ref=e545] [cursor=pointer]:
+        - img [ref=e546]
+      - generic [ref=e547]: Planning
+      - generic [ref=e548]:
+        - button [ref=e549] [cursor=pointer]:
+          - img [ref=e550]
+        - button "9+" [ref=e553] [cursor=pointer]:
+          - img [ref=e554]
+          - generic [ref=e557]: 9+
+        - button "+ Nouveau" [ref=e558] [cursor=pointer]
+        - button [ref=e559] [cursor=pointer]:
+          - img [ref=e560]
+    - generic [ref=e566]:
+      - img [ref=e567]
+      - generic [ref=e569]:
+        - strong [ref=e570]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e571] [cursor=pointer]
+    - main [ref=e572]:
+      - generic [ref=e573]:
+        - generic [ref=e574]:
+          - generic [ref=e575]:
+            - generic [ref=e576]:
+              - img [ref=e577]
+              - text: Planning
+            - generic [ref=e579]: 11 interventions planifiées
+          - generic [ref=e580]:
+            - button "Rappels" [ref=e581] [cursor=pointer]:
+              - img [ref=e582]
+              - text: Rappels
+            - button "Aujourd'hui" [ref=e585] [cursor=pointer]
+        - generic [ref=e586]:
+          - generic [ref=e587]:
+            - generic [ref=e588]: "1"
+            - generic [ref=e589]:
+              - img [ref=e590]
+              - text: Aujourd'hui
+          - generic [ref=e592]:
+            - generic [ref=e593]: "0"
+            - generic [ref=e594]:
+              - img [ref=e595]
+              - text: À venir
+          - generic [ref=e599]:
+            - generic [ref=e600]: "0"
+            - generic [ref=e601]:
+              - img [ref=e602]
+              - text: En retard
+          - generic [ref=e605]:
+            - generic [ref=e606]: "0"
+            - generic [ref=e607]:
+              - img [ref=e608]
+              - text: Terminées
+        - generic [ref=e611]:
+          - button "Aujourd'hui — 1 intervention" [ref=e612] [cursor=pointer]:
+            - generic [ref=e613]: Aujourd'hui — 1 intervention
+            - img [ref=e615]
+          - generic [ref=e617] [cursor=pointer]:
+            - generic [ref=e618]: 03:08
+            - generic [ref=e619]:
+              - generic [ref=e620]:
+                - img [ref=e621]
+                - generic [ref=e623]: PW-1781295531342 TEST-ISO
+              - generic [ref=e624]:
+                - img [ref=e625]
+                - text: 12 rue de Test, Lyon
+              - generic [ref=e628]:
+                - img [ref=e629]
+                - text: Intervenant Test
+            - generic [ref=e632]:
+              - generic [ref=e633]: En attente
+              - generic [ref=e634]: 150 €
+        - generic [ref=e635]:
+          - generic [ref=e638]: Urgent / en retard
+          - generic [ref=e641]: < 2h
+          - generic [ref=e644]: En attente
+          - generic [ref=e647]: Accepté
+          - generic [ref=e650]: En cours
+          - generic [ref=e653]: Terminé / Facturé
+          - generic [ref=e656]: Annulé / Refusé
+        - generic [ref=e658]:
+          - generic [ref=e659]:
+            - generic [ref=e660]:
+              - generic [ref=e661]:
+                - button "Précédent" [ref=e662] [cursor=pointer]:
+                  - img [ref=e663]: 
+                - button "Suivant" [ref=e664] [cursor=pointer]:
+                  - img [ref=e665]: 
+              - button "Aujourd'hui" [disabled] [ref=e666] [cursor=pointer]
+            - heading "6 – 12 juil. 2026" [level=2] [ref=e668]
+            - generic [ref=e670]:
+              - button "Mois" [ref=e671] [cursor=pointer]
+              - button "Semaine" [pressed] [ref=e672] [cursor=pointer]
+              - button "Jour" [ref=e673] [cursor=pointer]
+              - button "Liste" [ref=e674] [cursor=pointer]
+          - generic "6 – 12 juil. 2026" [ref=e675]:
+            - grid [ref=e677]:
+              - rowgroup [ref=e678]:
+                - row "6 juillet 2026 7 juillet 2026 8 juillet 2026 9 juillet 2026 10 juillet 2026 11 juillet 2026 12 juillet 2026" [ref=e683]:
+                  - columnheader "6 juillet 2026" [ref=e684]:
+                    - generic "6 juillet 2026" [ref=e686]: lun. 06/07
+                  - columnheader "7 juillet 2026" [ref=e687]:
+                    - generic "7 juillet 2026" [ref=e689]: mar. 07/07
+                  - columnheader "8 juillet 2026" [ref=e690]:
+                    - generic "8 juillet 2026" [ref=e692]: mer. 08/07
+                  - columnheader "9 juillet 2026" [ref=e693]:
+                    - generic "9 juillet 2026" [ref=e695]: jeu. 09/07
+                  - columnheader "10 juillet 2026" [ref=e696]:
+                    - generic "10 juillet 2026" [ref=e698]: ven. 10/07
+                  - columnheader "11 juillet 2026" [ref=e699]:
+                    - generic "11 juillet 2026" [ref=e701]: sam. 11/07
+                  - columnheader "12 juillet 2026" [ref=e702]:
+                    - generic "12 juillet 2026" [ref=e704]: dim. 12/07
+              - rowgroup [ref=e705]:
+                - generic [ref=e708]:
+                  - table [ref=e710]:
+                    - rowgroup [ref=e713]:
+                      - row [ref=e714]:
+                        - cell [ref=e715]:
+                          - generic [ref=e717]: 07 h
+                        - cell [ref=e718]
+                      - row [ref=e719]:
+                        - cell [ref=e720]
+                        - cell [ref=e721]
+                      - row [ref=e722]:
+                        - cell [ref=e723]:
+                          - generic [ref=e725]: 08 h
+                        - cell [ref=e726]
+                      - row [ref=e727]:
+                        - cell [ref=e728]
+                        - cell [ref=e729]
+                      - row [ref=e730]:
+                        - cell [ref=e731]:
+                          - generic [ref=e733]: 09 h
+                        - cell [ref=e734]
+                      - row [ref=e735]:
+                        - cell [ref=e736]
+                        - cell [ref=e737]
+                      - row [ref=e738]:
+                        - cell [ref=e739]:
+                          - generic [ref=e741]: 10 h
+                        - cell [ref=e742]
+                      - row [ref=e743]:
+                        - cell [ref=e744]
+                        - cell [ref=e745]
+                      - row [ref=e746]:
+                        - cell [ref=e747]:
+                          - generic [ref=e749]: 11 h
+                        - cell [ref=e750]
+                      - row [ref=e751]:
+                        - cell [ref=e752]
+                        - cell [ref=e753]
+                      - row [ref=e754]:
+                        - cell [ref=e755]:
+                          - generic [ref=e757]: 12 h
+                        - cell [ref=e758]
+                      - row [ref=e759]:
+                        - cell [ref=e760]
+                        - cell [ref=e761]
+                      - row [ref=e762]:
+                        - cell [ref=e763]:
+                          - generic [ref=e765]: 13 h
+                        - cell [ref=e766]
+                      - row [ref=e767]:
+                        - cell [ref=e768]
+                        - cell [ref=e769]
+                      - row [ref=e770]:
+                        - cell [ref=e771]:
+                          - generic [ref=e773]: 14 h
+                        - cell [ref=e774]
+                      - row [ref=e775]:
+                        - cell [ref=e776]
+                        - cell [ref=e777]
+                      - row [ref=e778]:
+                        - cell [ref=e779]:
+                          - generic [ref=e781]: 15 h
+                        - cell [ref=e782]
+                      - row [ref=e783]:
+                        - cell [ref=e784]
+                        - cell [ref=e785]
+                      - row [ref=e786]:
+                        - cell [ref=e787]:
+                          - generic [ref=e789]: 16 h
+                        - cell [ref=e790]
+                      - row [ref=e791]:
+                        - cell [ref=e792]
+                        - cell [ref=e793]
+                      - row [ref=e794]:
+                        - cell [ref=e795]:
+                          - generic [ref=e797]: 17 h
+                        - cell [ref=e798]
+                      - row [ref=e799]:
+                        - cell [ref=e800]
+                        - cell [ref=e801]
+                      - row [ref=e802]:
+                        - cell [ref=e803]:
+                          - generic [ref=e805]: 18 h
+                        - cell [ref=e806]
+                      - row [ref=e807]:
+                        - cell [ref=e808]
+                        - cell [ref=e809]
+                      - row [ref=e810]:
+                        - cell [ref=e811]:
+                          - generic [ref=e813]: 19 h
+                        - cell [ref=e814]
+                      - row [ref=e815]:
+                        - cell [ref=e816]
+                        - cell [ref=e817]
+                      - row [ref=e818]:
+                        - cell [ref=e819]:
+                          - generic [ref=e821]: 20 h
+                        - cell [ref=e822]
+                      - row [ref=e823]:
+                        - cell [ref=e824]
+                        - cell [ref=e825]
+                  - row [ref=e829]:
+                    - gridcell [ref=e832]
+                    - gridcell [ref=e835]
+                    - gridcell [ref=e838]
+                    - gridcell [ref=e841]
+                    - gridcell [ref=e844]
+                    - gridcell [ref=e847]
+                    - gridcell [ref=e850]

@@ -1,0 +1,156 @@
+- generic [ref=e40]:
+  - complementary [ref=e41]:
+    - generic [ref=e42]:
+      - img [ref=e43]
+      - generic [ref=e48]:
+        - generic [ref=e49]: Kaytek Inter
+        - generic [ref=e50]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e51] [cursor=pointer]:
+        - img [ref=e52]
+    - navigation [ref=e54]:
+      - generic [ref=e55]:
+        - generic [ref=e56]: Pilotage
+        - button "Dashboard" [ref=e57] [cursor=pointer]:
+          - img [ref=e58]
+          - generic [ref=e63]: Dashboard
+        - button "Messagerie" [ref=e64] [cursor=pointer]:
+          - img [ref=e65]
+          - generic [ref=e68]: Messagerie
+      - generic [ref=e69]:
+        - generic [ref=e70]: Terrain
+        - button "Interventions" [ref=e71] [cursor=pointer]:
+          - img [ref=e72]
+          - generic [ref=e74]: Interventions
+        - button "Planning" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e78]: Planning
+        - button "Devis" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e83]: Devis
+        - button "Factures" [ref=e84] [cursor=pointer]:
+          - img [ref=e85]
+          - generic [ref=e88]: Factures
+      - generic [ref=e89]:
+        - generic [ref=e90]: Gestion
+        - button "Clients" [ref=e91] [cursor=pointer]:
+          - img [ref=e92]
+          - generic [ref=e97]: Clients
+        - button "Catalogue" [ref=e98] [cursor=pointer]:
+          - img [ref=e99]
+          - generic [ref=e103]: Catalogue
+        - button "Commissions" [ref=e104] [cursor=pointer]:
+          - img [ref=e105]
+          - generic [ref=e107]: Commissions
+        - button "Guide" [ref=e108] [cursor=pointer]:
+          - img [ref=e109]
+          - generic [ref=e111]: Guide
+      - generic [ref=e112]:
+        - generic [ref=e113]: Administration
+        - button "Réseau partenaires" [ref=e114] [cursor=pointer]:
+          - img [ref=e115]
+          - generic [ref=e120]: Réseau partenaires
+        - button "Utilisateurs" [ref=e121] [cursor=pointer]:
+          - img [ref=e122]
+          - generic [ref=e124]: Utilisateurs
+        - button "Paramètres" [ref=e125] [cursor=pointer]:
+          - img [ref=e126]
+          - generic [ref=e129]: Paramètres
+        - button "Journal" [ref=e130] [cursor=pointer]:
+          - img [ref=e131]
+          - generic [ref=e134]: Journal
+    - generic [ref=e135]:
+      - link "Confidentialité" [ref=e136] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e137]: ·
+      - link "Supprimer mon compte" [ref=e138] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e140]:
+      - button "GT gate testeur Administrateur · Kaytek Inter" [ref=e141] [cursor=pointer]:
+        - generic [ref=e142]:
+          - generic [ref=e143]: GT
+          - generic [ref=e144]:
+            - generic [ref=e145]: gate testeur
+            - generic [ref=e146]: Administrateur · Kaytek Inter
+      - generic [ref=e147]:
+        - button "Clair" [ref=e148] [cursor=pointer]:
+          - img [ref=e149]
+          - text: Clair
+        - button "Quitter" [ref=e155] [cursor=pointer]:
+          - img [ref=e156]
+          - text: Quitter
+  - generic [ref=e159]:
+    - banner [ref=e160]:
+      - button "Menu" [ref=e161] [cursor=pointer]:
+        - img [ref=e162]
+      - generic [ref=e163]: Dashboard
+      - generic [ref=e164]:
+        - button [ref=e165] [cursor=pointer]:
+          - img [ref=e166]
+        - button [ref=e169] [cursor=pointer]:
+          - img [ref=e170]
+        - button "+ Nouveau" [ref=e173] [cursor=pointer]
+        - button [ref=e174] [cursor=pointer]:
+          - img [ref=e175]
+    - generic [ref=e181]:
+      - img [ref=e182]
+      - generic [ref=e184]:
+        - strong [ref=e185]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e186] [cursor=pointer]
+    - main [ref=e187]:
+      - generic [ref=e188]:
+        - generic [ref=e189]:
+          - heading "Bonjour, gate" [level=1] [ref=e190]
+          - paragraph [ref=e191]: jeudi 9 juillet 2026
+        - generic [ref=e192]:
+          - generic [ref=e193]:
+            - img [ref=e196]
+            - generic [ref=e198]: "0"
+            - generic [ref=e199]: Interventions aujourd'hui
+          - generic [ref=e200]:
+            - img [ref=e203]
+            - generic [ref=e205]: 0 €
+            - generic [ref=e206]: CA du mois
+          - generic [ref=e207]:
+            - img [ref=e210]
+            - generic [ref=e212]: 0 €
+            - generic [ref=e213]: Impayés
+          - generic [ref=e214]:
+            - img [ref=e217]
+            - generic [ref=e219]: 0 €
+            - generic [ref=e220]: Commissions dues
+        - generic [ref=e221]:
+          - generic [ref=e222]:
+            - generic [ref=e223]:
+              - generic [ref=e224]: Interventions récentes
+              - button "Voir tout" [ref=e225] [cursor=pointer]:
+                - text: Voir tout
+                - img [ref=e226]
+            - table [ref=e229]:
+              - rowgroup [ref=e230]:
+                - row "N° Client Type Statut" [ref=e231]:
+                  - columnheader "N°" [ref=e232]
+                  - columnheader "Client" [ref=e233]
+                  - columnheader "Type" [ref=e234]
+                  - columnheader "Statut" [ref=e235]
+              - rowgroup [ref=e236]:
+                - row "Aucune intervention" [ref=e237]:
+                  - cell "Aucune intervention" [ref=e238]
+          - generic [ref=e241]:
+            - button "Nouvelle intervention" [ref=e242] [cursor=pointer]:
+              - img [ref=e243]
+              - text: Nouvelle intervention
+            - button "Créer un devis" [ref=e245] [cursor=pointer]:
+              - img [ref=e246]
+              - text: Créer un devis
+            - button "Messagerie" [ref=e249] [cursor=pointer]:
+              - img [ref=e250]
+              - text: Messagerie
+  - generic [ref=e254]:
+    - generic [ref=e255]: 📚
+    - heading "Bienvenue sur Kaytek Inter" [level=2] [ref=e256]
+    - paragraph [ref=e257]: Bonjour gate ! Souhaitez-vous découvrir le guide d'utilisation ?
+    - generic [ref=e258]:
+      - button "📖 Voir le guide" [ref=e259] [cursor=pointer]
+      - button "Plus tard" [ref=e260] [cursor=pointer]
+      - button "Ne plus afficher" [ref=e261] [cursor=pointer]

@@ -6,6 +6,7 @@ import { useAuthStore, useToastStore } from '@/lib/store'
 import SignatureModal from '@/components/SignatureModal'
 import EmailDevisModal from '@/components/EmailDevisModal'
 import { AddressAutocomplete } from '@/components/AddressAutocomplete'
+import { resolveClientIdentity, formatAddressLines } from '@/lib/clientIdentity'
 
 export default function DevisApercuPage() {
   const { id } = useParams<{ id: string }>()
@@ -413,14 +414,26 @@ export default function DevisApercuPage() {
             </div>
           </div>
 
-          {/* Client */}
+          {/* Client — priorité au snapshot figé à la création (voir
+              src/lib/clientIdentity.ts), repli sur la fiche client pour
+              les devis créés avant cette fonctionnalité. */}
           <div className="grid-2 mb-4" style={{ gap: 16 }}>
-            <div style={{ padding: '14px 16px', background: 'var(--s1)', borderRadius: 8, border: '1px solid var(--b1)' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Client</div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>{devis.client?.nom} {devis.client?.prenom}</div>
-              {devis.client?.telephone && <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>{devis.client.telephone}</div>}
-              {devis.client?.email && <div style={{ fontSize: 13, color: 'var(--t2)' }}>{devis.client.email}</div>}
-            </div>
+            {(() => {
+              const identity = resolveClientIdentity(devis.client_snapshot, devis.client)
+              const addressLines = formatAddressLines(identity)
+              return (
+                <div style={{ padding: '14px 16px', background: 'var(--s1)', borderRadius: 8, border: '1px solid var(--b1)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Client</div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{identity?.displayName || '—'}</div>
+                  {identity?.contactName && <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 2 }}>{identity.contactName}</div>}
+                  {identity?.phone && <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>{identity.phone}</div>}
+                  {identity?.email && <div style={{ fontSize: 13, color: 'var(--t2)' }}>{identity.email}</div>}
+                  {addressLines.map((line, i) => (
+                    <div key={i} style={{ fontSize: 13, color: 'var(--t2)', marginTop: i === 0 ? 4 : 0 }}>{line}</div>
+                  ))}
+                </div>
+              )
+            })()}
             <div style={{ padding: '14px 16px', background: 'var(--s1)', borderRadius: 8, border: '1px solid var(--b1)' }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Intervenant</div>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{devis.intervenant?.prenom} {devis.intervenant?.nom}</div>

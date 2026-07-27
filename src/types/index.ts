@@ -60,6 +60,23 @@ export interface Client {
   notes_internes?: string; archive?: boolean; created_by?: string; created_at: string; updated_at: string
 }
 
+// Coordonnées client normalisées pour affichage sur un document (devis/
+// facture) — voir src/lib/clientIdentity.ts pour la construction et le
+// formatage. Stockée telle quelle dans devis.client_snapshot/
+// factures.client_snapshot (colonne jsonb).
+export interface ClientDocumentIdentity {
+  displayName: string
+  companyName?: string
+  contactName?: string
+  addressLine1?: string
+  addressLine2?: string
+  postalCode?: string
+  city?: string
+  country?: string
+  email?: string
+  phone?: string
+}
+
 export interface Prestation {
   id: string; nom: string; categorie: Categorie; sous_categorie?: string
   description?: string; prix_min?: number; prix_conseille?: number; prix_urgence?: number
@@ -98,6 +115,10 @@ export interface Devis {
   valide_jusqu_au?: string; envoye_le?: string; notes?: string; pdf_url?: string
   created_by?: string; created_at: string; updated_at: string
   client?: Client; intervenant?: Profile
+  // Coordonnées client figées au moment de la création — voir
+  // src/lib/clientIdentity.ts. NULL pour les devis créés avant cette
+  // fonctionnalité (repli sur `client` ci-dessus).
+  client_snapshot?: ClientDocumentIdentity | null
 }
 
 export interface Facture {
@@ -108,6 +129,9 @@ export interface Facture {
   relance_1_le?: string; relance_2_le?: string; notes?: string; pdf_url?: string
   created_by?: string; created_at: string; updated_at: string
   client?: Client; devis?: Devis
+  // Coordonnées client figées au moment de la création (reprises du devis
+  // source en cas de conversion) — voir src/lib/clientIdentity.ts.
+  client_snapshot?: ClientDocumentIdentity | null
 }
 
 export interface Commission {

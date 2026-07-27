@@ -1,0 +1,134 @@
+- generic [ref=e10]:
+  - complementary [ref=e11]:
+    - generic [ref=e12]:
+      - img [ref=e13]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Kaytek Inter
+        - generic [ref=e20]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+    - navigation [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Pilotage
+        - button "Dashboard" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - generic [ref=e33]: Dashboard
+        - button "Messagerie" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e38]: Messagerie
+      - generic [ref=e39]:
+        - generic [ref=e40]: Terrain
+        - button "Interventions 4" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Interventions
+          - generic [ref=e45]: "4"
+        - button "Planning" [ref=e46] [cursor=pointer]:
+          - img [ref=e47]
+          - generic [ref=e49]: Planning
+        - button "Devis" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - generic [ref=e54]: Devis
+        - button "Factures" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - generic [ref=e59]: Factures
+      - generic [ref=e60]:
+        - generic [ref=e61]: Gestion
+        - button "Commissions" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+          - generic [ref=e65]: Commissions
+        - button "Guide" [ref=e66] [cursor=pointer]:
+          - img [ref=e67]
+          - generic [ref=e69]: Guide
+    - generic [ref=e70]:
+      - link "Confidentialité" [ref=e71] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e72]: ·
+      - link "Supprimer mon compte" [ref=e73] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e75]:
+      - button "IT Intervenant Test Intervenant · Kaytek Inter" [ref=e76] [cursor=pointer]:
+        - generic [ref=e77]:
+          - generic [ref=e78]: IT
+          - generic [ref=e79]:
+            - generic [ref=e80]: Intervenant Test
+            - generic [ref=e81]: Intervenant · Kaytek Inter
+      - generic [ref=e82]:
+        - button "Clair" [ref=e83] [cursor=pointer]:
+          - img [ref=e84]
+          - text: Clair
+        - button "Quitter" [ref=e90] [cursor=pointer]:
+          - img [ref=e91]
+          - text: Quitter
+  - generic [ref=e94]:
+    - banner [ref=e95]:
+      - button "Menu" [ref=e96] [cursor=pointer]:
+        - img [ref=e97]
+      - generic [ref=e98]: Factures
+      - generic [ref=e99]:
+        - button [ref=e100] [cursor=pointer]:
+          - img [ref=e101]
+        - button "1" [ref=e104] [cursor=pointer]:
+          - img [ref=e105]
+          - generic [ref=e108]: "1"
+        - button "+ Nouveau" [ref=e109] [cursor=pointer]
+        - button [ref=e110] [cursor=pointer]:
+          - img [ref=e111]
+    - main [ref=e117]:
+      - generic [ref=e178]:
+        - generic [ref=e179]:
+          - heading "Factures" [level=1] [ref=e180]
+          - paragraph [ref=e181]: 1 facture
+        - button "Excel" [ref=e183] [cursor=pointer]:
+          - img [ref=e184]
+          - text: Excel
+      - generic [ref=e187]:
+        - generic [ref=e188]:
+          - img
+          - img [ref=e190]
+          - generic [ref=e192]: 0,00 €
+          - generic [ref=e193]: Encaissé
+        - generic [ref=e194]:
+          - img
+          - img [ref=e196]
+          - generic [ref=e198]: 180,00 €
+          - generic [ref=e199]: Impayé
+        - generic [ref=e200]:
+          - img
+          - img [ref=e202]
+          - generic [ref=e205]: "1"
+          - generic [ref=e206]: Total factures
+      - generic [ref=e207]:
+        - generic [ref=e208]:
+          - img [ref=e209]
+          - textbox "Rechercher par n°, client, téléphone, montant…" [ref=e212]
+        - generic [ref=e213]:
+          - button "Tous" [ref=e214] [cursor=pointer]
+          - button "En attente" [ref=e215] [cursor=pointer]
+          - button "Impayée" [ref=e216] [cursor=pointer]
+          - button "Payée" [ref=e217] [cursor=pointer]
+          - button "Acompte" [ref=e218] [cursor=pointer]
+          - button "Partielle" [ref=e219] [cursor=pointer]
+          - button "Annulée" [ref=e220] [cursor=pointer]
+      - table [ref=e222]:
+        - rowgroup [ref=e223]:
+          - row "N° Client Date Échéance Montant TTC Statut" [ref=e224]:
+            - columnheader "N°" [ref=e225]
+            - columnheader "Client" [ref=e226]
+            - columnheader "Date" [ref=e227]
+            - columnheader "Échéance" [ref=e228]
+            - columnheader "Montant TTC" [ref=e229]
+            - columnheader "Statut" [ref=e230]
+            - columnheader [ref=e231]
+        - rowgroup [ref=e232]:
+          - row "FAC-2026-063 TEST-PLAN Client UI 13/07/2026 12/08/2026 180,00 € Impayée" [ref=e233]:
+            - cell "FAC-2026-063" [ref=e234]
+            - cell "TEST-PLAN Client UI" [ref=e235]
+            - cell "13/07/2026" [ref=e236]
+            - cell "12/08/2026" [ref=e237]:
+              - generic [ref=e238]: 12/08/2026
+            - cell "180,00 €" [ref=e239]
+            - cell "Impayée" [ref=e240]:
+              - generic [ref=e241]: Impayée
+            - cell [ref=e242]:
+              - button "Actions" [ref=e244] [cursor=pointer]:
+                - img [ref=e245]

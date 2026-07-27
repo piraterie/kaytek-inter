@@ -1,0 +1,402 @@
+- generic [ref=e39]:
+  - complementary [ref=e40]:
+    - generic [ref=e41]:
+      - img [ref=e42]
+      - generic [ref=e47]:
+        - generic [ref=e48]: Kaytek Inter
+        - generic [ref=e49]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e50] [cursor=pointer]:
+        - img [ref=e51]
+    - navigation [ref=e53]:
+      - generic [ref=e54]:
+        - generic [ref=e55]: Pilotage
+        - button "Dashboard" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - generic [ref=e62]: Dashboard
+        - button "Messagerie" [ref=e63] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e67]: Messagerie
+      - generic [ref=e68]:
+        - generic [ref=e69]: Terrain
+        - button "Interventions 9" [ref=e70] [cursor=pointer]:
+          - img [ref=e71]
+          - generic [ref=e73]: Interventions
+          - generic [ref=e74]: "9"
+        - button "Planning" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e78]: Planning
+        - button "Devis" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e83]: Devis
+        - button "Factures" [ref=e84] [cursor=pointer]:
+          - img [ref=e85]
+          - generic [ref=e88]: Factures
+      - generic [ref=e89]:
+        - generic [ref=e90]: Gestion
+        - button "Clients" [ref=e91] [cursor=pointer]:
+          - img [ref=e92]
+          - generic [ref=e97]: Clients
+        - button "Catalogue" [ref=e98] [cursor=pointer]:
+          - img [ref=e99]
+          - generic [ref=e103]: Catalogue
+        - button "Commissions" [ref=e104] [cursor=pointer]:
+          - img [ref=e105]
+          - generic [ref=e107]: Commissions
+        - button "Guide" [ref=e108] [cursor=pointer]:
+          - img [ref=e109]
+          - generic [ref=e111]: Guide
+      - generic [ref=e112]:
+        - generic [ref=e113]: Administration
+        - button "Utilisateurs" [ref=e114] [cursor=pointer]:
+          - img [ref=e115]
+          - generic [ref=e117]: Utilisateurs
+        - button "Paramètres" [ref=e118] [cursor=pointer]:
+          - img [ref=e119]
+          - generic [ref=e122]: Paramètres
+        - button "Journal" [ref=e123] [cursor=pointer]:
+          - img [ref=e124]
+          - generic [ref=e127]: Journal
+    - generic [ref=e128]:
+      - link "Confidentialité" [ref=e129] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e130]: ·
+      - link "Supprimer mon compte" [ref=e131] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e133]:
+      - button "AA Admin B AdminTestA Administrateur · Kaytek Inter" [ref=e134] [cursor=pointer]:
+        - generic [ref=e135]:
+          - generic [ref=e136]: AA
+          - generic [ref=e137]:
+            - generic [ref=e138]: Admin B AdminTestA
+            - generic [ref=e139]: Administrateur · Kaytek Inter
+      - generic [ref=e140]:
+        - button "Clair" [ref=e141] [cursor=pointer]:
+          - img [ref=e142]
+          - text: Clair
+        - button "Quitter" [ref=e148] [cursor=pointer]:
+          - img [ref=e149]
+          - text: Quitter
+  - generic [ref=e152]:
+    - banner [ref=e153]:
+      - button "Menu" [ref=e154] [cursor=pointer]:
+        - img [ref=e155]
+      - generic [ref=e156]: Interventions
+      - generic [ref=e157]:
+        - button [ref=e158] [cursor=pointer]:
+          - img [ref=e159]
+        - button "9+" [ref=e162] [cursor=pointer]:
+          - img [ref=e163]
+          - generic [ref=e166]: 9+
+        - button "+ Nouveau" [ref=e167] [cursor=pointer]
+        - button [ref=e168] [cursor=pointer]:
+          - img [ref=e169]
+    - generic [ref=e175]:
+      - img [ref=e176]
+      - generic [ref=e178]:
+        - strong [ref=e179]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e180] [cursor=pointer]
+    - main [ref=e181]:
+      - generic [ref=e299]:
+        - generic [ref=e300]:
+          - generic [ref=e301]:
+            - heading "Interventions" [level=1] [ref=e302]
+            - paragraph [ref=e303]: 11 résultats
+          - generic [ref=e304]:
+            - button "Excel" [ref=e305] [cursor=pointer]:
+              - img [ref=e306]
+              - text: Excel
+            - button "Archives" [ref=e309] [cursor=pointer]:
+              - img [ref=e310]
+              - text: Archives
+            - button "Sélectionner" [ref=e313] [cursor=pointer]:
+              - img [ref=e314]
+              - text: Sélectionner
+            - button "+ Nouvelle" [ref=e317] [cursor=pointer]
+        - generic [ref=e318]:
+          - generic [ref=e319]:
+            - img [ref=e320]
+            - textbox "Client, adresse, intervenant…" [ref=e323]
+          - button "Tous" [ref=e324] [cursor=pointer]
+          - button "en attente" [ref=e325] [cursor=pointer]
+          - button "en cours" [ref=e326] [cursor=pointer]
+          - button "termine" [ref=e327] [cursor=pointer]
+          - button "annule" [ref=e328] [cursor=pointer]
+          - button "refuse" [ref=e329] [cursor=pointer]
+        - table [ref=e331]:
+          - rowgroup [ref=e332]:
+            - row "N° Client Intervenant Type Date Montant Statut Actions" [ref=e333]:
+              - columnheader "N°" [ref=e334]
+              - columnheader "Client" [ref=e335]
+              - columnheader "Intervenant" [ref=e336]
+              - columnheader "Type" [ref=e337]
+              - columnheader "Date" [ref=e338]
+              - columnheader "Montant" [ref=e339]
+              - columnheader "Statut" [ref=e340]
+              - columnheader "Actions" [ref=e341]
+          - rowgroup [ref=e342]:
+            - row "INT-2026-054 TEST-ISO PW-1781295531342 Intervenant Test serrurerie 09/07/2026 150,00 € en attente" [ref=e343]:
+              - cell "INT-2026-054" [ref=e344] [cursor=pointer]:
+                - generic [ref=e345]: INT-2026-054
+              - cell "TEST-ISO PW-1781295531342" [ref=e347] [cursor=pointer]:
+                - generic [ref=e348]: TEST-ISO PW-1781295531342
+              - cell "Intervenant Test" [ref=e349]
+              - cell "serrurerie" [ref=e350]:
+                - generic [ref=e351]: serrurerie
+              - cell "09/07/2026" [ref=e352]
+              - cell "150,00 €" [ref=e353]
+              - cell "en attente" [ref=e354]:
+                - generic [ref=e355]: en attente
+              - cell [ref=e356]:
+                - generic [ref=e357]:
+                  - button "Voir" [ref=e358] [cursor=pointer]:
+                    - img [ref=e359]
+                  - button "Modifier" [ref=e362] [cursor=pointer]:
+                    - img [ref=e363]
+                  - button "Messagerie" [ref=e366] [cursor=pointer]:
+                    - img [ref=e367]
+                  - button "Archiver" [ref=e370] [cursor=pointer]:
+                    - img [ref=e371]
+                  - button "Supprimer" [ref=e374] [cursor=pointer]:
+                    - img [ref=e375]
+            - row "INT-2026-044 AUDIT-TEST Dupont Jean 0612345678 serrurerie — — accepte" [ref=e378]:
+              - cell "INT-2026-044" [ref=e379] [cursor=pointer]:
+                - generic [ref=e380]: INT-2026-044
+              - cell "AUDIT-TEST Dupont Jean 0612345678" [ref=e381] [cursor=pointer]:
+                - generic [ref=e382]: AUDIT-TEST Dupont Jean
+                - generic [ref=e383]: "0612345678"
+              - cell [ref=e384]
+              - cell "serrurerie" [ref=e385]:
+                - generic [ref=e386]: serrurerie
+              - cell "—" [ref=e387]
+              - cell "—" [ref=e388]
+              - cell "accepte" [ref=e389]:
+                - generic [ref=e390]: accepte
+              - cell [ref=e391]:
+                - generic [ref=e392]:
+                  - button "Voir" [ref=e393] [cursor=pointer]:
+                    - img [ref=e394]
+                  - button "Modifier" [ref=e397] [cursor=pointer]:
+                    - img [ref=e398]
+                  - button "Messagerie" [ref=e401] [cursor=pointer]:
+                    - img [ref=e402]
+                  - button "Archiver" [ref=e405] [cursor=pointer]:
+                    - img [ref=e406]
+                  - button "Supprimer" [ref=e409] [cursor=pointer]:
+                    - img [ref=e410]
+            - row "INT-2026-040 TEST-ISO PW-1781295531342 serrurerie — — en attente" [ref=e413]:
+              - cell "INT-2026-040" [ref=e414] [cursor=pointer]:
+                - generic [ref=e415]: INT-2026-040
+              - cell "TEST-ISO PW-1781295531342" [ref=e416] [cursor=pointer]:
+                - generic [ref=e417]: TEST-ISO PW-1781295531342
+              - cell [ref=e418]
+              - cell "serrurerie" [ref=e419]:
+                - generic [ref=e420]: serrurerie
+              - cell "—" [ref=e421]
+              - cell "—" [ref=e422]
+              - cell "en attente" [ref=e423]:
+                - generic [ref=e424]: en attente
+              - cell [ref=e425]:
+                - generic [ref=e426]:
+                  - button "Voir" [ref=e427] [cursor=pointer]:
+                    - img [ref=e428]
+                  - button "Modifier" [ref=e431] [cursor=pointer]:
+                    - img [ref=e432]
+                  - button "Messagerie" [ref=e435] [cursor=pointer]:
+                    - img [ref=e436]
+                  - button "Archiver" [ref=e439] [cursor=pointer]:
+                    - img [ref=e440]
+                  - button "Supprimer" [ref=e443] [cursor=pointer]:
+                    - img [ref=e444]
+            - row "INT-2026-039 TEST-WORKFLOW PW-1781301130756 Intervenant Test serrurerie — 180,00 € en cours" [ref=e447]:
+              - cell "INT-2026-039" [ref=e448] [cursor=pointer]:
+                - generic [ref=e449]: INT-2026-039
+              - cell "TEST-WORKFLOW PW-1781301130756" [ref=e450] [cursor=pointer]:
+                - generic [ref=e451]: TEST-WORKFLOW PW-1781301130756
+              - cell "Intervenant Test" [ref=e452]
+              - cell "serrurerie" [ref=e453]:
+                - generic [ref=e454]: serrurerie
+              - cell "—" [ref=e455]
+              - cell "180,00 €" [ref=e456]
+              - cell "en cours" [ref=e457]:
+                - generic [ref=e458]: en cours
+              - cell [ref=e459]:
+                - generic [ref=e460]:
+                  - button "Voir" [ref=e461] [cursor=pointer]:
+                    - img [ref=e462]
+                  - button "Modifier" [ref=e465] [cursor=pointer]:
+                    - img [ref=e466]
+                  - button "Messagerie" [ref=e469] [cursor=pointer]:
+                    - img [ref=e470]
+                  - button "Archiver" [ref=e473] [cursor=pointer]:
+                    - img [ref=e474]
+                  - button "Supprimer" [ref=e477] [cursor=pointer]:
+                    - img [ref=e478]
+            - row "INT-2026-038 TEST-WORKFLOW PW-1781300962277 Intervenant Test serrurerie — — en attente" [ref=e481]:
+              - cell "INT-2026-038" [ref=e482] [cursor=pointer]:
+                - generic [ref=e483]: INT-2026-038
+              - cell "TEST-WORKFLOW PW-1781300962277" [ref=e484] [cursor=pointer]:
+                - generic [ref=e485]: TEST-WORKFLOW PW-1781300962277
+              - cell "Intervenant Test" [ref=e486]
+              - cell "serrurerie" [ref=e487]:
+                - generic [ref=e488]: serrurerie
+              - cell "—" [ref=e489]
+              - cell "—" [ref=e490]
+              - cell "en attente" [ref=e491]:
+                - generic [ref=e492]: en attente
+              - cell [ref=e493]:
+                - generic [ref=e494]:
+                  - button "Voir" [ref=e495] [cursor=pointer]:
+                    - img [ref=e496]
+                  - button "Modifier" [ref=e499] [cursor=pointer]:
+                    - img [ref=e500]
+                  - button "Messagerie" [ref=e503] [cursor=pointer]:
+                    - img [ref=e504]
+                  - button "Archiver" [ref=e507] [cursor=pointer]:
+                    - img [ref=e508]
+                  - button "Supprimer" [ref=e511] [cursor=pointer]:
+                    - img [ref=e512]
+            - row "INT-2026-037 TEST-WORKFLOW PW-1781297822070 Intervenant Test serrurerie — — en attente" [ref=e515]:
+              - cell "INT-2026-037" [ref=e516] [cursor=pointer]:
+                - generic [ref=e517]: INT-2026-037
+              - cell "TEST-WORKFLOW PW-1781297822070" [ref=e518] [cursor=pointer]:
+                - generic [ref=e519]: TEST-WORKFLOW PW-1781297822070
+              - cell "Intervenant Test" [ref=e520]
+              - cell "serrurerie" [ref=e521]:
+                - generic [ref=e522]: serrurerie
+              - cell "—" [ref=e523]
+              - cell "—" [ref=e524]
+              - cell "en attente" [ref=e525]:
+                - generic [ref=e526]: en attente
+              - cell [ref=e527]:
+                - generic [ref=e528]:
+                  - button "Voir" [ref=e529] [cursor=pointer]:
+                    - img [ref=e530]
+                  - button "Modifier" [ref=e533] [cursor=pointer]:
+                    - img [ref=e534]
+                  - button "Messagerie" [ref=e537] [cursor=pointer]:
+                    - img [ref=e538]
+                  - button "Archiver" [ref=e541] [cursor=pointer]:
+                    - img [ref=e542]
+                  - button "Supprimer" [ref=e545] [cursor=pointer]:
+                    - img [ref=e546]
+            - row "INT-2026-036 TEST-WORKFLOW PW-1781297747189 Intervenant Test serrurerie — — en attente" [ref=e549]:
+              - cell "INT-2026-036" [ref=e550] [cursor=pointer]:
+                - generic [ref=e551]: INT-2026-036
+              - cell "TEST-WORKFLOW PW-1781297747189" [ref=e552] [cursor=pointer]:
+                - generic [ref=e553]: TEST-WORKFLOW PW-1781297747189
+              - cell "Intervenant Test" [ref=e554]
+              - cell "serrurerie" [ref=e555]:
+                - generic [ref=e556]: serrurerie
+              - cell "—" [ref=e557]
+              - cell "—" [ref=e558]
+              - cell "en attente" [ref=e559]:
+                - generic [ref=e560]: en attente
+              - cell [ref=e561]:
+                - generic [ref=e562]:
+                  - button "Voir" [ref=e563] [cursor=pointer]:
+                    - img [ref=e564]
+                  - button "Modifier" [ref=e567] [cursor=pointer]:
+                    - img [ref=e568]
+                  - button "Messagerie" [ref=e571] [cursor=pointer]:
+                    - img [ref=e572]
+                  - button "Archiver" [ref=e575] [cursor=pointer]:
+                    - img [ref=e576]
+                  - button "Supprimer" [ref=e579] [cursor=pointer]:
+                    - img [ref=e580]
+            - row "INT-2026-035 TEST-ISO PW-1781295531342 serrurerie — — en attente" [ref=e583]:
+              - cell "INT-2026-035" [ref=e584] [cursor=pointer]:
+                - generic [ref=e585]: INT-2026-035
+              - cell "TEST-ISO PW-1781295531342" [ref=e586] [cursor=pointer]:
+                - generic [ref=e587]: TEST-ISO PW-1781295531342
+              - cell [ref=e588]
+              - cell "serrurerie" [ref=e589]:
+                - generic [ref=e590]: serrurerie
+              - cell "—" [ref=e591]
+              - cell "—" [ref=e592]
+              - cell "en attente" [ref=e593]:
+                - generic [ref=e594]: en attente
+              - cell [ref=e595]:
+                - generic [ref=e596]:
+                  - button "Voir" [ref=e597] [cursor=pointer]:
+                    - img [ref=e598]
+                  - button "Modifier" [ref=e601] [cursor=pointer]:
+                    - img [ref=e602]
+                  - button "Messagerie" [ref=e605] [cursor=pointer]:
+                    - img [ref=e606]
+                  - button "Archiver" [ref=e609] [cursor=pointer]:
+                    - img [ref=e610]
+                  - button "Supprimer" [ref=e613] [cursor=pointer]:
+                    - img [ref=e614]
+            - row "INT-2026-034 TEST-ISO PW-1781295531342 serrurerie — — en attente" [ref=e617]:
+              - cell "INT-2026-034" [ref=e618] [cursor=pointer]:
+                - generic [ref=e619]: INT-2026-034
+              - cell "TEST-ISO PW-1781295531342" [ref=e620] [cursor=pointer]:
+                - generic [ref=e621]: TEST-ISO PW-1781295531342
+              - cell [ref=e622]
+              - cell "serrurerie" [ref=e623]:
+                - generic [ref=e624]: serrurerie
+              - cell "—" [ref=e625]
+              - cell "—" [ref=e626]
+              - cell "en attente" [ref=e627]:
+                - generic [ref=e628]: en attente
+              - cell [ref=e629]:
+                - generic [ref=e630]:
+                  - button "Voir" [ref=e631] [cursor=pointer]:
+                    - img [ref=e632]
+                  - button "Modifier" [ref=e635] [cursor=pointer]:
+                    - img [ref=e636]
+                  - button "Messagerie" [ref=e639] [cursor=pointer]:
+                    - img [ref=e640]
+                  - button "Archiver" [ref=e643] [cursor=pointer]:
+                    - img [ref=e644]
+                  - button "Supprimer" [ref=e647] [cursor=pointer]:
+                    - img [ref=e648]
+            - row "INT-2026-033 TEST-ISO PW-1781295531342 serrurerie — — en attente" [ref=e651]:
+              - cell "INT-2026-033" [ref=e652] [cursor=pointer]:
+                - generic [ref=e653]: INT-2026-033
+              - cell "TEST-ISO PW-1781295531342" [ref=e654] [cursor=pointer]:
+                - generic [ref=e655]: TEST-ISO PW-1781295531342
+              - cell [ref=e656]
+              - cell "serrurerie" [ref=e657]:
+                - generic [ref=e658]: serrurerie
+              - cell "—" [ref=e659]
+              - cell "—" [ref=e660]
+              - cell "en attente" [ref=e661]:
+                - generic [ref=e662]: en attente
+              - cell [ref=e663]:
+                - generic [ref=e664]:
+                  - button "Voir" [ref=e665] [cursor=pointer]:
+                    - img [ref=e666]
+                  - button "Modifier" [ref=e669] [cursor=pointer]:
+                    - img [ref=e670]
+                  - button "Messagerie" [ref=e673] [cursor=pointer]:
+                    - img [ref=e674]
+                  - button "Archiver" [ref=e677] [cursor=pointer]:
+                    - img [ref=e678]
+                  - button "Supprimer" [ref=e681] [cursor=pointer]:
+                    - img [ref=e682]
+            - row "INT-2026-032 TEST-ISO PW-1781295531342 serrurerie — — en attente" [ref=e685]:
+              - cell "INT-2026-032" [ref=e686] [cursor=pointer]:
+                - generic [ref=e687]: INT-2026-032
+              - cell "TEST-ISO PW-1781295531342" [ref=e688] [cursor=pointer]:
+                - generic [ref=e689]: TEST-ISO PW-1781295531342
+              - cell [ref=e690]
+              - cell "serrurerie" [ref=e691]:
+                - generic [ref=e692]: serrurerie
+              - cell "—" [ref=e693]
+              - cell "—" [ref=e694]
+              - cell "en attente" [ref=e695]:
+                - generic [ref=e696]: en attente
+              - cell [ref=e697]:
+                - generic [ref=e698]:
+                  - button "Voir" [ref=e699] [cursor=pointer]:
+                    - img [ref=e700]
+                  - button "Modifier" [ref=e703] [cursor=pointer]:
+                    - img [ref=e704]
+                  - button "Messagerie" [ref=e707] [cursor=pointer]:
+                    - img [ref=e708]
+                  - button "Archiver" [ref=e711] [cursor=pointer]:
+                    - img [ref=e712]
+                  - button "Supprimer" [ref=e715] [cursor=pointer]:
+                    - img [ref=e716]

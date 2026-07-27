@@ -80,13 +80,13 @@ export default function DevisFormPage() {
     intervention_id: interventionId
   })
   const [lignes, setLignes] = useState<LigneDevis[]>([])
-  const [clientFromIntervention, setClientFromIntervention] = useState<{ nom: string; prenom?: string; telephone?: string; email?: string } | null>(null)
+  const [clientFromIntervention, setClientFromIntervention] = useState<{ nom: string; prenom?: string; telephone?: string; email?: string; adresse_intervention?: string } | null>(null)
 
   useEffect(() => {
     if (!interventionId || isEdit || user?.role === 'admin') return
     supabase
       .from('interventions')
-      .select('client_id, type, client:clients(id, nom, prenom, telephone, email)')
+      .select('client_id, type, client:clients(id, nom, prenom, telephone, email, adresse_intervention)')
       .eq('id', interventionId)
       .single()
       .then(({ data }) => {

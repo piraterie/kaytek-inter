@@ -1,0 +1,191 @@
+- generic [ref=e10]:
+  - complementary [ref=e11]:
+    - generic [ref=e12]:
+      - img [ref=e13]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Kaytek Inter
+        - generic [ref=e20]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+    - navigation [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Pilotage
+        - button "Dashboard" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - generic [ref=e33]: Dashboard
+        - button "Messagerie" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e38]: Messagerie
+      - generic [ref=e39]:
+        - generic [ref=e40]: Terrain
+        - button "Interventions 3" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Interventions
+          - generic [ref=e45]: "3"
+        - button "Planning" [ref=e46] [cursor=pointer]:
+          - img [ref=e47]
+          - generic [ref=e49]: Planning
+        - button "Devis" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - generic [ref=e54]: Devis
+        - button "Factures" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - generic [ref=e59]: Factures
+      - generic [ref=e60]:
+        - generic [ref=e61]: Gestion
+        - button "Commissions" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+          - generic [ref=e65]: Commissions
+        - button "Guide" [ref=e66] [cursor=pointer]:
+          - img [ref=e67]
+          - generic [ref=e69]: Guide
+    - generic [ref=e70]:
+      - link "Confidentialité" [ref=e71] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e72]: ·
+      - link "Supprimer mon compte" [ref=e73] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e75]:
+      - button "IT Intervenant Test Intervenant · Kaytek Inter" [ref=e76] [cursor=pointer]:
+        - generic [ref=e77]:
+          - generic [ref=e78]: IT
+          - generic [ref=e79]:
+            - generic [ref=e80]: Intervenant Test
+            - generic [ref=e81]: Intervenant · Kaytek Inter
+      - generic [ref=e82]:
+        - button "Clair" [ref=e83] [cursor=pointer]:
+          - img [ref=e84]
+          - text: Clair
+        - button "Quitter" [ref=e90] [cursor=pointer]:
+          - img [ref=e91]
+          - text: Quitter
+  - generic [ref=e94]:
+    - banner [ref=e95]:
+      - button "Menu" [ref=e96] [cursor=pointer]:
+        - img [ref=e97]
+      - generic [ref=e98]: Devis
+      - generic [ref=e99]:
+        - button [ref=e100] [cursor=pointer]:
+          - img [ref=e101]
+        - button [ref=e104] [cursor=pointer]:
+          - img [ref=e105]
+        - button "+ Nouveau" [ref=e108] [cursor=pointer]
+        - button [ref=e109] [cursor=pointer]:
+          - img [ref=e110]
+    - main [ref=e116]:
+      - generic [ref=e315]:
+        - generic [ref=e321]:
+          - button "←" [ref=e322] [cursor=pointer]
+          - generic [ref=e323]:
+            - heading "Aperçu devis DEV-2026-190" [level=1] [ref=e324]
+            - paragraph [ref=e325]: Lecture seule — téléchargement réservé à l'administrateur
+          - generic [ref=e326]:
+            - generic [ref=e327]: ⏳ En attente de validation
+            - button "📅 RDV" [active] [ref=e328] [cursor=pointer]
+            - button "📋 Dupliquer" [ref=e329] [cursor=pointer]
+        - generic [ref=e330]: ⏳ Ce devis est en attente de validation par l'administrateur. Vous serez informé une fois validé.
+        - generic [ref=e331]:
+          - generic:
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+            - generic: APERÇU UNIQUEMENT
+          - generic [ref=e332]:
+            - generic [ref=e333]:
+              - generic [ref=e334]:
+                - generic [ref=e335]: KAYTEK INTER
+                - generic [ref=e336]: Serrurerie · Vitrerie
+              - generic [ref=e337]:
+                - generic [ref=e338]: DEVIS
+                - generic [ref=e339]: DEV-2026-190
+                - generic [ref=e340]: 13/07/2026 18:13
+                - generic [ref=e341]: Valable jusqu'au 12/08/2026
+            - generic [ref=e342]:
+              - generic [ref=e343]:
+                - generic [ref=e344]: Client
+                - generic [ref=e345]: TEST-PLAN Client UI
+              - generic [ref=e346]:
+                - generic [ref=e347]: Intervenant
+                - generic [ref=e348]: Intervenant Test
+                - generic [ref=e349]: serrurerie
+            - generic [ref=e350]:
+              - generic [ref=e351]: Prestations
+              - table [ref=e353]:
+                - rowgroup [ref=e354]:
+                  - row "Description Qté Prix HT TVA Total TTC" [ref=e355]:
+                    - columnheader "Description" [ref=e356]
+                    - columnheader "Qté" [ref=e357]
+                    - columnheader "Prix HT" [ref=e358]
+                    - columnheader "TVA" [ref=e359]
+                    - columnheader "Total TTC" [ref=e360]
+                - rowgroup [ref=e361]:
+                  - row "Ouverture porte claquée 1 150,00 € 20% 180,00 €" [ref=e362]:
+                    - cell "Ouverture porte claquée" [ref=e363]
+                    - cell "1" [ref=e364]
+                    - cell "150,00 €" [ref=e365]
+                    - cell "20%" [ref=e366]
+                    - cell "180,00 €" [ref=e367]
+            - generic [ref=e369]:
+              - generic [ref=e370]:
+                - generic [ref=e371]: Total HT
+                - generic [ref=e372]: 150,00 €
+              - generic [ref=e373]:
+                - generic [ref=e374]: TVA
+                - generic [ref=e375]: 30,00 €
+              - generic [ref=e376]:
+                - generic [ref=e377]: Total TTC
+                - generic [ref=e378]: 180,00 €
+            - generic [ref=e379]: 🔒 Document confidentiel — Aperçu uniquement. Téléchargement PDF réservé à l'administrateur.
+        - generic [ref=e381]:
+          - generic [ref=e382]:
+            - generic [ref=e383]: Créer un RDV
+            - button "✕" [ref=e384] [cursor=pointer]
+          - generic [ref=e385]:
+            - generic [ref=e386]:
+              - generic [ref=e387]: TEST-PLAN Client UI
+              - generic [ref=e388]:
+                - generic [ref=e389]: Adresse
+                - textbox "Adresse complète" [ref=e392]
+              - generic [ref=e393]:
+                - generic [ref=e394]: Date prévue
+                - textbox [ref=e395]
+              - generic [ref=e396]: Activité et description reprises automatiquement du devis.
+            - generic [ref=e397]:
+              - button "Annuler" [ref=e398] [cursor=pointer]
+              - button "Créer le RDV" [ref=e399] [cursor=pointer]

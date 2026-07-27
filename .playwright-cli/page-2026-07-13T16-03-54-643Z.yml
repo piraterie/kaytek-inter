@@ -1,0 +1,195 @@
+- generic [ref=e10]:
+  - complementary [ref=e11]:
+    - generic [ref=e12]:
+      - img [ref=e13]
+      - generic [ref=e18]:
+        - generic [ref=e19]: Kaytek Inter
+        - generic [ref=e20]: Serrurerie · Vitrerie
+      - button "Réduire le menu" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+    - navigation [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Pilotage
+        - button "Dashboard" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - generic [ref=e33]: Dashboard
+        - button "Messagerie" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e38]: Messagerie
+      - generic [ref=e39]:
+        - generic [ref=e40]: Terrain
+        - button "Interventions 8" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Interventions
+          - generic [ref=e45]: "8"
+        - button "Planning" [ref=e46] [cursor=pointer]:
+          - img [ref=e47]
+          - generic [ref=e49]: Planning
+        - button "Devis" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - generic [ref=e54]: Devis
+        - button "Factures" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - generic [ref=e59]: Factures
+      - generic [ref=e60]:
+        - generic [ref=e61]: Gestion
+        - button "Clients" [ref=e62] [cursor=pointer]:
+          - img [ref=e63]
+          - generic [ref=e68]: Clients
+        - button "Catalogue" [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - generic [ref=e74]: Catalogue
+        - button "Commissions" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e78]: Commissions
+        - button "Guide" [ref=e79] [cursor=pointer]:
+          - img [ref=e80]
+          - generic [ref=e82]: Guide
+      - generic [ref=e83]:
+        - generic [ref=e84]: Administration
+        - button "Utilisateurs" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e88]: Utilisateurs
+        - button "Paramètres" [ref=e89] [cursor=pointer]:
+          - img [ref=e90]
+          - generic [ref=e93]: Paramètres
+        - button "Journal" [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+          - generic [ref=e98]: Journal
+    - generic [ref=e99]:
+      - link "Confidentialité" [ref=e100] [cursor=pointer]:
+        - /url: /confidentialite
+      - generic [ref=e101]: ·
+      - link "Supprimer mon compte" [ref=e102] [cursor=pointer]:
+        - /url: /delete-account
+    - generic [ref=e104]:
+      - button "AA Admin B AdminTestA Administrateur · Kaytek Inter" [ref=e105] [cursor=pointer]:
+        - generic [ref=e106]:
+          - generic [ref=e107]: AA
+          - generic [ref=e108]:
+            - generic [ref=e109]: Admin B AdminTestA
+            - generic [ref=e110]: Administrateur · Kaytek Inter
+      - generic [ref=e111]:
+        - button "Clair" [ref=e112] [cursor=pointer]:
+          - img [ref=e113]
+          - text: Clair
+        - button "Quitter" [ref=e119] [cursor=pointer]:
+          - img [ref=e120]
+          - text: Quitter
+  - generic [ref=e123]:
+    - banner [ref=e124]:
+      - button "Menu" [ref=e125] [cursor=pointer]:
+        - img [ref=e126]
+      - generic [ref=e127]: Utilisateurs
+      - generic [ref=e128]:
+        - button [ref=e129] [cursor=pointer]:
+          - img [ref=e130]
+        - button "9+" [ref=e133] [cursor=pointer]:
+          - img [ref=e134]
+          - generic [ref=e137]: 9+
+        - button "+ Nouveau" [ref=e138] [cursor=pointer]
+        - button [ref=e139] [cursor=pointer]:
+          - img [ref=e140]
+    - generic [ref=e146]:
+      - img [ref=e147]
+      - generic [ref=e149]:
+        - strong [ref=e150]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e151] [cursor=pointer]
+    - main [ref=e152]:
+      - generic [ref=e153]:
+        - generic [ref=e154]:
+          - generic [ref=e155]:
+            - heading "Utilisateurs" [level=1] [ref=e156]
+            - paragraph [ref=e157]: "2 utilisateurs · Admin : accès total · Intervenants : données isolées (RLS)"
+          - button "+ Inviter intervenant" [ref=e158] [cursor=pointer]
+        - generic [ref=e159]:
+          - img [ref=e160]
+          - textbox "Rechercher par nom, prénom, email…" [ref=e163]
+        - generic [ref=e164]:
+          - generic [ref=e165]:
+            - generic [ref=e166]: AA
+            - generic [ref=e167]:
+              - generic [ref=e168]: Admin B AdminTestA
+              - generic [ref=e169]: admin-test-a@kaytek.fr
+            - generic [ref=e170]:
+              - generic [ref=e171]: admin
+              - generic [ref=e172]:
+                - button "Gérer les appareils" [ref=e173] [cursor=pointer]:
+                  - img [ref=e174]
+                - button "Modifier" [ref=e176] [cursor=pointer]:
+                  - img [ref=e177]
+                  - text: Modifier
+          - generic [ref=e180]:
+            - generic [ref=e181]: IT
+            - generic [ref=e182]:
+              - generic [ref=e183]: Intervenant Test
+              - generic [ref=e184]: intervenant-test-a@kaytek.fr
+              - generic [ref=e185]:
+                - generic [ref=e252]:
+                  - img [ref=e253]
+                  - text: Entrepreneur
+                - text: comm. 30%
+            - generic [ref=e186]:
+              - generic [ref=e187]: intervenant
+              - generic [ref=e188]: Actif
+              - generic "Désactiver" [ref=e189] [cursor=pointer]
+              - generic [ref=e190]:
+                - spinbutton "Commission %" [ref=e191]: "30"
+                - generic [ref=e192]: "%"
+              - generic [ref=e193]:
+                - button "Gérer les appareils" [ref=e194] [cursor=pointer]:
+                  - img [ref=e195]
+                - button "Modifier" [active] [ref=e197] [cursor=pointer]:
+                  - img [ref=e198]
+                  - text: Modifier
+                - button "Supprimer définitivement" [ref=e201] [cursor=pointer]:
+                  - img [ref=e202]
+        - generic [ref=e205]:
+          - img [ref=e206]
+          - text: RLS actif — chaque intervenant ne voit que ses interventions. Suppression = irréversible (profil + compte auth supprimés).
+        - generic [ref=e264]:
+          - generic [ref=e265]:
+            - generic [ref=e266]: Modifier Intervenant Test
+            - button [ref=e267] [cursor=pointer]:
+              - img [ref=e268]
+          - generic [ref=e271]:
+            - generic [ref=e272]:
+              - generic [ref=e273]:
+                - generic [ref=e274]: Prénom
+                - textbox [ref=e275]: Intervenant
+              - generic [ref=e276]:
+                - generic [ref=e277]: Nom
+                - textbox [ref=e278]: Test
+              - generic [ref=e279]:
+                - generic [ref=e280]: Email
+                - textbox "L'email ne peut pas être modifié ici" [disabled] [ref=e281]: intervenant-test-a@kaytek.fr
+              - generic [ref=e282]:
+                - generic [ref=e283]: Commission (%)
+                - spinbutton [ref=e284]: "30"
+              - generic [ref=e285]:
+                - generic [ref=e286]: Type d'intervenant
+                - combobox [ref=e287] [cursor=pointer]:
+                  - option "Non défini"
+                  - option "Entrepreneur (autonome)" [selected]
+                  - option "Salarié"
+              - generic [ref=e288]:
+                - generic [ref=e289]: Création de documents
+                - generic [ref=e292]: Ne peut pas créer de devis/factures
+              - generic [ref=e293]:
+                - generic [ref=e294]: Telegram — @Alertesinter_bot
+                - generic [ref=e295]:
+                  - text: "Pour activer les alertes Telegram :"
+                  - text: 1. Ouvrir Telegram → chercher @Alertesinter_bot → appuyer Démarrer
+                  - text: 2. Chercher @userinfobot → envoyer /start → copier le nombre affiché
+                  - text: 3. Coller ce nombre dans le champ Chat ID ci-dessous
+                  - text: 4. Cliquer Tester pour vérifier la réception
+                - generic [ref=e296]:
+                  - generic [ref=e297]: Chat ID Telegram
+                  - 'textbox "ex : 123456789" [ref=e298]'
+                - generic [ref=e299]:
+                  - generic [ref=e300]: Notifications Telegram
+                  - generic [ref=e303]: Alertes Telegram activées
+            - generic [ref=e304]:
+              - button "Annuler" [ref=e305] [cursor=pointer]
+              - button "Sauvegarder" [ref=e306] [cursor=pointer]

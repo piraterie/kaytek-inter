@@ -1,0 +1,245 @@
+- generic [ref=e10]:
+  - generic [ref=e11]:
+    - banner [ref=e12]:
+      - button "Menu" [ref=e13] [cursor=pointer]:
+        - img [ref=e14]
+      - generic [ref=e15]: Interventions
+      - generic [ref=e16]:
+        - button [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+        - button "9+" [ref=e21] [cursor=pointer]:
+          - img [ref=e22]
+          - generic [ref=e25]: 9+
+        - button [ref=e26] [cursor=pointer]:
+          - img [ref=e27]
+    - generic [ref=e33]:
+      - img [ref=e34]
+      - generic [ref=e36]:
+        - strong [ref=e37]: Paramètres entreprise incomplets
+        - text: "— manquants : Raison sociale, Email entreprise, Téléphone, Adresse. Complétez-les pour envoyer des devis et factures."
+      - button "Ouvrir les Paramètres →" [ref=e38] [cursor=pointer]
+    - main [ref=e39]:
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - heading "Interventions" [level=1] [ref=e43]
+            - paragraph [ref=e44]: 11 résultats
+          - generic [ref=e46]:
+            - button "+ Nouvelle" [ref=e47] [cursor=pointer]
+            - button [ref=e48] [cursor=pointer]:
+              - img [ref=e49]
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - img [ref=e55]
+            - textbox "Client, adresse, intervenant…" [ref=e58]
+          - button "Tous" [ref=e59] [cursor=pointer]
+          - button "en attente" [ref=e60] [cursor=pointer]
+          - button "en cours" [ref=e61] [cursor=pointer]
+          - button "termine" [ref=e62] [cursor=pointer]
+          - button "annule" [ref=e63] [cursor=pointer]
+          - button "refuse" [ref=e64] [cursor=pointer]
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - generic [ref=e67] [cursor=pointer]:
+              - generic [ref=e68]:
+                - generic [ref=e71]: INT-2026-054
+                - generic [ref=e72]: TEST-ISO PW-1781295531342
+                - generic [ref=e73]:
+                  - img [ref=e74]
+                  - text: 12 rue de Test
+                - generic [ref=e77]:
+                  - img [ref=e78]
+                  - text: 09/07/2026
+                - generic [ref=e80]:
+                  - generic [ref=e81]: serrurerie
+                  - generic [ref=e82]:
+                    - img [ref=e83]
+                    - text: Intervenant Test
+              - generic [ref=e86]:
+                - generic [ref=e87]: 150,00 €
+                - generic [ref=e88]: en attente
+            - button [active] [ref=e90] [cursor=pointer]:
+              - img [ref=e91]
+          - generic [ref=e95]:
+            - generic [ref=e96] [cursor=pointer]:
+              - generic [ref=e97]:
+                - generic [ref=e99]: INT-2026-044
+                - generic [ref=e100]: AUDIT-TEST Dupont Jean
+                - generic [ref=e101]:
+                  - img [ref=e102]
+                  - text: 12 rue de la Paix 75001 Paris
+                - generic [ref=e106]: serrurerie
+              - generic [ref=e107]:
+                - generic [ref=e108]: —
+                - generic [ref=e109]: accepte
+            - button [ref=e111] [cursor=pointer]:
+              - img [ref=e112]
+          - generic [ref=e116]:
+            - generic [ref=e117] [cursor=pointer]:
+              - generic [ref=e118]:
+                - generic [ref=e120]: INT-2026-040
+                - generic [ref=e121]: TEST-ISO PW-1781295531342
+                - generic [ref=e122]:
+                  - img [ref=e123]
+                  - text: 1 Rue de Test, Paris 75001
+                - generic [ref=e127]: serrurerie
+              - generic [ref=e128]:
+                - generic [ref=e129]: —
+                - generic [ref=e130]: en attente
+            - button [ref=e132] [cursor=pointer]:
+              - img [ref=e133]
+          - generic [ref=e137]:
+            - generic [ref=e138] [cursor=pointer]:
+              - generic [ref=e139]:
+                - generic [ref=e141]: INT-2026-039
+                - generic [ref=e142]: TEST-WORKFLOW PW-1781301130756
+                - generic [ref=e143]:
+                  - img [ref=e144]
+                  - text: 10 Rue du Test, Paris 75001
+                - generic [ref=e147]:
+                  - generic [ref=e148]: serrurerie
+                  - generic [ref=e149]:
+                    - img [ref=e150]
+                    - text: Intervenant Test
+              - generic [ref=e153]:
+                - generic [ref=e154]: 180,00 €
+                - generic [ref=e155]: en cours
+            - button [ref=e157] [cursor=pointer]:
+              - img [ref=e158]
+          - generic [ref=e162]:
+            - generic [ref=e163] [cursor=pointer]:
+              - generic [ref=e164]:
+                - generic [ref=e166]: INT-2026-038
+                - generic [ref=e167]: TEST-WORKFLOW PW-1781300962277
+                - generic [ref=e168]:
+                  - img [ref=e169]
+                  - text: 10 Rue du Test, Paris 75001
+                - generic [ref=e172]:
+                  - generic [ref=e173]: serrurerie
+                  - generic [ref=e174]:
+                    - img [ref=e175]
+                    - text: Intervenant Test
+              - generic [ref=e178]:
+                - generic [ref=e179]: —
+                - generic [ref=e180]: en attente
+            - button [ref=e182] [cursor=pointer]:
+              - img [ref=e183]
+          - generic [ref=e187]:
+            - generic [ref=e188] [cursor=pointer]:
+              - generic [ref=e189]:
+                - generic [ref=e191]: INT-2026-037
+                - generic [ref=e192]: TEST-WORKFLOW PW-1781297822070
+                - generic [ref=e193]:
+                  - img [ref=e194]
+                  - text: 10 Rue du Test, Paris 75001
+                - generic [ref=e197]:
+                  - generic [ref=e198]: serrurerie
+                  - generic [ref=e199]:
+                    - img [ref=e200]
+                    - text: Intervenant Test
+              - generic [ref=e203]:
+                - generic [ref=e204]: —
+                - generic [ref=e205]: en attente
+            - button [ref=e207] [cursor=pointer]:
+              - img [ref=e208]
+          - generic [ref=e212]:
+            - generic [ref=e213] [cursor=pointer]:
+              - generic [ref=e214]:
+                - generic [ref=e216]: INT-2026-036
+                - generic [ref=e217]: TEST-WORKFLOW PW-1781297747189
+                - generic [ref=e218]:
+                  - img [ref=e219]
+                  - text: 10 Rue du Test, Paris 75001
+                - generic [ref=e222]:
+                  - generic [ref=e223]: serrurerie
+                  - generic [ref=e224]:
+                    - img [ref=e225]
+                    - text: Intervenant Test
+              - generic [ref=e228]:
+                - generic [ref=e229]: —
+                - generic [ref=e230]: en attente
+            - button [ref=e232] [cursor=pointer]:
+              - img [ref=e233]
+          - generic [ref=e237]:
+            - generic [ref=e238] [cursor=pointer]:
+              - generic [ref=e239]:
+                - generic [ref=e241]: INT-2026-035
+                - generic [ref=e242]: TEST-ISO PW-1781295531342
+                - generic [ref=e243]:
+                  - img [ref=e244]
+                  - text: 1 Rue de Test, Paris 75001
+                - generic [ref=e248]: serrurerie
+              - generic [ref=e249]:
+                - generic [ref=e250]: —
+                - generic [ref=e251]: en attente
+            - button [ref=e253] [cursor=pointer]:
+              - img [ref=e254]
+          - generic [ref=e258]:
+            - generic [ref=e259] [cursor=pointer]:
+              - generic [ref=e260]:
+                - generic [ref=e262]: INT-2026-034
+                - generic [ref=e263]: TEST-ISO PW-1781295531342
+                - generic [ref=e264]:
+                  - img [ref=e265]
+                  - text: 1 Rue de Test, Paris 75001
+                - generic [ref=e269]: serrurerie
+              - generic [ref=e270]:
+                - generic [ref=e271]: —
+                - generic [ref=e272]: en attente
+            - button [ref=e274] [cursor=pointer]:
+              - img [ref=e275]
+          - generic [ref=e279]:
+            - generic [ref=e280] [cursor=pointer]:
+              - generic [ref=e281]:
+                - generic [ref=e283]: INT-2026-033
+                - generic [ref=e284]: TEST-ISO PW-1781295531342
+                - generic [ref=e285]:
+                  - img [ref=e286]
+                  - text: 1 Rue de Test, Paris 75001
+                - generic [ref=e290]: serrurerie
+              - generic [ref=e291]:
+                - generic [ref=e292]: —
+                - generic [ref=e293]: en attente
+            - button [ref=e295] [cursor=pointer]:
+              - img [ref=e296]
+          - generic [ref=e300]:
+            - generic [ref=e301] [cursor=pointer]:
+              - generic [ref=e302]:
+                - generic [ref=e304]: INT-2026-032
+                - generic [ref=e305]: TEST-ISO PW-1781295531342
+                - generic [ref=e306]:
+                  - img [ref=e307]
+                  - text: 1 Rue de Test, Paris 75001
+                - generic [ref=e311]: serrurerie
+              - generic [ref=e312]:
+                - generic [ref=e313]: —
+                - generic [ref=e314]: en attente
+            - button [ref=e316] [cursor=pointer]:
+              - img [ref=e317]
+        - generic [ref=e326]:
+          - generic [ref=e328]:
+            - generic [ref=e329]: INT-2026-054
+            - generic [ref=e330]: TEST-ISO PW-1781295531342
+          - generic [ref=e331]:
+            - button "Voir le détail" [ref=e332] [cursor=pointer]:
+              - img [ref=e334]
+              - generic [ref=e338]: Voir le détail
+            - generic [ref=e339]: Actions
+            - button "Modifier" [ref=e340] [cursor=pointer]:
+              - img [ref=e342]
+              - generic [ref=e346]: Modifier
+            - button "Envoyer via messagerie" [ref=e347] [cursor=pointer]:
+              - img [ref=e349]
+              - generic [ref=e353]: Envoyer via messagerie
+            - generic [ref=e354]: Administration
+            - button "Archiver" [ref=e355] [cursor=pointer]:
+              - img [ref=e357]
+              - generic [ref=e361]: Archiver
+            - button "Supprimer" [ref=e362] [cursor=pointer]:
+              - img [ref=e364]
+              - generic [ref=e368]: Supprimer
+  - navigation [ref=e321]:
+    - button "+ Nouveau" [ref=e322] [cursor=pointer]
+    - button "Menu" [ref=e323] [cursor=pointer]:
+      - img [ref=e324]
+      - text: Menu

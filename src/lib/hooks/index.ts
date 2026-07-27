@@ -15,7 +15,25 @@ import { supabase } from '@/lib/supabase/client'
 import { uploadPhoto as uploadPhotoStorage } from '@/lib/supabase/storage'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { pdfCache } from '@/lib/pdf/cache'
+import { buildClientIdentity } from '@/lib/clientIdentity'
 import type { Intervention, Devis, Facture, Client, Commission, Message, Profile, Prestation, ParametresEntreprise, ParametresEntreprisePublic, DashboardStats, JournalEntry } from '@/types'
+
+// Colonnes client nécessaires pour construire un ClientDocumentIdentity
+// (voir src/lib/clientIdentity.ts) — utilisé partout où un devis/facture
+// est lu pour affichage (aperçu, PDF, e-mail) afin qu'un document sans
+// snapshot (créé avant cette fonctionnalité) puisse retomber sur des
+// données client complètes plutôt que sur une jointure tronquée.
+const CLIENT_DISPLAY_COLUMNS = 'id,nom,prenom,raison_sociale,email,telephone,adresse_intervention,cp_intervention,ville_intervention,adresse_facturation'
+
+// Recharge la fiche client complète et construit son ClientDocumentIdentity
+// — utilisé à la création/conversion d'un devis ou d'une facture pour
+// figer un snapshot fiable, indépendamment des colonnes que le formulaire
+// appelant avait ou non en mémoire.
+async function fetchClientSnapshot(clientId: string | null | undefined) {
+  if (!clientId) return null
+  const { data } = await supabase.from('clients').select('*').eq('id', clientId).maybeSingle()
+  return buildClientIdentity(data as Client | null)
+}
 
 const uid = () => useAuthStore.getState().user?.id
 const isAdm = () => useAuthStore.getState().user?.role === 'admin'
@@ -588,7 +606,7 @@ export function useDevis(filters?: { statut?: string }) {
   return useQuery<Devis[]>({
     queryKey: ['devis', filters, user?.id],
     queryFn: async () => {
-      let q = supabase.from('devis').select('id,numero,statut,total_ht,tva_montant,total_ttc,remise_pct,remise_montant,modele_id,valide_jusqu_au,envoye_le,notes,pdf_url,signature_url,signature_client,signature_date,signe_le,signe_par,created_at,updated_at,client_id,intervenant_id,intervention_id,activite,lignes,created_by, client:clients(id,nom,prenom,email,telephone), intervenant:profiles!intervenant_id(id,nom,prenom)').order('created_at', { ascending: false })
+      let q = supabase.from('devis').select(`id,numero,statut,total_ht,tva_montant,total_ttc,remise_pct,remise_montant,modele_id,valide_jusqu_au,envoye_le,notes,pdf_url,signature_url,signature_client,signature_date,signe_le,signe_par,created_at,updated_at,client_id,intervenant_id,intervention_id,activite,lignes,created_by,client_snapshot, client:clients(${CLIENT_DISPLAY_COLUMNS}), intervenant:profiles!intervenant_id(id,nom,prenom)`).order('created_at', { ascending: false })
       if (!isAdm()) q = q.eq('intervenant_id', user!.id)
       if (filters?.statut && filters.statut !== 'tous') q = q.eq('statut', filters.statut)
       const { data, error } = await q
@@ -617,7 +635,12 @@ export function useCreateDevis() {
       }
       const { numero: _dropNumero, ...cleanDevis } = data
       const org_id = orgId(); if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
-      const { data: result, error } = await supabase.from('devis').insert({ ...cleanDevis, created_by: uid(), organisation_id: org_id }).select().single()
+      // Snapshot des coordonnées client figé à la création — voir
+      // migration 20260728000009 et src/lib/clientIdentity.ts. Toujours
+      // recalculé depuis la fiche client à jour, jamais depuis une valeur
+      // que le formulaire appelant aurait pu avoir en mémoire.
+      const client_snapshot = await fetchClientSnapshot(cleanDevis.client_id)
+      const { data: result, error } = await supabase.from('devis').insert({ ...cleanDevis, client_snapshot, created_by: uid(), organisation_id: org_id }).select().single()
       if (error) {
         if (error.code === '23505') throw new Error('Numéro de devis déjà utilisé — veuillez réessayer.')
         throw error
@@ -646,7 +669,14 @@ export function useUpdateDevis() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...data }: any) => {
-      const { error } = await supabase.from('devis').update(data).eq('id', id)
+      // Le client peut être changé sur un devis existant (bouton "changer
+      // le client" du formulaire) — dans ce cas uniquement, le snapshot
+      // est recalculé pour rester cohérent avec le nouveau client_id.
+      // Les autres mises à jour (signature, statut, lignes...) ne
+      // touchent jamais le snapshot déjà figé, conformément à la règle
+      // "un document enregistré garde ses coordonnées d'origine".
+      const patch = data.client_id ? { ...data, client_snapshot: await fetchClientSnapshot(data.client_id) } : data
+      const { error } = await supabase.from('devis').update(patch).eq('id', id)
       if (error) throw error
     },
     onSuccess: (_: any, variables: any) => {
@@ -696,8 +726,14 @@ export function useDuplicateDevis() {
       if (!isAdm() && !user?.can_create_documents) throw new Error('Vous n\'êtes pas autorisé à créer des devis')
       const org_id = orgId()
       if (!org_id) throw new Error('Organisation introuvable — reconnectez-vous')
+      // Choix documenté : une duplication crée un NOUVEAU brouillon — elle
+      // recharge les coordonnées ACTUELLES du client (comme une création),
+      // elle ne recopie jamais tel quel le snapshot figé du devis source
+      // (qui pourrait être périmé si la fiche client a changé depuis).
+      const client_snapshot = await fetchClientSnapshot(d.client_id)
       const payload: any = {
         client_id: d.client_id,
+        client_snapshot,
         intervenant_id: d.intervenant_id,
         activite: d.activite,
         lignes: d.lignes,
@@ -741,9 +777,17 @@ export function useDevisToFacture() {
 
       const org_id = orgId(); if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
       const echeance = new Date(); echeance.setDate(echeance.getDate() + 30)
+      // L'adresse historique du devis doit être conservée telle quelle
+      // sur la facture — jamais remplacée silencieusement par l'adresse
+      // actuelle du client. Le snapshot du devis source est repris
+      // verbatim ; seul un devis créé AVANT cette fonctionnalité (donc
+      // sans snapshot) déclenche un calcul de repli à partir de la fiche
+      // client actuelle (mieux qu'aucune coordonnée du tout).
+      const client_snapshot = devis.client_snapshot ?? await fetchClientSnapshot(devis.client_id)
       const facturePayload: any = {
         devis_id: devisId,
         client_id: devis.client_id,
+        client_snapshot,
         montant_ht: devis.total_ht,
         tva_montant: devis.tva_montant,
         montant_ttc: devis.total_ttc,
@@ -998,7 +1042,7 @@ export function useFactures(filters?: { statut?: string }) {
   return useQuery<Facture[]>({
     queryKey: ['factures', filters, user?.id],
     queryFn: async () => {
-      let q = supabase.from('factures').select('*, client:clients(id,nom,prenom,email,telephone), devis:devis(id,modele_id,activite,lignes,total_ht,tva_montant,remise_pct,remise_montant)').order('created_at', { ascending: false })
+      let q = supabase.from('factures').select(`*, client:clients(${CLIENT_DISPLAY_COLUMNS}), devis:devis(id,modele_id,activite,lignes,total_ht,tva_montant,remise_pct,remise_montant)`).order('created_at', { ascending: false })
       if (filters?.statut && filters.statut !== 'tous') q = q.eq('statut_paiement', filters.statut)
       const { data, error } = await q
       if (error) throw error; return (data || []) as any
@@ -1017,8 +1061,12 @@ export function useCreateFacture() {
       const canBypass = !isAdm() && user?.can_bypass_validation === true
       const { numero: _dropNumero, ...cleanFacture } = data
       const org_id = orgId(); if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
+      // Facture créée directement (pas depuis un devis) : snapshot figé à
+      // la création, comme pour un devis — voir fetchClientSnapshot().
+      const client_snapshot = await fetchClientSnapshot((cleanFacture as any).client_id)
       const payload = {
         ...cleanFacture,
+        client_snapshot,
         statut_paiement: canBypass ? 'impayee' : 'en_attente_validation',
         date_emission: new Date().toISOString().split('T')[0],
         created_by: uid(),
