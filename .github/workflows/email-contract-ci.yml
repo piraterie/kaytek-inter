@@ -1,0 +1,144 @@
+# .github/workflows/email-contract-ci.yml
+# Fiabilisation de l'envoi de devis/factures par email (2026-07-28) — gate CI
+# dédiée au contrat frontend↔backend envoyer-email. Complète security-tests.yml
+# (qui couvre l'isolation multi-tenant générale) en se concentrant sur ce qui a
+# concrètement cassé la production deux fois : un backend durci déployé sans
+# mise à jour du frontend correspondante, jamais détecté avant qu'un
+# utilisateur ne tombe dessus.
+#
+# Ordre imposé, chaque étape bloque la suivante en cas d'échec :
+#   1. npm ci
+#   2. typecheck
+#   3. lint (module email uniquement — voir eslint.config.js)
+#   4. tests frontend (vitest)
+#   5. deno check
+#   6. tests Deno
+#   7. tests d'intégration Supabase (local, Docker, faux secrets, faux Brevo)
+#   8. vérification du contrat (endpoints/deno check/env — scripts/verify-email-contract.mjs)
+#   9. build production
+#
+# AUCUNE étape n'appelle jamais le vrai Brevo : BREVO_API_KEY est une valeur
+# factice, BREVO_API_URL redirige vers un faux serveur Brevo lancé dans ce
+# workflow (scripts/lib/mock-brevo-server.mjs), jamais api.brevo.com.
+# Comme security-tests.yml : exécuté exclusivement contre une instance
+# Supabase LOCALE démarrée dans ce workflow — aucun secret de production.
+name: Email contract CI (envoyer-email)
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches: [main]
+
+jobs:
+  email-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # ── 1. npm ci ──────────────────────────────────────────────────
+      - name: 1. npm ci
+        run: npm ci
+
+      # ── 2. typecheck ───────────────────────────────────────────────
+      - name: 2. TypeScript — typecheck
+        run: npm run typecheck
+
+      # ── 3. lint ────────────────────────────────────────────────────
+      - name: 3. ESLint — module email (scopé, voir eslint.config.js)
+        run: npm run lint
+
+      # ── 4. tests frontend ──────────────────────────────────────────
+      - name: 4. Vitest — unitaires + composant (incl. source unique de vérité du contrat)
+        run: npm run test:unit
+
+      # ── 5. deno check ──────────────────────────────────────────────
+      - name: 5. Deno check — envoyer-email et ses dépendances _shared/
+        run: deno check supabase/functions/envoyer-email/index.ts
+
+      # ── 6. tests Deno ──────────────────────────────────────────────
+      - name: 6. Deno test — contrat backend (validation, Brevo/réseau simulés sans I/O réel)
+        run: deno test --allow-env supabase/functions/_shared/emailContract.test.ts
+
+      # ── 7. tests d'intégration Supabase ─────────────────────────────
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Configure fake Edge Function secrets (local only — jamais de vraie clé Brevo)
+        run: |
+          cat > supabase/functions/.env <<'EOF'
+          BREVO_API_KEY=fake-ci-key-not-a-real-brevo-key
+          BREVO_API_URL=http://mock-brevo:8787/v3/smtp/email
+          EMAIL_FROM=CI Test <ci-test@example.test>
+          EOF
+
+      - name: Start Supabase local (Docker)
+        run: supabase start
+
+      - name: Start mock Brevo server (conteneur Docker, jamais api.brevo.com)
+        run: |
+          set -euo pipefail
+          NET="$(docker network ls --filter name=supabase --format '{{.Name}}' | head -1)"
+          if [ -z "$NET" ]; then echo "Réseau Docker Supabase introuvable" >&2; docker network ls; exit 1; fi
+          echo "Réseau Docker détecté : $NET"
+          docker run -d --name mock-brevo --network "$NET" \
+            -v "$PWD/scripts/lib/mock-brevo-server.mjs:/mock.mjs:ro" \
+            node:22-alpine node /mock.mjs
+          sleep 1
+          docker logs mock-brevo
+
+      - name: Derive local Supabase test environment (never production)
+        run: |
+          set -euo pipefail
+          STATUS_JSON="$(supabase status -o json)"
+          echo "SUPABASE_TEST_URL=$(echo "$STATUS_JSON" | jq -r '.API_URL')" >> "$GITHUB_ENV"
+          echo "SUPABASE_TEST_DB_URL=$(echo "$STATUS_JSON" | jq -r '.DB_URL')" >> "$GITHUB_ENV"
+          echo "SUPABASE_TEST_ANON_KEY=$(echo "$STATUS_JSON" | jq -r '.ANON_KEY')" >> "$GITHUB_ENV"
+          echo "SUPABASE_TEST_SERVICE_ROLE_KEY=$(echo "$STATUS_JSON" | jq -r '.SERVICE_ROLE_KEY')" >> "$GITHUB_ENV"
+
+      - name: Set fixture test accounts (non-sensitive, local-only)
+        run: |
+          {
+            echo "TEST_ADMIN_A_EMAIL=admin-a@email-contract.example.test"
+            echo "TEST_ADMIN_A_PASSWORD=email-contract-test-local-only-ci"
+            echo "TEST_ADMIN_B_EMAIL=admin-b@email-contract.example.test"
+            echo "TEST_ADMIN_B_PASSWORD=email-contract-test-local-only-ci"
+            echo "TEST_NO_PROFILE_EMAIL=no-profile@email-contract.example.test"
+            echo "TEST_NO_PROFILE_PASSWORD=email-contract-test-local-only-ci"
+          } >> "$GITHUB_ENV"
+
+      - name: Apply migrations
+        run: supabase db reset
+
+      - name: 7. Integration tests — envoyer-email (contrat, isolation multi-tenant, paramètres entreprise, faux Brevo)
+        run: npm run test:integration:email
+
+      # ── 8. vérification du contrat ──────────────────────────────────
+      - name: 8. Vérification du contrat (endpoints existants, deno check, variables d'env documentées)
+        run: node scripts/verify-email-contract.mjs
+
+      # ── 9. build production ─────────────────────────────────────────
+      - name: 9. Build production
+        run: npm run build
+
+      - name: Stop mock Brevo server
+        if: always()
+        run: docker rm -f mock-brevo || true
+
+      - name: Stop Supabase local
+        if: always()
+        run: supabase stop

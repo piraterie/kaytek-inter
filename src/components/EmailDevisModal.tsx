@@ -9,12 +9,8 @@ import { envoyerEmail } from '@/lib/supabase/auth'
 import { getTheme } from '@/lib/themes'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { REQUIRED_PARAMS } from '@/lib/hooks'
+import { validateRecipient, validateEnvoyerEmailPayload, firstValidationMessage, type EnvoyerEmailPayload } from '@/lib/email/contract'
 import type { Devis, ParametresEntreprise } from '@/types'
-
-// Exportés pour être testés directement (voir EmailDevisModal.test.ts) sans
-// dépendance à un environnement DOM.
-export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-export const MAX_PDF_BYTES = 10 * 1024 * 1024 // limite pièce jointe Brevo ≈ 10 Mo
 
 interface Props {
   devis: Devis
@@ -61,8 +57,11 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
 
   async function handleSend() {
     if (sending) return
-    if (!emailTo.trim()) { setError('Adresse email du destinataire manquante.'); return }
-    if (!EMAIL_RE.test(emailTo.trim())) { setError('Adresse email invalide — vérifiez le format (ex : nom@domaine.fr).'); return }
+    // Contrat unique frontend↔backend (src/lib/email/contract.ts) — vérifie
+    // destinataire/document avant de générer le PDF, pour un retour rapide.
+    const recipientErrors = validateRecipient({ to: emailTo.trim(), documentType: 'devis', documentId: devis.id })
+    const recipientError = firstValidationMessage(recipientErrors)
+    if (recipientError) { setError(recipientError); return }
     const missing = REQUIRED_PARAMS.filter(f => !params[f.field as keyof ParametresEntreprise])
     if (missing.length > 0) {
       setParamsError(true)
@@ -139,11 +138,6 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
         return
       }
 
-      if (blob.size > MAX_PDF_BYTES) {
-        add(`Le PDF du devis est trop volumineux pour être envoyé par email (${(blob.size / 1024 / 1024).toFixed(1)} Mo, maximum ${MAX_PDF_BYTES / 1024 / 1024} Mo).`, 'error')
-        return
-      }
-
       try {
         const buf = await blob.arrayBuffer()
         const bytes = new Uint8Array(buf)
@@ -193,7 +187,7 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
           </div>
         </div>`
 
-        const response = await envoyerEmail({
+        const payload: EnvoyerEmailPayload = {
           to: _to,
           subject: `Devis ${_devis.numero} — ${_params.raison_sociale}`,
           html,
@@ -201,7 +195,14 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
           pdfFilename: `${_devis.numero}.pdf`,
           documentType: 'devis',
           documentId: _devis.id,
-        })
+        }
+
+        // Revalidation complète (inclut la taille du PDF, désormais connue)
+        // juste avant l'appel réseau — même contrat que le backend.
+        const payloadError = firstValidationMessage(validateEnvoyerEmailPayload(payload))
+        if (payloadError) { add(payloadError, 'error'); return }
+
+        const response = await envoyerEmail(payload)
 
         if (response.error) {
           // Ne jamais remplacer l'erreur serveur (Brevo, config, RLS...) par un

@@ -3,8 +3,7 @@
 // Partagée par envoyer-email et inviter-intervenant — aucun fallback
 // silencieux : si l'entreprise n'a pas un nom et un email valides, l'appelant
 // doit bloquer l'envoi avant tout appel à l'API Brevo.
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+import { isValidEmail } from './emailContract.ts'
 
 export interface EntrepriseReplyTo {
   name: string
@@ -16,7 +15,7 @@ export function validateEntrepriseReplyTo(
 ): EntrepriseReplyTo | null {
   const name = entreprise?.raison_sociale?.trim() ?? ''
   const email = entreprise?.email?.trim() ?? ''
-  if (!name || !email || !EMAIL_RE.test(email)) return null
+  if (!name || !isValidEmail(email)) return null
   return { name, email }
 }
 

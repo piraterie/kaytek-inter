@@ -25,7 +25,11 @@ const EXTRA_REQUIRED_VARS = [
   'TEST_INTERVENANT_A_EMAIL', 'TEST_INTERVENANT_A_PASSWORD',
 ]
 
-async function upsertOrg(serviceClient, slug, nom) {
+// Exportées (en plus d'être utilisées par main() ci-dessous) pour être
+// réutilisées par scripts/lib/seed-email-fixtures.mjs (tests d'intégration
+// envoi email) — aucun changement de comportement, uniquement le mot-clé
+// "export" ajouté sur les fonctions déjà existantes.
+export async function upsertOrg(serviceClient, slug, nom) {
   const { data: existing } = await serviceClient.from('organisations').select('id').eq('slug', slug).maybeSingle()
   if (existing) return existing.id
   const { data, error } = await serviceClient
@@ -44,7 +48,7 @@ async function upsertOrg(serviceClient, slug, nom) {
 // organisation(), migration 20260710000001) court-circuite immédiatement
 // dès que NEW.organisation_id IS NOT NULL, donc ne tente jamais de créer une
 // organisation concurrente pour ce user_id.
-async function ensureActiveSubscription(serviceClient, userId, orgId) {
+export async function ensureActiveSubscription(serviceClient, userId, orgId) {
   const { data: existing } = await serviceClient.from('subscriptions').select('user_id').eq('user_id', userId).maybeSingle()
   if (existing) {
     await serviceClient.from('subscriptions').update({ subscription_status: 'active', organisation_id: orgId }).eq('user_id', userId)
@@ -54,7 +58,7 @@ async function ensureActiveSubscription(serviceClient, userId, orgId) {
   if (error) throw new Error(`Création subscription pour user ${userId} (org ${orgId}) impossible : ${error.message}`)
 }
 
-async function upsertAuthUser(serviceClient, email, password) {
+export async function upsertAuthUser(serviceClient, email, password) {
   const { data: existingProfile } = await serviceClient.from('profiles').select('id').eq('email', email).maybeSingle()
   if (existingProfile) return existingProfile.id
 
@@ -65,7 +69,7 @@ async function upsertAuthUser(serviceClient, email, password) {
   return created.user.id
 }
 
-async function upsertProfile(serviceClient, { id, email, nom, prenom, role, organisationId }) {
+export async function upsertProfile(serviceClient, { id, email, nom, prenom, role, organisationId }) {
   // welcome_dismissed: true — sans quoi la modale de bienvenue ("Bienvenue
   // sur Kaytek Inter") s'affiche à la première connexion de tout compte de
   // test fraîchement créé et intercepte les clics (élément overlay au-dessus
@@ -84,7 +88,7 @@ async function ensureParametresEntreprise(serviceClient, orgId, raisonSociale) {
   if (error) throw new Error(`Création parametres_entreprise pour org ${orgId} impossible : ${error.message}`)
 }
 
-async function ensureClient(serviceClient, { orgId, nom, createdBy }) {
+export async function ensureClient(serviceClient, { orgId, nom, createdBy }) {
   const { data: existing } = await serviceClient.from('clients').select('id').eq('organisation_id', orgId).eq('nom', nom).maybeSingle()
   if (existing) return existing.id
   const { data, error } = await serviceClient.from('clients')
@@ -100,7 +104,7 @@ async function ensureClient(serviceClient, { orgId, nom, createdBy }) {
 // données. Org B ne reçoit qu'un client (donnée distincte minimale pour
 // vérifier l'isolation, non utilisée par les runners automatisés — ceux-ci
 // n'exigent que des fixtures pour org A).
-async function ensureOrgABusinessFixtures(serviceClient, orgAId, adminAId, intervenantAId) {
+export async function ensureOrgABusinessFixtures(serviceClient, orgAId, adminAId, intervenantAId) {
   const clientAId = await ensureClient(serviceClient, { orgId: orgAId, nom: 'SecurityTest Client A', createdBy: adminAId })
 
   let { data: interventionRow } = await serviceClient

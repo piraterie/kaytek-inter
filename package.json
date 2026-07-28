@@ -6,8 +6,10 @@
   "scripts": {
     "predev": "node scripts/guard-no-production.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/verify-email-contract.mjs",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint src/lib/email src/components/EmailDevisModal.tsx src/components/EmailDevisModal.test.tsx src/pages/FacturesPage.tsx src/lib/supabase/auth.ts supabase/functions/envoyer-email supabase/functions/_shared/emailContract.ts supabase/functions/_shared/validateEntreprise.ts",
     "preview": "vite preview",
     "test": "playwright test",
     "test:e2e": "playwright test tests/e2e",
@@ -19,6 +21,9 @@
     "test:setup": "playwright test tests/auth.setup.ts --project=setup",
     "test:beta": "playwright test tests/beta --project=beta",
     "test:unit": "vitest run",
+    "test:deno": "deno test --allow-env supabase/functions/_shared/emailContract.test.ts",
+    "test:integration:email": "node scripts/test-email-integration.mjs",
+    "smoke:email": "node scripts/smoke-test-email-send.mjs",
     "test:security:preflight": "node scripts/test-security-preflight.mjs",
     "test:security:seed": "node scripts/seed-security-fixtures.mjs",
     "test:security:sql": "node scripts/run-security-sql-tests.mjs",
@@ -27,7 +32,8 @@
     "test:security:concurrency": "node scripts/test-security-concurrency.mjs",
     "test:security:playwright": "node scripts/run-security-playwright.mjs",
     "test:security": "npm run test:security:preflight && npm run test:security:sql && npm run test:security:storage && npm run test:security:edge-functions && npm run test:security:concurrency && npm run test:security:playwright",
-    "test:all": "npm run typecheck && npm run build && npm run test:unit && npm run test:security"
+    "test:all": "npm run typecheck && npm run build && npm run test:unit && npm run test:security",
+    "prepare": "husky || exit 0"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",
@@ -54,10 +60,17 @@
   "devDependencies": {
     "@playwright/cli": "^0.1.14",
     "@playwright/test": "^1.60.0",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "eslint": "^10.8.0",
+    "husky": "^9.1.7",
+    "jsdom": "^30.0.0",
     "typescript": "^5.5.3",
+    "typescript-eslint": "^8.65.0",
     "vite": "^5.4.2",
     "vite-plugin-pwa": "^0.20.5",
     "vitest": "2.1.9"

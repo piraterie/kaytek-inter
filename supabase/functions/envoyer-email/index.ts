@@ -1,6 +1,15 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { validateEntrepriseReplyTo, REPLY_TO_INVALID_MESSAGE } from '../_shared/validateEntreprise.ts'
+import {
+  DOCUMENT_TABLES,
+  buildBrevoPayload,
+  callBrevo,
+  estimatePdfBytes,
+  logEnvoyerEmailEvent,
+  parseEmailFrom,
+  validateEnvoyerEmailBody,
+} from '../_shared/emailContract.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,28 +58,47 @@ const REQUIRED_PARAMS = [
   { field: 'adresse',        label: 'Adresse' },
 ] as const
 
-const DOCUMENT_TABLES = { devis: 'devis', facture: 'factures' } as const
-
 serve(async (req) => {
+  const startedAt = Date.now()
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   const { deny, organisationId } = await requireCanSendEmail(req)
-  if (deny) return json({ error: deny }, 403)
-  if (!organisationId) return json({ error: "Aucune organisation associée à ce compte" }, 403)
+  if (deny) {
+    logEnvoyerEmailEvent('denied', { status: 403, organisationId, errorCode: 'access_denied' })
+    return json({ error: deny }, 403)
+  }
+  if (!organisationId) {
+    logEnvoyerEmailEvent('denied', { status: 403, errorCode: 'no_organisation' })
+    return json({ error: "Aucune organisation associée à ce compte" }, 403)
+  }
 
-  let body: Record<string, unknown>
+  let rawBody: unknown
   try {
-    body = await req.json()
+    rawBody = await req.json()
   } catch {
+    logEnvoyerEmailEvent('rejected', { status: 400, organisationId, errorCode: 'invalid_json' })
     return json({ error: 'Corps de requête JSON invalide' }, 400)
   }
 
-  const { to, subject, html, pdfBase64, pdfFilename, documentType, documentId } = body as {
-    to?: string; subject?: string; html?: string; pdfBase64?: string; pdfFilename?: string
-    documentType?: 'devis' | 'facture'; documentId?: string
+  // ── Contrat frontend/backend — voir _shared/emailContract.ts (source
+  // unique de vérité, importée telle quelle par le frontend). Le frontend
+  // valide déjà ces champs, mais le backend ne peut jamais lui faire
+  // confiance (bug, ancien bundle en cache, appel direct de l'API) :
+  // revalidation complète ici, via EXACTEMENT le même schéma zod.
+  const validation = validateEnvoyerEmailBody(rawBody)
+  if (validation.error) {
+    const b = rawBody as Record<string, unknown>
+    logEnvoyerEmailEvent('rejected', {
+      status: validation.error.status,
+      organisationId,
+      documentType: typeof b?.documentType === 'string' ? b.documentType : undefined,
+      documentId: typeof b?.documentId === 'string' ? b.documentId : undefined,
+      errorCode: validation.error.field,
+    })
+    return json({ error: validation.error.message }, validation.error.status)
   }
 
-  if (!to || !subject) return json({ error: 'Champs to et subject obligatoires' }, 400)
+  const { to, subject, html, pdfBase64, pdfFilename, documentType, documentId } = validation.data
 
   // ── Vérification d'appartenance du document (isolation multi-tenant) ──────
   // Cette fonction utilise la service role key, qui BYPASS la RLS — on ne
@@ -78,10 +106,6 @@ serve(async (req) => {
   // l'appelant appartient à une organisation pour garantir l'isolation. Le
   // document envoyé (devis ou facture) doit être chargé explicitement et son
   // organisation_id comparé, sans exception, à celle de l'appelant.
-  if (!documentType || !DOCUMENT_TABLES[documentType] || !documentId) {
-    return json({ error: 'documentType (devis|facture) et documentId sont obligatoires' }, 400)
-  }
-
   const sb = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
 
   const { data: document, error: docError } = await sb
@@ -90,8 +114,12 @@ serve(async (req) => {
     .eq('id', documentId)
     .maybeSingle()
 
-  if (docError || !document) return json({ error: 'Document introuvable' }, 404)
+  if (docError || !document) {
+    logEnvoyerEmailEvent('rejected', { status: 404, organisationId, documentType, documentId, errorCode: 'document_not_found' })
+    return json({ error: 'Document introuvable' }, 404)
+  }
   if (document.organisation_id !== organisationId) {
+    logEnvoyerEmailEvent('rejected', { status: 403, organisationId, documentType, documentId, errorCode: 'cross_org_document' })
     return json({ error: "Ce document n'appartient pas à votre organisation" }, 403)
   }
 
@@ -106,6 +134,7 @@ serve(async (req) => {
 
   const missing = REQUIRED_PARAMS.filter(r => !entreprise?.[r.field])
   if (missing.length > 0) {
+    logEnvoyerEmailEvent('rejected', { status: 200, organisationId, documentType, documentId, errorCode: 'incomplete_company_params' })
     return json({
       error: `Paramètres entreprise incomplets — complétez dans les Paramètres : ${missing.map(r => r.label).join(', ')}.`,
     })
@@ -114,6 +143,7 @@ serve(async (req) => {
   // ── Blocage strict : jamais d'envoi d'email métier sans Reply-To valide ───
   const replyTo = validateEntrepriseReplyTo(entreprise)
   if (!replyTo) {
+    logEnvoyerEmailEvent('rejected', { status: 422, organisationId, documentType, documentId, errorCode: 'invalid_reply_to' })
     return json({ error: REPLY_TO_INVALID_MESSAGE }, 422)
   }
 
@@ -121,39 +151,56 @@ serve(async (req) => {
     const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY')
     const EMAIL_FROM = Deno.env.get('EMAIL_FROM') ?? ''
 
-    if (!BREVO_API_KEY) return json({ error: 'BREVO_API_KEY non configuré' })
+    if (!BREVO_API_KEY) {
+      logEnvoyerEmailEvent('rejected', { status: 200, organisationId, documentType, documentId, errorCode: 'missing_brevo_key' })
+      return json({ error: 'BREVO_API_KEY non configuré' })
+    }
     if (!EMAIL_FROM) {
       console.error('[envoyer-email] EMAIL_FROM non configuré')
+      logEnvoyerEmailEvent('rejected', { status: 200, organisationId, documentType, documentId, errorCode: 'missing_email_from' })
       return json({ error: 'Configuration email manquante (EMAIL_FROM non défini)' })
     }
 
-    const match = EMAIL_FROM.match(/^(.+?)\s*<(.+?)>$/)
-    const senderName  = match ? match[1].trim() : 'Kaytek Inter'
-    const senderEmail = match ? match[2].trim() : EMAIL_FROM.trim()
+    const sender = parseEmailFrom(EMAIL_FROM)
+    const payload = buildBrevoPayload({ sender, to, subject, html, replyTo, pdfBase64, pdfFilename })
 
-    // Reply-To systématique et inconditionnel — jamais optionnel après la
-    // validation ci-dessus, jamais l'adresse personnelle du compte Brevo ni
-    // une adresse globale à la plateforme.
-    const payload: Record<string, unknown> = {
-      sender: { name: senderName, email: senderEmail },
-      to: [{ email: to }],
-      subject,
-      htmlContent: html,
-      replyTo: { name: replyTo.name, email: replyTo.email },
-    }
-    if (pdfBase64 && pdfFilename) payload.attachment = [{ name: pdfFilename, content: pdfBase64 }]
+    // BREVO_API_URL est optionnelle, jamais définie en production (donc
+    // toujours le vrai Brevo en prod) — utilisée uniquement par la CI
+    // d'intégration pour rediriger vers un faux serveur Brevo local.
+    const BREVO_API_URL = Deno.env.get('BREVO_API_URL')
+    const outcome = await callBrevo(fetch, BREVO_API_KEY, payload, BREVO_API_URL)
 
-    const res  = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+    // Le statut HTTP retourné à l'appelant est toujours 200 ici (comme
+    // avant cette refactorisation) : un échec Brevo/réseau est une erreur
+    // métier communiquée dans le corps JSON, pas une erreur de la requête
+    // elle-même envers cette fonction.
+    logEnvoyerEmailEvent(outcome.ok ? 'sent' : (outcome.networkError ? 'network_error' : 'brevo_error'), {
+      status: 200,
+      organisationId,
+      documentType,
+      documentId,
+      responseTimeMs: Date.now() - startedAt,
+      pdfSizeBytes: estimatePdfBytes(pdfBase64),
+      errorCode: outcome.ok ? undefined : (outcome.networkError ? 'network_error' : 'brevo_rejected'),
     })
-    const data = await res.json()
 
-    if (!res.ok) return json({ error: data.message || 'Erreur Brevo' })
+    if (!outcome.ok) return json({ error: outcome.error })
 
-    return json({ error: null, id: data.messageId })
+    return json({ error: null, id: outcome.messageId })
   } catch (err) {
+    // Filet de sécurité — callBrevo() n'est plus censé lancer d'exception
+    // (les erreurs réseau y sont interceptées et renvoyées comme un échec
+    // normal), mais une erreur inattendue ailleurs dans ce bloc (ex:
+    // parseEmailFrom, buildBrevoPayload) doit rester journalisée et
+    // renvoyée proprement plutôt que de faire planter la fonction.
+    logEnvoyerEmailEvent('unexpected_error', {
+      status: 200,
+      organisationId,
+      documentType,
+      documentId,
+      responseTimeMs: Date.now() - startedAt,
+      errorCode: 'unexpected_error',
+    })
     return json({ error: err instanceof Error ? err.message : 'Erreur envoi email' })
   }
 })

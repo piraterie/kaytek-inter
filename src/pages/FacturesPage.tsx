@@ -11,6 +11,7 @@ import ConfirmModal from '@/components/ConfirmModal'
 import { pdfCache } from '@/lib/pdf/cache'
 import { supabase } from '@/lib/supabase/client'
 import { envoyerEmail } from '@/lib/supabase/auth'
+import { validateRecipient, validateEnvoyerEmailPayload, firstValidationMessage, type EnvoyerEmailPayload } from '@/lib/email/contract'
 import { getTheme } from '@/lib/themes'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 import { exportFacturesPremium } from '@/lib/exportPremium'
@@ -152,6 +153,10 @@ export default function FacturesPage() {
     if (sendingEmailId) return
     const email = f.client?.email
     if (!email) { add('Ce client n\'a pas d\'adresse email', 'warning'); return }
+    // Contrat unique frontend↔backend (src/lib/email/contract.ts) — même
+    // validateur que EmailDevisModal.tsx, pour un comportement cohérent.
+    const recipientError = firstValidationMessage(validateRecipient({ to: email, documentType: 'facture', documentId: f.id }))
+    if (recipientError) { add(recipientError, 'error'); return }
     if (!checkParams()) return
 
     // Feedback immédiat — l'UI n'est pas bloquée
@@ -219,14 +224,20 @@ export default function FacturesPage() {
           <div style="background:${theme.primary};padding:20px 40px;text-align:center;"><div style="color:rgba(255,255,255,0.85);font-size:12px;line-height:1.8;">${params!.adresse ? `📍 ${params!.adresse}${params!.code_postal ? ', ' + params!.code_postal : ''}${params!.ville ? ' ' + params!.ville : ''}<br/>` : ''}${params!.telephone ? `📞 ${params!.telephone}` : ''}${params!.telephone && params!.email ? '  ·  ' : ''}${params!.email ? `✉ ${params!.email}` : ''}${params!.siret ? `<br/><span style="color:rgba(255,255,255,0.5);font-size:11px;">SIRET : ${params!.siret}</span>` : ''}</div></div>
         </div>`
 
-        const t2 = Date.now()
-        const { error } = await envoyerEmail({
+        const payload: EnvoyerEmailPayload = {
           to: email,
           subject: `Facture ${f.numero} — ${params!.raison_sociale}`,
           html, pdfBase64, pdfFilename: `${f.numero}.pdf`,
           documentType: 'facture',
           documentId: f.id,
-        })
+        }
+        // Revalidation complète (inclut la taille du PDF, désormais connue)
+        // juste avant l'appel réseau — même contrat que le backend.
+        const payloadError = firstValidationMessage(validateEnvoyerEmailPayload(payload))
+        if (payloadError) { add(payloadError, 'error'); return }
+
+        const t2 = Date.now()
+        const { error } = await envoyerEmail(payload)
         console.log(`[facture-email] edge fn ${Date.now() - t2}ms — total ${Date.now() - t0}ms`)
 
         if (error) { add(error, 'error') }

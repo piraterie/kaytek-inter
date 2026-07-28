@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+# .husky/pre-push
+#
+# Gate rapide LOCAL avant chaque push (~15-30s) — volontairement léger :
+# typecheck + tests unitaires (incl. le test de dérive de contrat email,
+# voir src/lib/email/contract.test.ts) + vérifications structurelles des
+# Edge Functions (endpoints existants, deno check, variables d'env
+# documentées — voir scripts/verify-email-contract.mjs). La suite complète
+# (tests d'intégration Supabase local, build production, sécurité) tourne
+# en CI GitHub Actions (.github/workflows/email-contract-ci.yml) — pattern
+# standard "gate rapide en local, gate complet en CI", pour ne pas ralentir
+# excessivement chaque push.
+#
+# Échec de n'importe quelle étape → push bloqué (voir
+# docs/email-sending-architecture.md pour le détail de chaque vérification).
+
+echo "[pre-push] Vérification du typage TypeScript..."
+npm run typecheck || exit 1
+
+echo "[pre-push] Tests unitaires (vitest, incl. dérive de contrat email)..."
+npm run test:unit || exit 1
+
+echo "[pre-push] Vérifications structurelles Edge Functions (contrat, endpoints, deno check)..."
+node scripts/verify-email-contract.mjs || exit 1
+
+echo "[pre-push] OK — push autorisé."

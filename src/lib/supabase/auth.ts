@@ -3,6 +3,7 @@ import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from './client'
 import { registerDevice } from '@/lib/devices'
 import { fetchSubscriptionBlocked } from '@/lib/subscription'
+import type { EnvoyerEmailPayload } from '@/lib/email/contract'
 
 // Les Edge Functions envoyer-email / inviter-intervenant renvoient de vrais
 // statuts HTTP (400/403/404/422) pour les erreurs bloquantes — supabase-js les
@@ -117,10 +118,11 @@ export async function signOut() {
   }
 }
 
-export async function envoyerEmail(opts: {
-  to: string; subject: string; html: string; pdfBase64?: string; pdfFilename?: string
-  documentType: 'devis' | 'facture'; documentId: string
-}) {
+// Point d'entrée UNIQUE de l'envoi d'email métier (devis/facture) — le
+// payload doit être conforme à EnvoyerEmailPayload (src/lib/email/contract.ts),
+// le seul contrat frontend↔Edge Function. Ne jamais appeler
+// supabase.functions.invoke('envoyer-email', ...) directement ailleurs.
+export async function envoyerEmail(opts: EnvoyerEmailPayload) {
   try {
     const { data, error } = await supabase.functions.invoke('envoyer-email', { body: opts })
     if (error) return { error: await extractFunctionErrorMessage(error, "Erreur lors de l'envoi") }
