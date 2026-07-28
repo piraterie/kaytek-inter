@@ -11,6 +11,11 @@ import { useAuthStore, useToastStore } from '@/lib/store'
 import { REQUIRED_PARAMS } from '@/lib/hooks'
 import type { Devis, ParametresEntreprise } from '@/types'
 
+// Exportés pour être testés directement (voir EmailDevisModal.test.ts) sans
+// dépendance à un environnement DOM.
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+export const MAX_PDF_BYTES = 10 * 1024 * 1024 // limite pièce jointe Brevo ≈ 10 Mo
+
 interface Props {
   devis: Devis
   params: ParametresEntreprise
@@ -55,7 +60,9 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
   }, [params.logo_url])
 
   async function handleSend() {
-    if (sending || !emailTo) { setError('Email destinataire requis'); return }
+    if (sending) return
+    if (!emailTo.trim()) { setError('Adresse email du destinataire manquante.'); return }
+    if (!EMAIL_RE.test(emailTo.trim())) { setError('Adresse email invalide — vérifiez le format (ex : nom@domaine.fr).'); return }
     const missing = REQUIRED_PARAMS.filter(f => !params[f.field as keyof ParametresEntreprise])
     if (missing.length > 0) {
       setParamsError(true)
@@ -66,6 +73,7 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
       return
     }
     setParamsError(false)
+    setError('')
 
     // Capturer toutes les valeurs avant de fermer la modale
     const _devis = devis
@@ -81,9 +89,12 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
 
     // Envoi en arrière-plan — fire & forget
     ;(async () => {
-      try {
-        let blob: Blob | undefined
+      let blob: Blob | undefined
 
+      // Génération PDF isolée dans son propre try/catch : une erreur ici doit
+      // produire un message distinct d'une erreur d'envoi (fournisseur email,
+      // réseau) — voir REQUIRED_PARAMS / audit envoi devis.
+      try {
         // Devis signé : récupérer les données fraîches depuis la DB pour garantir
         // que signature_client est présente dans le PDF — le cache mémoire et le
         // storage peuvent contenir un PDF pré-généré AVANT la signature
@@ -121,8 +132,19 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
           }
         }
 
-        if (!blob) throw new Error('Impossible de générer le PDF')
+        if (!blob) throw new Error('Génération du PDF vide')
+      } catch (e: any) {
+        console.error('[devis-email] erreur génération PDF', e)
+        add(`Erreur lors de la génération du PDF du devis : ${e?.message || 'erreur inconnue'}.`, 'error')
+        return
+      }
 
+      if (blob.size > MAX_PDF_BYTES) {
+        add(`Le PDF du devis est trop volumineux pour être envoyé par email (${(blob.size / 1024 / 1024).toFixed(1)} Mo, maximum ${MAX_PDF_BYTES / 1024 / 1024} Mo).`, 'error')
+        return
+      }
+
+      try {
         const buf = await blob.arrayBuffer()
         const bytes = new Uint8Array(buf)
         const pdfBase64 = btoa(Array.from(bytes, b => String.fromCharCode(b)).join(''))
@@ -176,18 +198,23 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
           subject: `Devis ${_devis.numero} — ${_params.raison_sociale}`,
           html,
           pdfBase64,
-          pdfFilename: `${_devis.numero}.pdf`
+          pdfFilename: `${_devis.numero}.pdf`,
+          documentType: 'devis',
+          documentId: _devis.id,
         })
 
         if (response.error) {
-          add(`Impossible d'envoyer le devis`, 'error')
+          // Ne jamais remplacer l'erreur serveur (Brevo, config, RLS...) par un
+          // message générique — c'est elle qui dit pourquoi l'envoi a échoué.
+          console.error('[devis-email] erreur serveur', response.error)
+          add(response.error, 'error')
         } else {
           add(`Email envoyé à ${_to}`, 'success')
           _onSent() // marque le devis comme envoyé + notifie l'intervenant
         }
       } catch (e: any) {
-        console.error('[devis-email] erreur', e)
-        add(`Impossible d'envoyer le devis`, 'error')
+        console.error('[devis-email] erreur envoi', e)
+        add(`Erreur serveur lors de l'envoi de l'email : ${e?.message || 'erreur inconnue'}.`, 'error')
       }
     })()
   }
