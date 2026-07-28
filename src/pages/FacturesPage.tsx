@@ -223,7 +223,9 @@ export default function FacturesPage() {
         const { error } = await envoyerEmail({
           to: email,
           subject: `Facture ${f.numero} — ${params!.raison_sociale}`,
-          html, pdfBase64, pdfFilename: `${f.numero}.pdf`
+          html, pdfBase64, pdfFilename: `${f.numero}.pdf`,
+          documentType: 'facture',
+          documentId: f.id,
         })
         console.log(`[facture-email] edge fn ${Date.now() - t2}ms — total ${Date.now() - t0}ms`)
 

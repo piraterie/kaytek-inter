@@ -1,7 +1,24 @@
 // src/lib/supabase/auth.ts
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from './client'
 import { registerDevice } from '@/lib/devices'
 import { fetchSubscriptionBlocked } from '@/lib/subscription'
+
+// Les Edge Functions envoyer-email / inviter-intervenant renvoient de vrais
+// statuts HTTP (400/403/404/422) pour les erreurs bloquantes — supabase-js les
+// fait remonter comme FunctionsHttpError dont .message est un texte générique
+// fixe ; le message métier réel n'est disponible qu'en relisant le corps JSON
+// via .context.
+// Exportée pour être testée directement (voir auth.test.ts).
+export async function extractFunctionErrorMessage(error: unknown, fallback: string): Promise<string> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const body = await error.context.json()
+      if (body?.error) return body.error
+    } catch { /* corps non-JSON ou déjà consommé — on retombe sur le message générique */ }
+  }
+  return (error as any)?.message || fallback
+}
 
 export async function signIn(email: string, password: string) {
   try {
@@ -102,10 +119,11 @@ export async function signOut() {
 
 export async function envoyerEmail(opts: {
   to: string; subject: string; html: string; pdfBase64?: string; pdfFilename?: string
+  documentType: 'devis' | 'facture'; documentId: string
 }) {
   try {
     const { data, error } = await supabase.functions.invoke('envoyer-email', { body: opts })
-    if (error) return { error: error.message }
+    if (error) return { error: await extractFunctionErrorMessage(error, "Erreur lors de l'envoi") }
     if (data?.error) return { error: data.error }
     return { error: null }
   } catch (err: any) {
