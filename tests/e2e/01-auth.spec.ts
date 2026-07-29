@@ -24,6 +24,7 @@ test.describe('Admin — session active', () => {
       '/commissions',
       '/utilisateurs',
       '/parametres',
+      '/parametres/integrations',
       '/journal',
       '/planning',
       '/catalogue',

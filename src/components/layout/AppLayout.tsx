@@ -8,7 +8,7 @@ import {
   ChevronLeft, ChevronRight, LogOut, Sun, Moon, BookOpen,
   MessageCircle, Bell, Menu, User, Smartphone, Monitor, X,
   CheckCheck, Trash2, ChevronUp, ChevronDown, AlertTriangle,
-  CheckCircle2, XCircle, Info,
+  CheckCircle2, XCircle, Info, Link2,
 } from 'lucide-react'
 import KaytekLogo from '@/components/KaytekLogo'
 import WelcomeModal from '@/components/WelcomeModal'
@@ -37,6 +37,7 @@ const NAV: { path: string; label: string; icon: NavIcon; section: string; adminO
   { path: '/partenaires',   label: 'Réseau partenaires', icon: Handshake,  section: 'Administration', adminOnly: true, badge: 'partnerRequests' },
   { path: '/utilisateurs',  label: 'Utilisateurs',  icon: Shield,          section: 'Administration', adminOnly: true },
   { path: '/parametres',    label: 'Paramètres',    icon: Settings,        section: 'Administration', adminOnly: true },
+  { path: '/parametres/integrations', label: 'Connexion Google', icon: Link2, section: 'Administration', adminOnly: true },
   { path: '/journal',       label: 'Journal',       icon: ClipboardList,   section: 'Administration', adminOnly: true },
 ]
 const SECTIONS = ['Pilotage', 'Terrain', 'Gestion', 'Administration']
