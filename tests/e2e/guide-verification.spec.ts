@@ -47,6 +47,11 @@ async function resetWelcomeDismissed(page: Page) {
 
 test.describe('1. Guide Admin — affichage', () => {
   test.use({ storageState: ADMIN_AUTH })
+  // Playwright storageState ne capture pas sessionStorage — requis par
+  // initAuth() (App.tsx) pour charger le profil, sans quoi user reste null.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+  })
 
   test('charge /guide/admin et affiche la sidebar + section active', async ({ page }) => {
     await page.goto('/guide/admin')
@@ -95,6 +100,9 @@ test.describe('1. Guide Admin — affichage', () => {
 
 test.describe('2. Guide Intervenant — affichage', () => {
   test.use({ storageState: INTERVENANT_AUTH })
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+  })
 
   test('charge /guide/intervenant et affiche contenu correct', async ({ page }) => {
     await page.goto('/guide/intervenant')
@@ -121,6 +129,9 @@ test.describe('2. Guide Intervenant — affichage', () => {
 
 test.describe('3. Sécurité — intervenant bloqué sur /guide/admin/videos', () => {
   test.use({ storageState: INTERVENANT_AUTH })
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+  })
 
   test('redirige vers /dashboard si intervenant tente /guide/admin/videos', async ({ page }) => {
     await page.goto('/guide/admin/videos')
@@ -141,6 +152,11 @@ test.describe('3. Sécurité — intervenant bloqué sur /guide/admin/videos', (
 
 test.describe('4. Popup bienvenue — Plus tard (session)', () => {
   test.use({ storageState: ADMIN_AUTH })
+  // Playwright storageState ne capture pas sessionStorage — requis par
+  // initAuth() (App.tsx) pour charger le profil, sans quoi user reste null.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+  })
 
   test('session dismiss empêche la réapparition sur la même session', async ({ page }) => {
     // Simuler welcome_dismissed=false + pas de sessionStorage
@@ -173,6 +189,11 @@ test.describe('4. Popup bienvenue — Plus tard (session)', () => {
 
 test.describe('5. Popup bienvenue — Ne plus afficher (DB)', () => {
   test.use({ storageState: ADMIN_AUTH })
+  // Playwright storageState ne capture pas sessionStorage — requis par
+  // initAuth() (App.tsx) pour charger le profil, sans quoi user reste null.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+  })
 
   test('le bouton "Ne plus afficher" appelle la mutation Supabase profiles', async ({ page }) => {
     // Intercepter l'appel PATCH vers profiles
@@ -224,6 +245,11 @@ test.describe('5. Popup bienvenue — Ne plus afficher (DB)', () => {
 
 test.describe('7. Placeholders "Vidéo bientôt disponible"', () => {
   test.use({ storageState: ADMIN_AUTH })
+  // Playwright storageState ne capture pas sessionStorage — requis par
+  // initAuth() (App.tsx) pour charger le profil, sans quoi user reste null.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+  })
 
   test('chaque section admin affiche le placeholder proprement', async ({ page }) => {
     await page.goto('/guide/admin/connexion')
@@ -253,6 +279,11 @@ test.describe('7. Placeholders "Vidéo bientôt disponible"', () => {
 
 test.describe('8. Recherche', () => {
   test.use({ storageState: ADMIN_AUTH })
+  // Playwright storageState ne capture pas sessionStorage — requis par
+  // initAuth() (App.tsx) pour charger le profil, sans quoi user reste null.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+  })
 
   test('FAQ — recherche filtre les questions', async ({ page }) => {
     await page.goto('/guide/faq')
@@ -270,6 +301,11 @@ test.describe('8. Recherche', () => {
 
 test.describe('9. Progression — sauvegarde Supabase', () => {
   test.use({ storageState: ADMIN_AUTH })
+  // Playwright storageState ne capture pas sessionStorage — requis par
+  // initAuth() (App.tsx) pour charger le profil, sans quoi user reste null.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+  })
 
   test('"Marquer comme vu" envoie un upsert vers guide_progress', async ({ page }) => {
     let progressUpsert = false
@@ -335,6 +371,11 @@ test.describe('9. Progression — sauvegarde Supabase', () => {
 
 test.describe('10. Responsive — mobile, tablette, desktop', () => {
   test.use({ storageState: ADMIN_AUTH })
+  // Playwright storageState ne capture pas sessionStorage — requis par
+  // initAuth() (App.tsx) pour charger le profil, sans quoi user reste null.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+  })
 
   test('mobile 390px — accordion à la place de la sidebar', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
@@ -391,6 +432,11 @@ test.describe('10. Responsive — mobile, tablette, desktop', () => {
 
 test.describe('Bonus — FAQ navigation et filtres', () => {
   test.use({ storageState: ADMIN_AUTH })
+  // Playwright storageState ne capture pas sessionStorage — requis par
+  // initAuth() (App.tsx) pour charger le profil, sans quoi user reste null.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+  })
 
   test('FAQ accessible depuis /guide/faq', async ({ page }) => {
     await page.goto('/guide/faq')
