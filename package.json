@@ -16,7 +16,8 @@
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report",
     "test:setup": "playwright test tests/auth.setup.ts --project=setup",
-    "test:beta": "playwright test tests/beta --project=beta"
+    "test:beta": "playwright test tests/beta --project=beta",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",
@@ -48,6 +49,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "typescript": "^5.5.3",
     "vite": "^5.4.2",
-    "vite-plugin-pwa": "^0.20.5"
+    "vite-plugin-pwa": "^0.20.5",
+    "vitest": "2.1.9"
   }
 }
