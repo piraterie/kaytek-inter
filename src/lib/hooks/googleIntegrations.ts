@@ -11,6 +11,29 @@ import { useAuthStore } from '@/lib/store'
 
 const orgId = () => useAuthStore.getState().user?.organisation_id
 
+// ── Appel aux Edge Functions Google protégées (admin) ────────────────────
+// `supabase.functions.invoke` attache normalement le JWT de session
+// implicitement, mais cette injection dépend de l'hydratation asynchrone
+// de la session côté client — juste après la redirection plein-page du
+// callback OAuth (retour depuis accounts.google.com), la session peut ne
+// pas encore être restaurée au moment du premier appel, ce qui produit un
+// appel sans header Authorization (rejeté par la gateway Supabase avec
+// UNAUTHORIZED_NO_AUTH_HEADER). On récupère donc explicitement la session
+// courante et on force le header Authorization à chaque appel.
+async function invokeGoogleFunction<T>(
+  name: string, body?: Record<string, unknown>,
+): Promise<{ data: T | null; error: Error | null }> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) {
+    return { data: null, error: new Error('Session expirée — reconnectez-vous.') }
+  }
+  const { data, error } = await supabase.functions.invoke<T>(name, {
+    ...(body ? { body } : {}),
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  })
+  return { data: data ?? null, error }
+}
+
 export type GoogleProvider = 'google_ads' | 'google_business'
 export type GoogleConnectionStatus = 'disconnected' | 'connected' | 'expired' | 'revoked'
 
@@ -86,7 +109,7 @@ export type GbpLocationsResponse =
 export function useLoadGoogleAdsAccounts() {
   return useMutation<AdsAccountsResponse>({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke<AdsAccountsResponse>('google-ads-list-accounts')
+      const { data, error } = await invokeGoogleFunction<AdsAccountsResponse>('google-ads-list-accounts')
       if (error) throw error
       if (!data) throw new Error('Réponse vide')
       return data
@@ -97,7 +120,7 @@ export function useLoadGoogleAdsAccounts() {
 export function useLoadGoogleBusinessLocations() {
   return useMutation<GbpLocationsResponse>({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke<GbpLocationsResponse>('google-business-list-locations')
+      const { data, error } = await invokeGoogleFunction<GbpLocationsResponse>('google-business-list-locations')
       if (error) throw error
       if (!data) throw new Error('Réponse vide')
       return data
@@ -109,8 +132,8 @@ export function useSelectGoogleAdsAccount() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (customerId: string) => {
-      const { data, error } = await supabase.functions.invoke<{ ok?: boolean; error?: string }>(
-        'google-select-connection', { body: { provider: 'google_ads', customerId } },
+      const { data, error } = await invokeGoogleFunction<{ ok?: boolean; error?: string }>(
+        'google-select-connection', { provider: 'google_ads', customerId },
       )
       if (error) throw error
       if (!data?.ok) throw new Error(data?.error || 'Association impossible')
@@ -124,8 +147,8 @@ export function useSelectGoogleBusinessLocation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (params: { accountResourceName: string; locationResourceName: string }) => {
-      const { data, error } = await supabase.functions.invoke<{ ok?: boolean; error?: string }>(
-        'google-select-connection', { body: { provider: 'google_business', ...params } },
+      const { data, error } = await invokeGoogleFunction<{ ok?: boolean; error?: string }>(
+        'google-select-connection', { provider: 'google_business', ...params },
       )
       if (error) throw error
       if (!data?.ok) throw new Error(data?.error || 'Association impossible')
@@ -147,7 +170,7 @@ export function useGoogleOAuthStatus() {
   return useQuery<GoogleOAuthStatusResponse>({
     queryKey: ['google-oauth-status', org],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke<GoogleOAuthStatusResponse>('google-oauth-status')
+      const { data, error } = await invokeGoogleFunction<GoogleOAuthStatusResponse>('google-oauth-status')
       if (error) throw error
       if (data?.error) throw new Error(data.error)
       return data as GoogleOAuthStatusResponse
@@ -165,8 +188,8 @@ export function useGoogleOAuthStatus() {
 export function useConnectGoogle() {
   return useMutation({
     mutationFn: async (provider: GoogleProvider) => {
-      const { data, error } = await supabase.functions.invoke<{ authUrl?: string; error?: string }>(
-        'google-oauth-start', { body: { provider } },
+      const { data, error } = await invokeGoogleFunction<{ authUrl?: string; error?: string }>(
+        'google-oauth-start', { provider },
       )
       if (error) throw error
       if (!data?.authUrl) throw new Error(data?.error || 'Impossible de démarrer la connexion Google')
@@ -180,8 +203,8 @@ export function useDisconnectGoogle() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (provider: GoogleProvider) => {
-      const { data, error } = await supabase.functions.invoke<{ ok?: boolean; error?: string }>(
-        'google-oauth-disconnect', { body: { provider } },
+      const { data, error } = await invokeGoogleFunction<{ ok?: boolean; error?: string }>(
+        'google-oauth-disconnect', { provider },
       )
       if (error) throw error
       if (!data?.ok) throw new Error(data?.error || 'Déconnexion impossible')
