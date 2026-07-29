@@ -1,5 +1,13 @@
 import { defineConfig, devices } from '@playwright/test'
 import { existsSync, readFileSync } from 'fs'
+import { guardViteEnvOrExit } from './scripts/lib/production-guard.mjs'
+
+// Exécuté au chargement de ce fichier — avant toute chose, y compris le
+// démarrage du webServer (`npm run dev`, protégé indépendamment par le
+// hook predev). Sans ce garde, cette suite hériterait silencieusement de
+// VITE_SUPABASE_URL tel que défini dans .env.test/.env.local — trouvé
+// pointant vers la production lors de la préparation de cette branche.
+guardViteEnvOrExit('playwright.config.ts (suite Playwright fonctionnelle : e2e/responsive/beta)')
 
 // Charge un fichier .env spécifié si présent
 function loadEnvFile(file: string) {

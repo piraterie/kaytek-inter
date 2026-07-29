@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/guard-no-production.mjs",
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
@@ -17,7 +18,9 @@
     "test:report": "playwright show-report",
     "test:setup": "playwright test tests/auth.setup.ts --project=setup",
     "test:beta": "playwright test tests/beta --project=beta",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "test:deno": "node scripts/run-deno-tests.mjs",
+    "test:security:google-sql": "node scripts/run-google-sql-tests.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",
@@ -44,9 +47,13 @@
   "devDependencies": {
     "@playwright/cli": "^0.1.14",
     "@playwright/test": "^1.60.0",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "jsdom": "^30.0.0",
     "typescript": "^5.5.3",
     "vite": "^5.4.2",
     "vite-plugin-pwa": "^0.20.5",

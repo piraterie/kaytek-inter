@@ -7,6 +7,15 @@ const ADMIN_AUTH = 'tests/.auth/admin.json'
 test.describe('Admin — session active', () => {
   test.use({ storageState: ADMIN_AUTH })
 
+  // Playwright storageState ne capture pas sessionStorage. kaytek-active est
+  // requis par initAuth() (App.tsx) pour charger le profil depuis la session
+  // Supabase restaurée via localStorage — sans lui, user reste null → /login
+  // (voir tests/responsive/01-viewports.spec.ts, seul endroit où ce garde
+  // était déjà contourné avant ce fichier).
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+  })
+
   test('dashboard accessible après connexion', async ({ page }) => {
     await page.goto('/dashboard')
     await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 })
@@ -24,6 +33,7 @@ test.describe('Admin — session active', () => {
       '/commissions',
       '/utilisateurs',
       '/parametres',
+      '/parametres/integrations',
       '/journal',
       '/planning',
       '/catalogue',
@@ -90,12 +100,19 @@ test.describe('Formulaire de connexion', () => {
 test.describe('Déconnexion', () => {
   test.use({ storageState: ADMIN_AUTH })
 
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+  })
+
   test('déconnexion → redirige vers /login', async ({ page }) => {
     await page.goto('/dashboard')
     // Le bouton de déconnexion est dans la sidebar/nav
     // Chercher par texte ou title
+    // Le bouton sidebar est libellé "Quitter" (AppLayout.tsx) — pas
+    // "Déconnexion" ; conservé en repli au cas où un autre point d'entrée
+    // (menu profil mobile, etc.) utiliserait un libellé différent.
     const logoutBtn = page.locator(
-      'button:has-text("Déconnexion"), button[title*="onnexion"], a:has-text("Déconnexion")'
+      'button:has-text("Quitter"), button:has-text("Déconnexion"), button[title*="onnexion"], a:has-text("Déconnexion")'
     ).first()
     // S'il n'est pas directement visible, chercher via le menu profil
     const isVisible = await logoutBtn.isVisible().catch(() => false)
