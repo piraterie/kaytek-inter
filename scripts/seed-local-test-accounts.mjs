@@ -61,6 +61,17 @@ async function upsertProfile({ id, email, nom, prenom, role, organisationId }) {
   if (error) throw new Error(`profile ${email}: ${error.message}`)
 }
 
+async function ensureParametresEntreprise(orgId, raisonSociale) {
+  const { data: existing } = await svc.from('parametres_entreprise').select('id').eq('organisation_id', orgId).maybeSingle()
+  if (existing) return
+  const { error } = await svc.from('parametres_entreprise').insert({
+    organisation_id: orgId, raison_sociale: raisonSociale,
+    telephone: '0100000000', email: `contact@${raisonSociale.toLowerCase().replace(/\s+/g, '-')}.test`,
+    adresse: '1 rue de Test', code_postal: '75001', ville: 'Paris', siret: '00000000000000',
+  })
+  if (error) throw new Error(`parametres_entreprise ${orgId}: ${error.message}`)
+}
+
 async function ensureActiveSubscription(userId, orgId) {
   const { data: existing } = await svc.from('subscriptions').select('user_id').eq('user_id', userId).maybeSingle()
   if (existing) {
@@ -74,6 +85,8 @@ async function ensureActiveSubscription(userId, orgId) {
 async function main() {
   const orgAId = await upsertOrg('test-org-a-local', 'Test Org A (local)')
   const orgBId = await upsertOrg('test-org-b-local', 'Test Org B (local)')
+  await ensureParametresEntreprise(orgAId, 'Test Org A Local')
+  await ensureParametresEntreprise(orgBId, 'Test Org B Local')
 
   const adminAId = await upsertUser(process.env.TEST_ADMIN_A_EMAIL, process.env.TEST_ADMIN_A_PASSWORD)
   await upsertProfile({ id: adminAId, email: process.env.TEST_ADMIN_A_EMAIL, nom: 'Admin', prenom: 'A', role: 'admin', organisationId: orgAId })
