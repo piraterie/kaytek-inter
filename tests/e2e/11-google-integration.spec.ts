@@ -14,8 +14,16 @@ import { test, expect } from '@playwright/test'
 const ADMIN_AUTH = 'tests/.auth/admin.json'
 const INTERVENANT_AUTH = 'tests/.auth/intervenant.json'
 
+// Playwright storageState ne capture pas sessionStorage. kaytek-active est
+// requis par initAuth() (App.tsx) pour charger le profil depuis la session
+// Supabase restaurée via localStorage — sans lui, user reste null → /login.
+function seedActiveSession(page: import('@playwright/test').Page) {
+  return page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
+}
+
 test.describe('Connexion Google — admin', () => {
   test.use({ storageState: ADMIN_AUTH })
+  test.beforeEach(({ page }) => seedActiveSession(page))
 
   test('entrée "Connexion Google" visible dans la navigation', async ({ page }) => {
     await page.goto('/dashboard')
@@ -63,6 +71,7 @@ test.describe('Connexion Google — admin', () => {
 
 test.describe('Connexion Google — mobile', () => {
   test.use({ storageState: ADMIN_AUTH, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  test.beforeEach(({ page }) => seedActiveSession(page))
 
   test('le menu mobile contient l\'entrée "Connexion Google"', async ({ page }) => {
     await page.goto('/dashboard')
@@ -82,6 +91,7 @@ test.describe('Connexion Google — mobile', () => {
 
 test.describe('Connexion Google — rôle non autorisé', () => {
   test.use({ storageState: INTERVENANT_AUTH })
+  test.beforeEach(({ page }) => seedActiveSession(page))
 
   test('un intervenant ne voit pas l\'entrée "Connexion Google"', async ({ page }) => {
     await page.goto('/dashboard')
