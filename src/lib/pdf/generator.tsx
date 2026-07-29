@@ -14,9 +14,49 @@ const base = StyleSheet.create({
   row:     { flexDirection: 'row' },
   muted:   { fontSize: 8, color: '#6b7280', lineHeight: 1.7 },
   upper:   { textTransform: 'uppercase', letterSpacing: 0.8, fontSize: 7 },
-  footer:  { position: 'absolute', bottom: 24, left: 44, right: 44 },
-  ftxt:    { fontSize: 7, color: '#9ca3af', textAlign: 'center', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 6, lineHeight: 1.5 },
+  // Pied de page COURT uniquement (jamais le texte intégral des CGV) : un
+  // élément position:'absolute' n'est jamais redimensionné par son contenu
+  // et ne déclenche donc jamais de saut de page — tout texte long placé ici
+  // chevauche mécaniquement le tableau/les totaux/la signature au-dessus.
+  footer:     { position: 'absolute', bottom: 32, left: 44, right: 44 },
+  ftxt:       { fontSize: 7, color: '#9ca3af', textAlign: 'center', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 6, lineHeight: 1.5 },
+  pageNumber: { position: 'absolute', bottom: 14, left: 44, right: 44, fontSize: 7, color: '#c0c4cb', textAlign: 'center' },
+  legalTitle:     { fontFamily: 'Helvetica-Bold', fontSize: 15, color: '#1a1a1a', marginBottom: 22 },
+  legalParagraph: { fontSize: 9, color: '#374151', lineHeight: 1.7, marginBottom: 2 },
 })
+
+// ── NUMÉROTATION DE PAGE (répétée sur chaque page — fixed) ────────
+function PageNumberFooter() {
+  return (
+    <Text
+      fixed
+      style={base.pageNumber}
+      render={({ pageNumber, totalPages }) => (totalPages > 1 ? `Page ${pageNumber} / ${totalPages}` : '')}
+    />
+  )
+}
+
+// ── PAGE CGV DÉDIÉE ─────────────────────────────────────────────
+// Jamais mélangée au contenu commercial : le texte est en flux normal
+// (jamais absolute), donc react-pdf le déborde automatiquement sur
+// d'autres pages si les CGV sont longues — exactement comme le contenu
+// principal le fait déjà pour de nombreuses lignes de prestation.
+function LegalPage({ cgv }: { cgv: string }) {
+  const lines = cgv.split('\n')
+  return (
+    <Page size="A4" style={[base.page, { padding: 44, paddingBottom: 56 }]}>
+      <Text style={base.legalTitle}>Conditions générales de vente et d'intervention</Text>
+      <View>
+        {lines.map((line, i) =>
+          line.trim() === ''
+            ? <View key={i} style={{ height: 10 }} />
+            : <Text key={i} style={base.legalParagraph}>{line}</Text>
+        )}
+      </View>
+      <PageNumberFooter />
+    </Page>
+  )
+}
 
 // ── HEADER ──────────────────────────────────────────────────────
 function Header({ type, numero, date, valide, params, accent, primary }: {
@@ -91,8 +131,8 @@ function ClientSection({ clientNom, clientPhone, clientEmail, clientAdresse, rig
 function LignesTable({ lignes, accent, primary }: { lignes: Devis['lignes']; accent: string; primary: string }) {
   return (
     <View style={{ marginBottom: 16 }}>
-      {/* Header */}
-      <View style={[base.row, { backgroundColor: primary, borderRadius: 5, paddingVertical: 8, paddingHorizontal: 10 }]}>
+      {/* Header — répété automatiquement sur chaque page si le tableau déborde */}
+      <View fixed style={[base.row, { backgroundColor: primary, borderRadius: 5, paddingVertical: 8, paddingHorizontal: 10 }]}>
         <Text style={[base.bold, { color: '#fff', width: 26, fontSize: 8 }]}>N°</Text>
         <Text style={[base.bold, { color: '#fff', flex: 1, fontSize: 8 }]}>Désignation</Text>
         <Text style={[base.bold, { color: '#fff', width: 64, textAlign: 'right', fontSize: 8 }]}>P.U. HT</Text>
@@ -100,9 +140,9 @@ function LignesTable({ lignes, accent, primary }: { lignes: Devis['lignes']; acc
         <Text style={[base.bold, { color: '#fff', width: 44, textAlign: 'center', fontSize: 8 }]}>TVA</Text>
         <Text style={[base.bold, { color: accent, width: 64, textAlign: 'right', fontSize: 8 }]}>Total TTC</Text>
       </View>
-      {/* Rows */}
+      {/* Rows — wrap={false} : une ligne de prestation n'est jamais coupée par un saut de page */}
       {lignes.map((l, i) => (
-        <View key={i} style={[base.row, {
+        <View key={i} wrap={false} style={[base.row, {
           paddingVertical: 7, paddingHorizontal: 10,
           backgroundColor: i % 2 === 0 ? '#fff' : '#f8fafc',
           borderBottomWidth: 1, borderBottomColor: '#e5e7eb'
@@ -124,7 +164,7 @@ function Totals({ ht, tva, remisePct, remise, ttc, accent }: {
   ht: number; tva: number; remisePct?: number; remise?: number; ttc: number; accent: string
 }) {
   return (
-    <View style={{ alignItems: 'flex-end', marginBottom: 16 }}>
+    <View wrap={false} style={{ alignItems: 'flex-end', marginBottom: 16 }}>
       <View style={{ width: 220, backgroundColor: '#f8fafc', borderRadius: 6, padding: 14 }}>
         <View style={[base.row, { justifyContent: 'space-between', marginBottom: 5 }]}>
           <Text style={base.muted}>Sous-total HT</Text>
@@ -153,6 +193,11 @@ function Totals({ ht, tva, remisePct, remise, ttc, accent }: {
 export async function generateDevisPDF(devis: Devis, params: ParametresEntreprise, modeleId = 0): Promise<Blob> {
   const { primary, accent } = getTheme(modeleId)
   const clientNom = [devis.client?.nom, devis.client?.prenom].filter(Boolean).join(' ') || '—'
+  const hasCgv = !!params.cgv?.trim()
+  const footerLine = [
+    params.rc_pro ? 'RC Pro : ' + params.rc_pro : '',
+    hasCgv ? "Conditions générales de vente et d'intervention en page suivante." : '',
+  ].filter(Boolean).join('  ·  ')
 
   const doc = (
     <Document>
@@ -213,10 +258,14 @@ export async function generateDevisPDF(devis: Devis, params: ParametresEntrepris
           )
         })()}
 
-        <View style={base.footer}>
-          <Text style={base.ftxt}>{[params.cgv, params.rc_pro ? 'RC Pro : ' + params.rc_pro : ''].filter(Boolean).join('  ·  ')}</Text>
-        </View>
+        {footerLine ? (
+          <View style={base.footer}>
+            <Text style={base.ftxt}>{footerLine}</Text>
+          </View>
+        ) : null}
+        <PageNumberFooter />
       </Page>
+      {hasCgv ? <LegalPage cgv={params.cgv!.trim()} /> : null}
     </Document>
   )
   return pdf(doc).toBlob()
@@ -228,6 +277,10 @@ export async function generateFacturePDF(facture: Facture, devis: Devis | null, 
   const lignes = devis?.lignes || []
   const clientNom = [facture.client?.nom, facture.client?.prenom].filter(Boolean).join(' ') || '—'
   const estPayee = facture.statut_paiement === 'payee'
+  const hasCgv = !!params.cgv?.trim()
+  const footerLine = hasCgv
+    ? "Conditions générales de vente et d'intervention en page suivante."
+    : 'Merci pour votre confiance.'
 
   const doc = (
     <Document>
@@ -277,9 +330,11 @@ export async function generateFacturePDF(facture: Facture, devis: Devis | null, 
         )}
 
         <View style={base.footer}>
-          <Text style={base.ftxt}>{params.cgv || 'Merci pour votre confiance.'}</Text>
+          <Text style={base.ftxt}>{footerLine}</Text>
         </View>
+        <PageNumberFooter />
       </Page>
+      {hasCgv ? <LegalPage cgv={params.cgv!.trim()} /> : null}
     </Document>
   )
   return pdf(doc).toBlob()
