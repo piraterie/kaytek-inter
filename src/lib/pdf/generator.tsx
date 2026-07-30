@@ -83,7 +83,7 @@ function Header({ type, numero, date, valide, params, accent, primary }: {
         </View>
         {/* Droite : titre document + numéro */}
         <View style={{ width: 185, backgroundColor: 'rgba(0,0,0,0.18)', padding: 32, paddingLeft: 20, justifyContent: 'space-between' }}>
-          <Text style={[base.bold, { color: '#fff', fontSize: 30, letterSpacing: 1 }]}>{type}</Text>
+          <Text style={[base.bold, { color: '#fff', fontSize: type.length > 10 ? 16 : type.length > 7 ? 22 : 30, letterSpacing: 1 }]}>{type}</Text>
           <View>
             <View style={[base.row, { justifyContent: 'space-between', marginBottom: 3 }]}>
               <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 8 }}>Numéro</Text>
@@ -272,9 +272,22 @@ export async function generateDevisPDF(devis: Devis, params: ParametresEntrepris
 }
 
 // ── FACTURE PDF ──────────────────────────────────────────────────
+const TYPE_FACTURE_LABELS: Record<string, string> = {
+  acompte: 'ACOMPTE',
+  intermediaire: 'INTERMÉDIAIRE',
+  solde: 'SOLDE',
+  avoir: 'AVOIR',
+}
+
 export async function generateFacturePDF(facture: Facture, devis: Devis | null, params: ParametresEntreprise): Promise<Blob> {
   const { primary, accent } = getTheme(devis?.modele_id ?? (params as any).modele_pdf_defaut)
-  const lignes = devis?.lignes || []
+  const typeFacture = facture.type_facture
+  const isEcheance = !!typeFacture && typeFacture !== 'classique'
+  // Facture liée à une échéance : les montants HT/TVA/TTC affichés sont
+  // ceux de LA FACTURE (le montant de cette échéance), jamais ceux du
+  // devis entier — sinon HT+TVA (devis) n'égalerait plus le TTC affiché
+  // (montant de l'échéance).
+  const lignes = isEcheance ? [] : (devis?.lignes || [])
   const clientNom = [facture.client?.nom, facture.client?.prenom].filter(Boolean).join(' ') || '—'
   const estPayee = facture.statut_paiement === 'payee'
   const hasCgv = !!params.cgv?.trim()
@@ -285,7 +298,26 @@ export async function generateFacturePDF(facture: Facture, devis: Devis | null, 
   const doc = (
     <Document>
       <Page size="A4" style={[base.page, { padding: 44 }]}>
-        <Header type="FACTURE" numero={facture.numero} date={fmt(facture.date_emission)} valide={facture.date_echeance ? 'Échéance : ' + fmt(facture.date_echeance) : undefined} params={params} accent={estPayee ? '#16a34a' : accent} primary={primary} />
+        <Header type={isEcheance ? TYPE_FACTURE_LABELS[typeFacture!] : 'FACTURE'} numero={facture.numero} date={fmt(facture.date_emission)} valide={facture.date_echeance ? 'Échéance : ' + fmt(facture.date_echeance) : undefined} params={params} accent={estPayee ? '#16a34a' : accent} primary={primary} />
+
+        {isEcheance && devis && (() => {
+          const montantTotalDevis = devis.total_ttc || (devis.total_ht || 0) + (devis.tva_montant || 0)
+          return (
+            <View style={{ backgroundColor: '#eff6ff', borderRadius: 6, padding: 12, marginBottom: 14, borderLeftWidth: 3, borderLeftColor: '#1d4ed8' }}>
+              <Text style={[base.bold, base.upper, { color: '#1e40af', marginBottom: 6, fontSize: 8 }]}>
+                {devis.numero ? `Rattachée au devis ${devis.numero}` : 'Rattachée à un devis'}
+              </Text>
+              <View style={[base.row, { justifyContent: 'space-between' }]}>
+                <Text style={{ fontSize: 9, color: '#1e3a8a' }}>Montant total du devis</Text>
+                <Text style={[base.bold, { fontSize: 9, color: '#1e3a8a' }]}>{eur(montantTotalDevis)}</Text>
+              </View>
+              <View style={[base.row, { justifyContent: 'space-between', marginTop: 3 }]}>
+                <Text style={{ fontSize: 9, color: '#1e3a8a' }}>Montant de cette facture</Text>
+                <Text style={[base.bold, { fontSize: 9, color: '#1e3a8a' }]}>{eur(facture.montant_ttc)}</Text>
+              </View>
+            </View>
+          )
+        })()}
 
         <ClientSection
           clientNom={clientNom}
@@ -309,7 +341,12 @@ export async function generateFacturePDF(facture: Facture, devis: Devis | null, 
           : null
         }
 
-        <Totals ht={devis?.total_ht ?? facture.montant_ht} tva={devis?.tva_montant ?? facture.tva_montant} ttc={facture.montant_ttc} accent={estPayee ? '#16a34a' : accent} />
+        <Totals
+          ht={isEcheance ? facture.montant_ht : (devis?.total_ht ?? facture.montant_ht)}
+          tva={isEcheance ? facture.tva_montant : (devis?.tva_montant ?? facture.tva_montant)}
+          ttc={facture.montant_ttc}
+          accent={estPayee ? '#16a34a' : accent}
+        />
 
         {/* Coordonnées bancaires */}
         {params.iban && (
