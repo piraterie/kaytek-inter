@@ -6,15 +6,19 @@ import {
   Phone, MessageCircle, MapPin, Copy,
 } from 'lucide-react'
 import { useClient } from '@/lib/hooks'
+import { useClientFinances } from '@/lib/hooks/echeancier'
 import { useToastStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
 import { DocSheet, SheetRow } from '@/components/DocSheet'
+
+const eur = (n: number) => (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>()
   const nav = useNavigate()
   const { add } = useToastStore()
   const { data: client, isLoading } = useClient(id!)
+  const { data: finances } = useClientFinances(id)
   const [counts, setCounts] = useState({ interventions: 0, devis: 0, factures: 0 })
   const [actionsSheet, setActionsSheet] = useState(false)
 
@@ -80,6 +84,26 @@ export default function ClientDetailPage() {
           >
             <Zap size={15} /> Actions
           </button>
+        </div>
+      )}
+
+      {/* SITUATION FINANCIÈRE */}
+      {finances && finances.nbEcheanciersActifs > 0 && (
+        <div className="card card-body mb-4" data-testid="client-situation-financiere" style={{ padding: '12px 14px' }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--t2)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Situation financière</p>
+          {([
+            ['Total facturé (échéanciers)', eur(finances.totalFacture)],
+            ['Total encaissé', eur(finances.totalEncaisse)],
+            ['Reste à payer', eur(finances.totalRestant)],
+            ...(finances.totalEnRetard > 0 ? [['En retard', eur(finances.totalEnRetard)]] : []),
+            ...(finances.prochaineEcheance ? [['Prochaine échéance', `${new Date(finances.prochaineEcheance.date_prevue).toLocaleDateString('fr-FR')} · ${eur(finances.prochaineEcheance.montant_restant)}`]] : []),
+            ...(finances.dernierPaiement ? [['Dernier paiement', `${new Date(finances.dernierPaiement.date_paiement).toLocaleDateString('fr-FR')} · ${eur(finances.dernierPaiement.montant)}`]] : []),
+          ] as [string, string][]).map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--b0)', fontSize: 12 }}>
+              <span style={{ color: 'var(--t2)' }}>{k}</span>
+              <span style={{ fontWeight: k === 'En retard' ? 700 : 500, color: k === 'En retard' ? 'var(--rdTx)' : 'inherit' }}>{v}</span>
+            </div>
+          ))}
         </div>
       )}
 
