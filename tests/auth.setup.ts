@@ -8,6 +8,7 @@ import fs from 'fs'
 export const ADMIN_AUTH       = 'tests/.auth/admin.json'
 export const INTERVENANT_AUTH = 'tests/.auth/intervenant.json'
 export const ADMIN_B_AUTH     = 'tests/.auth/admin-b.json'
+export const ASSISTANT_AUTH   = 'tests/.auth/assistant.json'
 
 function ensureAuthDir() {
   const dir = path.resolve('tests/.auth')
@@ -84,4 +85,17 @@ setup('authenticate — admin org B (multi-tenant)', async ({ page }) => {
   }
   ensureAuthDir()
   await loginAs(page, email, password, ADMIN_B_AUTH)
+})
+
+setup('authenticate — assistant org A', async ({ page }) => {
+  const email    = process.env.TEST_ASSISTANT_EMAIL
+  const password = process.env.TEST_ASSISTANT_PASSWORD
+  if (!email || !password) {
+    console.warn('[setup] TEST_ASSISTANT_EMAIL non défini — auth assistant ignorée')
+    ensureAuthDir()
+    fs.writeFileSync(ASSISTANT_AUTH, JSON.stringify({ cookies: [], origins: [] }))
+    return
+  }
+  ensureAuthDir()
+  await loginAs(page, email, password, ASSISTANT_AUTH)
 })
