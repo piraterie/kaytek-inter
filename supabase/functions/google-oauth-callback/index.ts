@@ -51,7 +51,12 @@ interface GoogleTokenResponse {
   error_description?: string
 }
 
-serve(async (req) => {
+// Exportée séparément de `serve()` uniquement pour permettre les tests
+// unitaires (google-oauth-callback.test.ts) d'invoquer le handler
+// directement sans ouvrir de serveur HTTP réel — aucun changement de
+// comportement en production, `serve()` ci-dessous reste le seul point
+// d'entrée réellement déployé.
+export async function handleGoogleOauthCallback(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   const url = new URL(req.url)
@@ -252,4 +257,11 @@ serve(async (req) => {
   await logOAuthEvent(svc, organisationId, provider, 'connected')
 
   return successRedirect(provider)
-})
+}
+
+// import.meta.main : ne démarre le serveur HTTP que lorsque ce fichier est
+// exécuté directement (déploiement réel) — pas lorsqu'il est importé par
+// index.test.ts pour appeler handleGoogleOauthCallback() directement (un
+// `serve()` déclenché à l'import ouvrirait un vrai listener réseau pendant
+// les tests, sans rapport avec ce qui est testé).
+if (import.meta.main) serve(handleGoogleOauthCallback)

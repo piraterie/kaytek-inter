@@ -22,6 +22,8 @@ export interface GbpLocationInfo {
   phone: string | null
   openStatus: string | null
   mapsUri: string | null
+  websiteUri: string | null
+  placeId: string | null // requis pour construire le lien officiel de demande d'avis
   // Non déterminé dans cette passe (Phase 3) : la vérification d'un
   // établissement nécessite un appel dédié (locations.getVoiceOfMerchantState)
   // non implémenté ici — limite documentée, pas une valeur devinée.
@@ -114,7 +116,7 @@ export async function listAccessibleGbpLocations(svc: SupabaseClient, organisati
   if (accounts.length === 0) return { ok: true, accounts: [] }
 
   // ── 2. Établissements de chaque compte (paginé, readMask minimal) ─────
-  const readMask = 'name,title,storeCode,storefrontAddress,phoneNumbers,openInfo,metadata'
+  const readMask = 'name,title,storeCode,storefrontAddress,phoneNumbers,openInfo,metadata,websiteUri'
   const result: { accountResourceName: string; accountName: string | null; accountType: string | null; locations: GbpLocationInfo[] }[] = []
 
   for (const account of accounts) {
@@ -143,6 +145,8 @@ export async function listAccessibleGbpLocations(svc: SupabaseClient, organisati
           phone: loc.phoneNumbers?.primaryPhone ?? null,
           openStatus: loc.openInfo?.status ?? null,
           mapsUri: loc.metadata?.mapsUri ?? null,
+          websiteUri: loc.websiteUri ?? null,
+          placeId: loc.metadata?.placeId ?? null,
           verificationStatus: 'unknown',
         })
       }

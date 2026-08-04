@@ -391,6 +391,75 @@ port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"
 
+# ── Connexion Google (Ads + Business Profile) ─────────────────────────────
+# Ces réglages font autorité pour `supabase functions deploy` : sans entrée
+# explicite ici, un déploiement futur peut se retrouver avec un réglage
+# différent de celui attendu (toggle dashboard oublié, flag CLI omis), sans
+# qu'aucun test ne le détecte avant que les utilisateurs ne soient bloqués.
+#
+# google-oauth-callback reçoit la redirection top-level du navigateur depuis
+# Google : par construction, cette requête ne porte JAMAIS de header
+# Authorization. La vérification JWT de la passerelle DOIT rester désactivée
+# pour cette fonction précise ; la sécurité (state signé + CSRF) est assurée
+# dans le code de la fonction elle-même, pas par ce réglage.
+[functions.google-oauth-callback]
+verify_jwt = false
+
+# Les 6 autres fonctions Google sont appelées par le frontend authentifié
+# avec un header Authorization explicite (voir src/lib/hooks/googleIntegrations.ts)
+# et valident elles-mêmes le JWT via requireActiveAdmin() — verify_jwt = true
+# à la passerelle ajoute une défense en profondeur (rejet avant même
+# l'exécution du code) sans changer le comportement observable.
+[functions.google-oauth-start]
+verify_jwt = true
+
+[functions.google-oauth-status]
+verify_jwt = true
+
+[functions.google-oauth-disconnect]
+verify_jwt = true
+
+[functions.google-ads-list-accounts]
+verify_jwt = true
+
+[functions.google-business-list-locations]
+verify_jwt = true
+
+[functions.google-select-connection]
+verify_jwt = true
+
+[functions.google-gbp-sync-reviews]
+verify_jwt = true
+
+[functions.google-gbp-reply-review]
+verify_jwt = true
+
+# Les 3 fonctions suivantes ont un CHEMIN INTERNE (pg_cron via pg_net,
+# header X-Internal-Secret) en plus du chemin admin authentifié — exactement
+# le même piège que google-oauth-callback ci-dessus : pg_net ne joint
+# JAMAIS de JWT Supabase à ses appels. Sans verify_jwt=false explicite ici,
+# la passerelle rejetterait tout appel cron en 401 avant même que le code
+# de la fonction (qui vérifie lui-même le secret interne) ne s'exécute —
+# cassant silencieusement la synchronisation/l'envoi automatiques en
+# production tout en fonctionnant en apparence pour le bouton admin manuel.
+[functions.google-send-review-requests]
+verify_jwt = false
+
+[functions.google-gbp-sync-performance]
+verify_jwt = false
+
+[functions.google-ads-sync-metrics]
+verify_jwt = false
+
+# Endpoints publics — jamais de JWT (lien d'e-mail / webhook tiers). Chacun
+# valide sa propre preuve d'autorisation dans le code (token opaque /
+# secret en paramètre de requête), jamais la passerelle Supabase.
+[functions.google-review-unsubscribe]
+verify_jwt = false
+
+[functions.google-brevo-webhook]
+verify_jwt = false
+
 # Experimental features may be deprecated any time
 [experimental]
 # Configures Postgres storage engine to use OrioleDB (S3)

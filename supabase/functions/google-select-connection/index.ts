@@ -15,7 +15,11 @@ import { listAccessibleGbpLocations } from '../_shared/google-business-api.ts'
 interface SelectAdsBody { provider: 'google_ads'; customerId?: string }
 interface SelectGbpBody { provider: 'google_business'; accountResourceName?: string; locationResourceName?: string }
 
-serve(async (req) => {
+// Exportée séparément de `serve()` uniquement pour permettre les tests
+// unitaires (index.test.ts) d'invoquer le handler directement — aucun
+// changement de comportement en production (voir google-oauth-callback
+// pour le même pattern, introduit en premier).
+export async function handleGoogleSelectConnection(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return respond({ error: 'Méthode non autorisée' }, 405)
 
@@ -80,7 +84,7 @@ serve(async (req) => {
 
   // google_business
   const { accountResourceName, locationResourceName } = body as SelectGbpBody
-  if (!accountResourceName?.startsWith('accounts/') || !locationResourceName?.startsWith('accounts/')) {
+  if (!accountResourceName?.startsWith('accounts/') || !locationResourceName?.startsWith('locations/')) {
     return respond({ error: 'accountResourceName/locationResourceName invalides' }, 400)
   }
 
@@ -107,6 +111,9 @@ serve(async (req) => {
     location_title: location.title,
     location_address: location.address,
     location_open_status: location.openStatus,
+    place_id: location.placeId,
+    location_phone: location.phone,
+    location_website: location.websiteUri,
     selected_at: new Date().toISOString(),
     selected_by: auth.userId,
   }).eq('organisation_id', auth.organisationId)
@@ -118,4 +125,9 @@ serve(async (req) => {
 
   await logOAuthEvent(svc, auth.organisationId, 'google_business', 'gbp_location_selected', location.title ?? 'sans nom')
   return respond({ ok: true, selected: location })
-})
+}
+
+// import.meta.main : voir google-oauth-callback/index.ts pour la
+// justification (empêche `serve()` d'ouvrir un vrai listener réseau quand
+// ce fichier est importé par index.test.ts).
+if (import.meta.main) serve(handleGoogleSelectConnection)

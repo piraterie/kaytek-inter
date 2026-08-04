@@ -26,6 +26,12 @@ export const GOOGLE_ADS_DEVELOPER_TOKEN = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOK
 export const GOOGLE_OAUTH_FRONTEND_SUCCESS_URL = Deno.env.get('GOOGLE_OAUTH_FRONTEND_SUCCESS_URL') ?? ''
 export const GOOGLE_OAUTH_FRONTEND_ERROR_URL = Deno.env.get('GOOGLE_OAUTH_FRONTEND_ERROR_URL') ?? ''
 
+// Base publique du frontend (sans chemin) pour construire le lien de
+// désinscription inclus dans les e-mails de demande d'avis — dédié plutôt
+// que dérivé de GOOGLE_OAUTH_FRONTEND_SUCCESS_URL, pour ne jamais dépendre
+// d'une hypothèse sur la forme de cette URL (avec/sans chemin, etc.).
+export const GOOGLE_REVIEW_UNSUBSCRIBE_BASE_URL = Deno.env.get('GOOGLE_REVIEW_UNSUBSCRIBE_BASE_URL') ?? ''
+
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

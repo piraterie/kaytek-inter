@@ -50,7 +50,7 @@ serve(async (req) => {
       .eq('organisation_id', auth.organisationId)
       .maybeSingle(),
     svc.from('gbp_connections')
-      .select('google_location_id, google_account_id, account_name, google_account_email, status, connected_at, last_synced_at, last_error, updated_at, location_title, location_address, location_open_status, selected_at')
+      .select('google_location_id, google_account_id, account_name, google_account_email, status, connected_at, last_synced_at, last_error, updated_at, location_title, location_address, location_open_status, selected_at, place_id, location_phone, location_website')
       .eq('organisation_id', auth.organisationId)
       .maybeSingle(),
   ])
