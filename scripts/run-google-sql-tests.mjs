@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // scripts/run-google-sql-tests.mjs
 // Exécuteur Node portable (Windows/Linux/macOS) des tests SQL RLS du module
-// Google (Corrections 6/7/8 UNIQUEMENT — jamais les Corrections 2 à 5, sans
+// Google (Corrections 6/7/8/9/10 UNIQUEMENT — jamais les Corrections 2 à 5, sans
 // rapport avec Google et non intégrées sur cette branche). Volontairement
 // indépendant de scripts/test-security-preflight.mjs (absent de cette
 // branche d'intégration) : le garde anti-production est réimplémenté ici,
@@ -33,6 +33,8 @@ const SQL_TEST_FILES = [
   'correction-06-google-integrations-rls-tests.sql',
   'correction-07-google-oauth-phase2-tests.sql',
   'correction-08-google-account-selection-tests.sql',
+  'correction-09-security-invoker-views-tests.sql',
+  'correction-10-google-reviews-full-integration-tests.sql',
 ]
 
 // Objets dont la présence prouve que les 6 migrations Google sont
@@ -53,6 +55,12 @@ const REQUIRED_DB_OBJECTS = [
     sql: "SELECT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'google_oauth_vault_create')" },
   { label: 'colonne google_ads_connections.selected_at (000008)',
     sql: "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='google_ads_connections' AND column_name='selected_at')" },
+  { label: 'policy google_ads_connections_select_admin (20260731000000)',
+    sql: "SELECT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='google_ads_connections' AND policyname='google_ads_connections_select_admin')" },
+  { label: 'table gbp_performance_metrics_daily (20260804000000)',
+    sql: "SELECT to_regclass('public.gbp_performance_metrics_daily') IS NOT NULL" },
+  { label: 'colonne review_requests.scheduled_send_at (20260804000000)',
+    sql: "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='review_requests' AND column_name='scheduled_send_at')" },
 ]
 
 let dockerContainerId = null
@@ -208,7 +216,7 @@ function main() {
   if (summary.length !== SQL_TEST_FILES.length || summary.some((s) => !s.ok)) {
     process.exit(1)
   }
-  console.log('\n[test:security:google-sql] OK — Corrections 6/7/8 (module Google) exécutées avec succès. Corrections 2-5 volontairement non incluses (sans rapport, non intégrées sur cette branche).')
+  console.log('\n[test:security:google-sql] OK — Corrections 6/7/8/9/10 (module Google) exécutées avec succès. Corrections 2-5 volontairement non incluses (sans rapport, non intégrées sur cette branche).')
 }
 
 const isMainModule =

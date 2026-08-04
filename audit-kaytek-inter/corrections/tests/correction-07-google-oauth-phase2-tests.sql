@@ -58,6 +58,21 @@ VALUES ('20000000-0000-0000-0000-0000000000a1', 'MOCK_CUSTOMER_ID_A2', 'connecte
 INSERT INTO public.google_oauth_states (nonce, organisation_id, provider, requested_by, expires_at)
 VALUES ('MOCK_NONCE_A_1', '20000000-0000-0000-0000-0000000000a1', 'google_ads', '20000000-0000-0000-0000-00000000a001', now() + interval '10 minutes');
 
+CREATE OR REPLACE FUNCTION pg_temp.assert_visible_count(p_label text, p_uid uuid, p_sql text, p_expected bigint) RETURNS void AS $$
+DECLARE v_actual bigint;
+BEGIN
+  PERFORM set_config('request.jwt.claim.sub', p_uid::text, true);
+  SET LOCAL role = 'authenticated';
+  EXECUTE p_sql INTO v_actual;
+  RESET role;
+  IF v_actual IS DISTINCT FROM p_expected THEN
+    RAISE EXCEPTION 'ÉCHEC [%] — attendu %, obtenu %', p_label, p_expected, v_actual;
+  ELSE
+    RAISE NOTICE 'OK [%] — %', p_label, v_actual;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION pg_temp.assert_select_denied(p_label text, p_uid uuid, p_sql text) RETURNS void AS $$
 DECLARE v_count bigint; v_denied boolean := false; v_sqlstate text := 'n/a';
 BEGIN
@@ -168,7 +183,12 @@ END $$;
 
 DO $$ BEGIN RAISE NOTICE '=== SCÉNARIO 3 — google_account_email : toujours admin-only + isolation cross-org via les vues ==='; END $$;
 
-SELECT pg_temp.assert_select_denied('google_ads_connections (base, avec email) — admin A, même org', '20000000-0000-0000-0000-00000000a001'::uuid, 'SELECT count(*) FROM public.google_ads_connections');
+-- Depuis 20260731000000 (passage des vues de statut en security_invoker),
+-- une policy SELECT admin+même-org existe directement sur la table de base
+-- (voir correction-06 scénario 1 et correction-09) : un admin voit
+-- désormais SA propre ligne (1), plus 0 — le cloisonnement cross-org et
+-- non-admin reste, lui, inchangé et re-testé ci-dessous via les vues.
+SELECT pg_temp.assert_visible_count('google_ads_connections (base, avec email) — admin A, même org', '20000000-0000-0000-0000-00000000a001'::uuid, 'SELECT count(*) FROM public.google_ads_connections', 1);
 
 DO $$
 DECLARE v_email text;

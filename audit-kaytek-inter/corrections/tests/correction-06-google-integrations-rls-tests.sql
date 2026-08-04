@@ -55,13 +55,18 @@ INSERT INTO public.profiles (id, email, nom, prenom, role, organisation_id, acti
   ('10000000-0000-0000-0000-00000000b001', 'gtest-admin-b@test.local',        'GTest', 'AdminB',        'admin',       '10000000-0000-0000-0000-0000000000b1', true, true,  true)
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public.clients (id, organisation_id, nom, type, created_by) VALUES
-  ('10000000-0000-0000-0000-00000000c001', '10000000-0000-0000-0000-0000000000a1', 'GTest Client A1', 'particulier', '10000000-0000-0000-0000-00000000a001'),
-  ('10000000-0000-0000-0000-00000000c002', '10000000-0000-0000-0000-0000000000a1', 'GTest Client A2', 'particulier', '10000000-0000-0000-0000-00000000a001'),
-  ('10000000-0000-0000-0000-00000000c101', '10000000-0000-0000-0000-0000000000b1', 'GTest Client B1', 'particulier', '10000000-0000-0000-0000-00000000b001');
+-- email requis à partir du 2026-08-04 (trg_review_requests_require_email,
+-- voir 20260804000000) : canal unique = e-mail, une demande d'avis ne peut
+-- jamais être créée pour un client sans adresse.
+INSERT INTO public.clients (id, organisation_id, nom, type, created_by, email) VALUES
+  ('10000000-0000-0000-0000-00000000c001', '10000000-0000-0000-0000-0000000000a1', 'GTest Client A1', 'particulier', '10000000-0000-0000-0000-00000000a001', 'gtest-client-a1@test.local'),
+  ('10000000-0000-0000-0000-00000000c002', '10000000-0000-0000-0000-0000000000a1', 'GTest Client A2', 'particulier', '10000000-0000-0000-0000-00000000a001', 'gtest-client-a2@test.local'),
+  ('10000000-0000-0000-0000-00000000c101', '10000000-0000-0000-0000-0000000000b1', 'GTest Client B1', 'particulier', '10000000-0000-0000-0000-00000000b001', 'gtest-client-b1@test.local');
 
--- Factures : f001..f004 envoyées (org A), f005 NON envoyée (org A, teste le
--- refus "pas encore envoyée"), f101 envoyée (org B, teste le refus
+-- Factures : f001..f004 PAYÉES (org A) — depuis le 2026-08-04, le
+-- déclencheur des demandes d'avis est le statut_paiement='payee' (et non
+-- plus envoyee_le, remplacé par décision produit). f005 NON payée (org A,
+-- teste le refus "pas encore payée"), f101 payée (org B, teste le refus
 -- cross-tenant). f003 est délibérément créée par l'intervenant A-CD
 -- lui-même (created_by = a004) : la policy factures_select existante
 -- (is_intervenant_in_org AND created_by = auth.uid()) exige que la
@@ -69,12 +74,12 @@ INSERT INTO public.clients (id, organisation_id, nom, type, created_by) VALUES
 -- vrai flux (un intervenant ne peut "envoyer" que les factures qu'il peut
 -- déjà voir), pas un artefact de la policy review_requests_insert elle-même.
 INSERT INTO public.factures (id, organisation_id, client_id, statut_paiement, montant_ttc, created_by, envoyee_le) VALUES
-  ('10000000-0000-0000-0000-00000000f001', '10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000c001', 'impayee', 100, '10000000-0000-0000-0000-00000000a001', now()),
-  ('10000000-0000-0000-0000-00000000f002', '10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000c002', 'impayee', 100, '10000000-0000-0000-0000-00000000a001', now()),
-  ('10000000-0000-0000-0000-00000000f003', '10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000c001', 'impayee', 100, '10000000-0000-0000-0000-00000000a004', now()),
-  ('10000000-0000-0000-0000-00000000f004', '10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000c001', 'impayee', 100, '10000000-0000-0000-0000-00000000a001', now()),
+  ('10000000-0000-0000-0000-00000000f001', '10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000c001', 'payee', 100, '10000000-0000-0000-0000-00000000a001', now()),
+  ('10000000-0000-0000-0000-00000000f002', '10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000c002', 'payee', 100, '10000000-0000-0000-0000-00000000a001', now()),
+  ('10000000-0000-0000-0000-00000000f003', '10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000c001', 'payee', 100, '10000000-0000-0000-0000-00000000a004', now()),
+  ('10000000-0000-0000-0000-00000000f004', '10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000c001', 'payee', 100, '10000000-0000-0000-0000-00000000a001', now()),
   ('10000000-0000-0000-0000-00000000f005', '10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000c001', 'impayee', 100, '10000000-0000-0000-0000-00000000a001', NULL),
-  ('10000000-0000-0000-0000-00000000f101', '10000000-0000-0000-0000-0000000000b1', '10000000-0000-0000-0000-00000000c101', 'impayee', 100, '10000000-0000-0000-0000-00000000b001', now());
+  ('10000000-0000-0000-0000-00000000f101', '10000000-0000-0000-0000-0000000000b1', '10000000-0000-0000-0000-00000000c101', 'payee', 100, '10000000-0000-0000-0000-00000000b001', now());
 
 -- Connexions Google FICTIVES pour l'org A uniquement (insérées en tant que
 -- `postgres`, qui bypass RLS comme le fera service_role en Phase 2). Les
@@ -239,13 +244,19 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$ LANGUAGE plpgsql;
 
-DO $$ BEGIN RAISE NOTICE '=== SCÉNARIO 1 — tables privées (tokens) : deny-all pour TOUT rôle authenticated, y compris admin de la même organisation ==='; END $$;
+DO $$ BEGIN RAISE NOTICE '=== SCÉNARIO 1 — tables privées (tokens) : lecture admin-only de la ligne de SA PROPRE org (policy SELECT ajoutée par 20260731000000_fix_security_definer_views.sql — voir correction-09), écriture toujours deny-all pour authenticated ==='; END $$;
 
-SELECT pg_temp.assert_visible_count('google_ads_connections — admin A (même org, propriétaire de la ligne)', '10000000-0000-0000-0000-00000000a001'::uuid, 'SELECT count(*) FROM public.google_ads_connections', 0);
+-- Depuis 20260731000000 (passage des vues de statut en security_invoker),
+-- une policy SELECT admin+même-org existe directement sur ces tables de
+-- base (le cloisonnement n'est plus assuré uniquement par la vue) : un
+-- admin voit désormais SA propre ligne (1), jamais celle d'une autre
+-- organisation, et un non-admin n'en voit toujours aucune. Re-testé en
+-- détail (y compris write toujours refusé) dans correction-09.
+SELECT pg_temp.assert_visible_count('google_ads_connections — admin A (même org, propriétaire de la ligne)', '10000000-0000-0000-0000-00000000a001'::uuid, 'SELECT count(*) FROM public.google_ads_connections', 1);
 SELECT pg_temp.assert_visible_count('google_ads_connections — assistant A', '10000000-0000-0000-0000-00000000a002'::uuid, 'SELECT count(*) FROM public.google_ads_connections', 0);
 SELECT pg_temp.assert_visible_count('google_ads_connections — intervenant A', '10000000-0000-0000-0000-00000000a003'::uuid, 'SELECT count(*) FROM public.google_ads_connections', 0);
 SELECT pg_temp.assert_visible_count('google_ads_connections — admin B (autre org)', '10000000-0000-0000-0000-00000000b001'::uuid, 'SELECT count(*) FROM public.google_ads_connections', 0);
-SELECT pg_temp.assert_visible_count('gbp_connections — admin A (même org, propriétaire de la ligne)', '10000000-0000-0000-0000-00000000a001'::uuid, 'SELECT count(*) FROM public.gbp_connections', 0);
+SELECT pg_temp.assert_visible_count('gbp_connections — admin A (même org, propriétaire de la ligne)', '10000000-0000-0000-0000-00000000a001'::uuid, 'SELECT count(*) FROM public.gbp_connections', 1);
 SELECT pg_temp.assert_visible_count('google_oauth_events — admin A', '10000000-0000-0000-0000-00000000a001'::uuid, 'SELECT count(*) FROM public.google_oauth_events', 0);
 -- vault.decrypted_secrets : accordé UNIQUEMENT à service_role (vérifié
 -- statiquement par ailleurs) — confirmation comportementale ici : même un
@@ -320,7 +331,7 @@ SELECT pg_temp.assert_write_denied('gbp_reviews UPDATE confirmation — assistan
 SELECT pg_temp.assert_write_denied('gbp_reviews UPDATE — admin B tentant de modifier un avis d''org A (cross-tenant)', '10000000-0000-0000-0000-00000000b001'::uuid,
   $sql$UPDATE public.gbp_reviews SET match_confidence = 'confirmed' WHERE organisation_id = '10000000-0000-0000-0000-0000000000a1'$sql$);
 
-DO $$ BEGIN RAISE NOTICE '=== SCÉNARIO 5 — review_requests : lecture admin+assistant, insertion STRICTEMENT liée au workflow de facture envoyée ==='; END $$;
+DO $$ BEGIN RAISE NOTICE '=== SCÉNARIO 5 — review_requests : lecture admin+assistant, insertion STRICTEMENT liée au workflow de facture PAYÉE (statut_paiement=payee, depuis 20260804000000) ==='; END $$;
 
 SELECT pg_temp.assert_visible_count('review_requests — admin A', '10000000-0000-0000-0000-00000000a001'::uuid, 'SELECT count(*) FROM public.review_requests', 1);
 SELECT pg_temp.assert_visible_count('review_requests — assistant A', '10000000-0000-0000-0000-00000000a002'::uuid, 'SELECT count(*) FROM public.review_requests', 1);
@@ -338,7 +349,7 @@ SELECT pg_temp.assert_write_denied('review_requests INSERT — intervenant A SAN
   $sql$INSERT INTO public.review_requests (organisation_id, facture_id, client_id, created_by) VALUES ('10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000f004', '10000000-0000-0000-0000-00000000c001', '10000000-0000-0000-0000-00000000a003')$sql$);
 
 -- --- cas refusés : hors du workflow de facture autorisé (le cœur de la demande) ---
-SELECT pg_temp.assert_write_denied('review_requests INSERT — admin A, facture f005 JAMAIS ENVOYÉE (envoyee_le IS NULL) : refusé même pour un admin', '10000000-0000-0000-0000-00000000a001'::uuid,
+SELECT pg_temp.assert_write_denied('review_requests INSERT — admin A, facture f005 JAMAIS PAYÉE (statut_paiement=impayee) : refusé même pour un admin', '10000000-0000-0000-0000-00000000a001'::uuid,
   $sql$INSERT INTO public.review_requests (organisation_id, facture_id, client_id, created_by) VALUES ('10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000f005', '10000000-0000-0000-0000-00000000c001', '10000000-0000-0000-0000-00000000a001')$sql$);
 SELECT pg_temp.assert_write_denied('review_requests INSERT — admin A, client_id ne correspond PAS au client réel de la facture (anti-mismatch)', '10000000-0000-0000-0000-00000000a001'::uuid,
   $sql$INSERT INTO public.review_requests (organisation_id, facture_id, client_id, created_by) VALUES ('10000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-00000000f002', '10000000-0000-0000-0000-00000000c001', '10000000-0000-0000-0000-00000000a001')$sql$);

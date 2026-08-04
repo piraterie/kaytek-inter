@@ -68,6 +68,21 @@ INSERT INTO public.gbp_connections (
   'Agence Centre', '12 rue Test, 75001, Paris, FR', 'OPEN', 'connected', '30000000-0000-0000-0000-00000000a001', now(), now(), '30000000-0000-0000-0000-00000000a001'
 );
 
+CREATE OR REPLACE FUNCTION pg_temp.assert_visible_count(p_label text, p_uid uuid, p_sql text, p_expected bigint) RETURNS void AS $$
+DECLARE v_actual bigint;
+BEGIN
+  PERFORM set_config('request.jwt.claim.sub', p_uid::text, true);
+  SET LOCAL role = 'authenticated';
+  EXECUTE p_sql INTO v_actual;
+  RESET role;
+  IF v_actual IS DISTINCT FROM p_expected THEN
+    RAISE EXCEPTION 'ÉCHEC [%] — attendu %, obtenu %', p_label, p_expected, v_actual;
+  ELSE
+    RAISE NOTICE 'OK [%] — %', p_label, v_actual;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION pg_temp.assert_select_denied(p_label text, p_uid uuid, p_sql text) RETURNS void AS $$
 DECLARE v_count bigint; v_denied boolean := false; v_sqlstate text := 'n/a';
 BEGIN
@@ -111,9 +126,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DO $$ BEGIN RAISE NOTICE '=== SCÉNARIO 1 — tables de connexion : les nouvelles colonnes de sélection restent deny-all pour authenticated (admin inclus) ==='; END $$;
+DO $$ BEGIN RAISE NOTICE '=== SCÉNARIO 1 — tables de connexion : les nouvelles colonnes de sélection restent en LECTURE admin-only (même org, voir correction-06/09) et toujours en ÉCRITURE deny-all pour authenticated (admin inclus) ==='; END $$;
 
-SELECT pg_temp.assert_select_denied('google_ads_connections (base, avec sélection) — admin A, même org', '30000000-0000-0000-0000-00000000a001'::uuid, 'SELECT count(*) FROM public.google_ads_connections');
+-- Depuis 20260731000000, admin A voit désormais SA propre ligne (1) en
+-- lecture directe sur la table de base — l'écriture directe (contournement
+-- de google-select-connection), elle, reste refusée, testée juste après.
+SELECT pg_temp.assert_visible_count('google_ads_connections (base, avec sélection) — admin A, même org', '30000000-0000-0000-0000-00000000a001'::uuid, 'SELECT count(*) FROM public.google_ads_connections', 1);
 SELECT pg_temp.assert_write_denied('google_ads_connections UPDATE sélection — admin A tente d''écrire directement (contournement de google-select-connection)', '30000000-0000-0000-0000-00000000a001'::uuid,
   $sql$UPDATE public.google_ads_connections SET google_customer_id = '9999999999' WHERE organisation_id = '30000000-0000-0000-0000-0000000000a1'$sql$);
 SELECT pg_temp.assert_write_denied('gbp_connections UPDATE sélection — admin A tente d''écrire directement', '30000000-0000-0000-0000-00000000a001'::uuid,
