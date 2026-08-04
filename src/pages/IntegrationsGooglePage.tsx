@@ -31,7 +31,7 @@ const STATUS_LABEL: Record<string, string> = {
 const ADS_ERROR_LABEL: Record<AdsAccountsErrorReason, string> = {
   not_connected: 'Connectez d\'abord un compte Google.',
   needs_reconnect: 'La connexion a expiré — reconnectez-vous à Google.',
-  developer_token_missing: 'L\'accès à l\'API Google Ads n\'est pas encore configuré côté Kaytek. Contactez le support.',
+  developer_token_missing: 'Google Ads n\'est pas encore configuré par l\'administrateur de la plateforme.',
   developer_token_unapproved: 'L\'accès à l\'API Google Ads n\'est pas encore approuvé par Google pour ce compte.',
   api_not_enabled: 'L\'API Google Ads n\'est pas activée pour ce compte Google.',
   insufficient_permission: 'Ce compte Google n\'a pas les droits suffisants sur les comptes Google Ads demandés.',

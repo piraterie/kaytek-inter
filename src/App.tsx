@@ -35,8 +35,13 @@ const GuideFAQPage = lazy(() => import('@/pages/guide/GuideFAQPage'))
 const GuideAdminVideosPage = lazy(() => import('@/pages/guide/GuideAdminVideosPage'))
 const PartenairesPage = lazy(() => import('@/pages/PartenairesPage'))
 const IntegrationsGooglePage = lazy(() => import('@/pages/IntegrationsGooglePage'))
+const GoogleAdsPage = lazy(() => import('@/pages/GoogleAdsPage'))
+const GoogleReviewsPage = lazy(() => import('@/pages/GoogleReviewsPage'))
+const GooglePerformancePage = lazy(() => import('@/pages/GooglePerformancePage'))
+const GoogleReviewRequestsPage = lazy(() => import('@/pages/GoogleReviewRequestsPage'))
 const PublicDocumentPage = lazy(() => import('@/pages/PublicDocumentPage'))
 const ConfidentialitePage = lazy(() => import('@/pages/ConfidentialitePage'))
+const ReviewUnsubscribePage = lazy(() => import('@/pages/ReviewUnsubscribePage'))
 const DeleteAccountPage = lazy(() => import('@/pages/DeleteAccountPage'))
 
 function Guard({ children, adminOnly = false, requireCanCreateDocs = false, allowedRoles }: {
@@ -286,6 +291,7 @@ export default function App() {
       <Route path="/activation" element={<ActivationPage />} />
       <Route path="/d/:token" element={<PublicDocumentPage />} />
       <Route path="/confidentialite" element={<ConfidentialitePage />} />
+      <Route path="/desinscription-avis" element={<ReviewUnsubscribePage />} />
       <Route path="/delete-account" element={<DeleteAccountPage />} />
       <Route path="/" element={<Guard><AppLayout /></Guard>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
@@ -308,6 +314,10 @@ export default function App() {
         <Route path="utilisateurs" element={<Guard adminOnly><UsersPage /></Guard>} />
         <Route path="parametres" element={<Guard adminOnly><ParamsPage /></Guard>} />
         <Route path="parametres/integrations" element={<Guard adminOnly><IntegrationsGooglePage /></Guard>} />
+        <Route path="google-ads" element={<Guard adminOnly><GoogleAdsPage /></Guard>} />
+        <Route path="avis-google" element={<Guard adminOnly><GoogleReviewsPage /></Guard>} />
+        <Route path="performances-google" element={<Guard adminOnly><GooglePerformancePage /></Guard>} />
+        <Route path="demandes-avis" element={<Guard adminOnly><GoogleReviewRequestsPage /></Guard>} />
         <Route path="journal" element={<Guard adminOnly><JournalPage /></Guard>} />
         {/* ── Guide d'utilisation ─────────────────────────────────────── */}
         <Route path="guide" element={<Guard allowedRoles={['admin','intervenant']}><GuidePage /></Guard>} />

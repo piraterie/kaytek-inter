@@ -8,7 +8,16 @@ export default defineConfig({
     react(),
     VitePWA({
       strategies: 'generateSW',
-      registerType: 'autoUpdate',
+      // 'prompt' + injectRegister: false — l'enregistrement du service worker
+      // est fait explicitement par src/components/UpdateBanner.tsx (hook
+      // `virtual:pwa-register/react`), qui affiche une bannière "Actualiser
+      // maintenant" au lieu de recharger la page à l'improviste (mode
+      // 'autoUpdate' d'origine) — un rechargement forcé et silencieux pourrait
+      // faire perdre une saisie en cours (devis/facture non enregistré).
+      // L'auto-injection du script `registerSW.js` dans index.html est
+      // désactivée pour éviter un double enregistrement du service worker.
+      registerType: 'prompt',
+      injectRegister: false,
       workbox: {
         importScripts: ['/push-sw.js'],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],

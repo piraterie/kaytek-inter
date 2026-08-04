@@ -46,6 +46,13 @@ export interface ParametresEntreprise {
   signature_dirigeant_url?: string; modele_pdf_defaut: number
   email_envoi_devis: boolean; email_relance_facture: boolean
   email_paiement_recu: boolean; email_new_intervention: boolean; updated_at: string
+  avis_google_actif?: boolean
+  avis_google_mode?: 'manuel' | 'automatique'
+  avis_google_delai?: 'immediat' | '1h' | '24h' | '48h' | 'personnalise'
+  avis_google_delai_minutes?: number | null
+  avis_google_message_template?: string
+  avis_google_relance_delai?: 'jamais' | '30j' | '60j' | '90j' | 'personnalise'
+  avis_google_relance_jours_personnalise?: number | null
 }
 
 // Sous-ensemble non sensible de ParametresEntreprise (vue

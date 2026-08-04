@@ -8,6 +8,8 @@ import {
 import { useFactures, useUpdateFacture, useDeleteFacture, useDeleteAllFactures, useParametres, usePublicParametres, useCreatePublicLink, notifyAdmins, REQUIRED_PARAMS } from '@/lib/hooks'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
+import ReviewRequestPromptModal from '@/components/ReviewRequestPromptModal'
+import { useCreateReviewRequest } from '@/lib/hooks/googleReviewRequests'
 import { pdfCache } from '@/lib/pdf/cache'
 import { supabase } from '@/lib/supabase/client'
 import { envoyerEmail } from '@/lib/supabase/auth'
@@ -46,9 +48,11 @@ export default function FacturesPage() {
   const upd = useUpdateFacture()
   const del = useDeleteFacture()
   const delAll = useDeleteAllFactures()
+  const createReviewRequest = useCreateReviewRequest()
 
   const [filterStatut, setFilterStatut] = useState('tous')
   const [search, setSearch] = useState('')
+  const [reviewPrompt, setReviewPrompt] = useState<{ factureId: string; clientId: string } | null>(null)
   const [payModal, setPayModal] = useState<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; action: () => void } | null>(null)
   const [sendingEmailId, setSendingEmailId] = useState<string | null>(null)
@@ -88,11 +92,46 @@ export default function FacturesPage() {
   }
   function exitSelection() { setSelected(new Set()); setSelectionMode(false) }
 
+  // Déclenché après CHAQUE passage réel d'une facture au statut 'payee' —
+  // n'agit que si les demandes d'avis sont activées dans les paramètres et
+  // que la facture a un client rattaché. Mode manuel → propose une
+  // confirmation (modal) ; mode automatique → programme silencieusement
+  // selon le délai configuré (aucun envoi si le client n'a pas d'e-mail,
+  // garde-fou appliqué côté base — voir trg_review_requests_require_email).
+  async function maybeOfferReviewRequest(f: Facture) {
+    // Canal e-mail uniquement : un client sans adresse ne peut recevoir
+    // aucune demande d'avis, quel que soit le mode — inutile de proposer
+    // la modale (mode manuel) ou de tenter un INSERT voué à l'échec (mode
+    // automatique, le trigger DB le refuserait de toute façon).
+    if (!params?.avis_google_actif || !f.client_id || !f.client?.email) return
+    if (params.avis_google_mode === 'automatique') {
+      try {
+        await createReviewRequest.mutateAsync({
+          factureId: f.id, clientId: f.client_id,
+          delai: params.avis_google_delai || 'immediat', delaiMinutes: params.avis_google_delai_minutes,
+        })
+      } catch (e: any) {
+        // Fréquence/désinscription : blocage attendu et normal, affiché
+        // clairement (pas une erreur applicative) — pas de toast pour les
+        // autres cas silencieux (établissement GBP non sélectionné, etc.),
+        // qui restent non bloquants pour ne pas interrompre le flux de
+        // paiement pour un réglage encore incomplet.
+        const msg = String(e?.message || '')
+        if (msg.includes('FREQUENCE_BLOQUEE')) add('Demande d\'avis non envoyée — ce client a déjà été sollicité récemment (réglage de fréquence).', 'warning')
+        else if (msg.includes('CLIENT_DESABONNE')) add('Demande d\'avis non envoyée — ce client s\'est désinscrit.', 'warning')
+      }
+    } else {
+      setReviewPrompt({ factureId: f.id, clientId: f.client_id })
+    }
+  }
+
   async function markPaid(id: string, mode: string) {
     try {
       await upd.mutateAsync({ id, statut_paiement: 'payee', mode_paiement: mode as any, date_paiement: new Date().toISOString() })
       add('Facture marquée payée')
       setPayModal(null)
+      const f = factures.find(x => x.id === id)
+      if (f) void maybeOfferReviewRequest(f)
     } catch (e: any) { add(e.message, 'error') }
   }
 
@@ -101,6 +140,7 @@ export default function FacturesPage() {
       await upd.mutateAsync({ id: f.id, statut_paiement: 'payee', date_paiement: new Date().toISOString() })
       await notifyAdmins('💶 Facture marquée payée', `${user?.prenom || ''} ${user?.nom || ''} a marqué la facture ${f.numero} comme payée.`, '/factures')
       add('Facture marquée comme payée')
+      void maybeOfferReviewRequest(f)
     } catch (e: any) { add(e.message, 'error') }
   }
 
@@ -249,6 +289,7 @@ export default function FacturesPage() {
     try {
       await upd.mutateAsync({ id: f.id, statut_paiement: 'payee', date_paiement: new Date().toISOString() })
       await handleEmail({ ...f, statut_paiement: 'payee', date_paiement: new Date().toISOString() })
+      void maybeOfferReviewRequest(f)
     } catch (e: any) { add(e.message, 'error') }
   }
 
@@ -779,6 +820,16 @@ export default function FacturesPage() {
           message={confirmDialog.message}
           onConfirm={confirmDialog.action}
           onCancel={() => setConfirmDialog(null)}
+        />
+      )}
+
+      {reviewPrompt && params && (
+        <ReviewRequestPromptModal
+          factureId={reviewPrompt.factureId}
+          clientId={reviewPrompt.clientId}
+          defaultDelai={params.avis_google_delai || 'immediat'}
+          defaultDelaiMinutes={params.avis_google_delai_minutes}
+          onClose={() => setReviewPrompt(null)}
         />
       )}
 

@@ -1,6 +1,6 @@
 // src/pages/ParamsPage.tsx
 import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react'
-import { CheckCircle2, Building2, Scale, FileText, Upload, Loader2, Save } from 'lucide-react'
+import { CheckCircle2, Building2, Scale, FileText, Upload, Loader2, Save, Star } from 'lucide-react'
 import { useParametres, useUpdateParametres, REQUIRED_PARAMS } from '@/lib/hooks'
 import { useToastStore, useParamsStore, useAuthStore } from '@/lib/store'
 import { uploadLogo } from '@/lib/supabase/storage'
@@ -224,6 +224,100 @@ export default function ParamsPage() {
             style={{ minHeight:100 }}
             placeholder="Conditions de paiement, mentions légales…"
           />
+        </div>
+
+        {/* ── Section : Demandes d'avis Google ─────────── */}
+        <div className="params-section-label">Demandes d'avis Google</div>
+        <div className="card card-body mb-4">
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14, paddingBottom:12, borderBottom:'1px solid var(--b0)' }}>
+            <span style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--amBg)', color: 'var(--amTx)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Star size={16} /></span>
+            <div>
+              <div style={{ fontSize:13, fontWeight:700, color:'var(--t0)' }}>Demandes d'avis après paiement</div>
+              <div style={{ fontSize:11, color:'var(--t3)', marginTop:1 }}>E-mail uniquement — nécessite un établissement Google Business Profile connecté</div>
+            </div>
+          </div>
+
+          <div className="param-field-row">
+            <div style={{ fontSize:13, fontWeight:500, color:'var(--t0)' }}>Activer les demandes d'avis</div>
+            <label style={{ display:'inline-flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+              <input type="checkbox" checked={!!form.avis_google_actif} onChange={e => setForm((f:any) => ({...f, avis_google_actif: e.target.checked}))} style={{ width:18, height:18, accentColor:'var(--bl)' }} />
+              {form.avis_google_actif ? 'Activé' : 'Désactivé'}
+            </label>
+          </div>
+
+          {form.avis_google_actif && (
+            <>
+              <div className="param-field-row">
+                <div style={{ fontSize:13, fontWeight:500, color:'var(--t0)' }}>Mode</div>
+                <select className="param-field-input" value={form.avis_google_mode ?? 'manuel'} onChange={e => setForm((f:any) => ({...f, avis_google_mode: e.target.value}))} style={{ maxWidth:220 }}>
+                  <option value="manuel">Manuel — confirmation à chaque facture</option>
+                  <option value="automatique">Automatique</option>
+                </select>
+              </div>
+
+              <div className="param-field-row">
+                <div style={{ fontSize:13, fontWeight:500, color:'var(--t0)' }}>Délai d'envoi</div>
+                <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+                  <select className="param-field-input" value={form.avis_google_delai ?? 'immediat'} onChange={e => setForm((f:any) => ({...f, avis_google_delai: e.target.value}))} style={{ maxWidth:180 }}>
+                    <option value="immediat">Immédiatement</option>
+                    <option value="1h">1 heure</option>
+                    <option value="24h">24 heures</option>
+                    <option value="48h">2 jours</option>
+                    <option value="personnalise">Personnalisé</option>
+                  </select>
+                  {form.avis_google_delai === 'personnalise' && (
+                    <>
+                      <input
+                        type="number" min={1} className="param-field-input" style={{ maxWidth:100 }}
+                        value={form.avis_google_delai_minutes ?? ''}
+                        onChange={e => setForm((f:any) => ({...f, avis_google_delai_minutes: e.target.value ? Number(e.target.value) : null}))}
+                      />
+                      <span style={{ fontSize:12, color:'var(--t3)' }}>minutes</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="param-field-row">
+                <div style={{ fontSize:13, fontWeight:500, color:'var(--t0)' }}>Fréquence minimale entre deux demandes</div>
+                <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+                  <select className="param-field-input" value={form.avis_google_relance_delai ?? '90j'} onChange={e => setForm((f:any) => ({...f, avis_google_relance_delai: e.target.value}))} style={{ maxWidth:200 }}>
+                    <option value="jamais">Ne jamais relancer</option>
+                    <option value="30j">30 jours</option>
+                    <option value="60j">60 jours</option>
+                    <option value="90j">90 jours</option>
+                    <option value="personnalise">Personnalisé</option>
+                  </select>
+                  {form.avis_google_relance_delai === 'personnalise' && (
+                    <>
+                      <input
+                        type="number" min={1} className="param-field-input" style={{ maxWidth:100 }}
+                        value={form.avis_google_relance_jours_personnalise ?? ''}
+                        onChange={e => setForm((f:any) => ({...f, avis_google_relance_jours_personnalise: e.target.value ? Number(e.target.value) : null}))}
+                      />
+                      <span style={{ fontSize:12, color:'var(--t3)' }}>jours</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div style={{ fontSize:11, color:'var(--t3)', marginTop:-4, marginBottom:4 }}>
+                Un même client ne recevra jamais deux demandes d'avis (toutes factures confondues) avant ce délai — vérifié côté serveur, pas seulement dans cet écran.
+              </div>
+
+              <div style={{ padding:'10px 0 4px' }}>
+                <div style={{ fontSize:12, fontWeight:600, color:'var(--t1)', marginBottom:6 }}>Modèle du message</div>
+                <textarea
+                  value={form.avis_google_message_template ?? ''}
+                  onChange={e => setForm((f:any) => ({...f, avis_google_message_template: e.target.value}))}
+                  style={{ minHeight:80 }}
+                  placeholder="Bonjour {{prenom}}, merci pour votre confiance ! {{lien_avis}}"
+                />
+                <div style={{ fontSize:11, color:'var(--t3)', marginTop:4 }}>
+                  Variables disponibles : <code>{'{{prenom}}'}</code> (prénom du client), <code>{'{{lien_avis}}'}</code> (lien officiel vers votre fiche Google).
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* ── Légende champs obligatoires ──────────────── */}

@@ -8,7 +8,7 @@ import {
   ChevronLeft, ChevronRight, LogOut, Sun, Moon, BookOpen,
   MessageCircle, Bell, Menu, User, Smartphone, Monitor, X,
   CheckCheck, Trash2, ChevronUp, ChevronDown, AlertTriangle,
-  CheckCircle2, XCircle, Info, Link2,
+  CheckCircle2, XCircle, Info, Link2, Megaphone, Star, Activity, Send,
 } from 'lucide-react'
 import KaytekLogo from '@/components/KaytekLogo'
 import WelcomeModal from '@/components/WelcomeModal'
@@ -19,6 +19,7 @@ import { useUnreadCount, useUpdateProfile, useIsMobile, useRequestNotificationPe
 import { getMyDevices, disconnectDevice, disconnectAllOtherDevices, isCurrentDevice, type DeviceRecord } from '@/lib/devices'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 import OfflineBanner from '@/components/OfflineBanner'
+import UpdateBanner from '@/components/UpdateBanner'
 import type { Role } from '@/types'
 
 type NavIcon = React.ComponentType<{ size?: number | string; strokeWidth?: number | string; style?: React.CSSProperties }>
@@ -38,6 +39,10 @@ const NAV: { path: string; label: string; icon: NavIcon; section: string; adminO
   { path: '/utilisateurs',  label: 'Utilisateurs',  icon: Shield,          section: 'Administration', adminOnly: true },
   { path: '/parametres',    label: 'Paramètres',    icon: Settings,        section: 'Administration', adminOnly: true },
   { path: '/parametres/integrations', label: 'Connexion Google', icon: Link2, section: 'Administration', adminOnly: true },
+  { path: '/google-ads',       label: 'Google Ads',    icon: Megaphone,       section: 'Administration', adminOnly: true },
+  { path: '/avis-google',      label: 'Avis Google',   icon: Star,            section: 'Administration', adminOnly: true },
+  { path: '/performances-google', label: 'Performances GBP', icon: Activity,  section: 'Administration', adminOnly: true },
+  { path: '/demandes-avis',    label: "Demandes d'avis", icon: Send,          section: 'Administration', adminOnly: true },
   { path: '/journal',       label: 'Journal',       icon: ClipboardList,   section: 'Administration', adminOnly: true },
 ]
 const SECTIONS = ['Pilotage', 'Terrain', 'Gestion', 'Administration']
@@ -687,6 +692,8 @@ export default function AppLayout() {
             <button onClick={toggleTheme} className="btn-icon">{theme === 'dark' ? <Sun size={17} strokeWidth={1.6} /> : <Moon size={17} strokeWidth={1.6} />}</button>
           </div>
         </header>
+        {/* Bannière nouvelle version disponible (service worker en attente) */}
+        <UpdateBanner />
         {/* Bannière hors ligne / sync en attente */}
         <OfflineBanner />
         {/* Bannière paramètres incomplets — admin seulement */}

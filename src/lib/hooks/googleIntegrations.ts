@@ -20,7 +20,7 @@ const orgId = () => useAuthStore.getState().user?.organisation_id
 // appel sans header Authorization (rejeté par la gateway Supabase avec
 // UNAUTHORIZED_NO_AUTH_HEADER). On récupère donc explicitement la session
 // courante et on force le header Authorization à chaque appel.
-async function invokeGoogleFunction<T>(
+export async function invokeGoogleFunction<T>(
   name: string, body?: Record<string, unknown>,
 ): Promise<{ data: T | null; error: Error | null }> {
   const { data: { session } } = await supabase.auth.getSession()
@@ -59,6 +59,9 @@ export interface GoogleConnectionInfo {
   location_title?: string | null
   location_address?: string | null
   location_open_status?: string | null
+  place_id?: string | null
+  location_phone?: string | null
+  location_website?: string | null
 }
 
 // ── Découverte et sélection de comptes (Phase 3) ─────────────────────────
@@ -93,6 +96,8 @@ export interface GbpLocationInfo {
   phone: string | null
   openStatus: string | null
   mapsUri: string | null
+  websiteUri: string | null
+  placeId: string | null
   verificationStatus: 'unknown'
 }
 
