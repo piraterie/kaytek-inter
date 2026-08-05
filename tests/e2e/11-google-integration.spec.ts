@@ -7,8 +7,13 @@
 // accounts.google.com (voir 05-signature.spec.ts / autres suites pour le
 // pattern équivalent sur d'autres intégrations externes). Le statut de
 // connexion affiché dépend du backend local (Edge Function
-// google-oauth-status) — non connecté par défaut sur un environnement de
-// test fraîchement provisionné.
+// google-oauth-status) — DEPUIS l'introduction de
+// scripts/seed-local-test-accounts.mjs (finalisation Ads/GBP), l'admin A
+// dispose de connexions Google Ads/GBP MOCK déjà "connectées" (aucun token
+// réel — voir le script de seed) afin que les pages avis/stats/dashboard
+// aient des données à afficher dans tests/e2e/12-google-reviews-integration.spec.ts.
+// Ce fichier vérifie donc désormais l'état CONNECTÉ (réaliste, pas un faux
+// statut vide), pas l'état déconnecté par défaut.
 import { test, expect } from '@playwright/test'
 
 const ADMIN_AUTH = 'tests/.auth/admin.json'
@@ -44,10 +49,15 @@ test.describe('Connexion Google — admin', () => {
     await expect(page.getByText(/google business profile/i).first()).toBeVisible()
   })
 
-  test('état non connecté (par défaut) : boutons de connexion visibles, jamais un faux statut "Connecté"', async ({ page }) => {
+  test('état connecté (seed mock) : statut réel affiché avec les données du compte, jamais un statut vide/générique', async ({ page }) => {
     await page.goto('/parametres/integrations')
-    await expect(page.getByRole('button', { name: /connecter google ads/i })).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByRole('button', { name: /connecter google business profile/i })).toBeVisible()
+    // Deux occurrences de "Connecté" (Ads + GBP) — le statut n'est jamais
+    // affiché sans les métadonnées associées (compte/établissement réels
+    // du seed), ce qui exclurait un statut "Connecté" fabriqué côté UI
+    // sans donnée serveur correspondante.
+    await expect(page.getByText('Connecté', { exact: true }).first()).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/Compte Ads Test/)).toBeVisible()
+    await expect(page.getByText('Établissement Test')).toBeVisible()
   })
 
   test('aucune erreur console critique sur la page', async ({ page }) => {

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // scripts/run-deno-tests.mjs
 // Exécuteur Node portable (Windows/Linux/macOS) des tests Deno des Edge
-// Functions (supabase/functions/_shared/*.test.ts).
+// Functions (supabase/functions/_shared/*.test.ts, et le handler
+// google-oauth-callback).
 //
 // Pourquoi un wrapper et pas un simple `deno test supabase/functions/_shared/` :
 // google-ads-api-no-devtoken.test.ts vérifie le comportement quand
@@ -36,24 +37,54 @@ const SHARED_DIR = 'supabase/functions/_shared'
 const STANDARD_TEST_FILES = [
   'google-oauth-state.test.ts',
   'google-oauth-refresh.test.ts',
+  'google-oauth-auth.test.ts',
   'google-business-api.test.ts',
   'google-ads-api.test.ts',
-]
+].map((f) => path.posix.join(SHARED_DIR, f))
 
-const NO_DEVTOKEN_TEST_FILE = 'google-ads-api-no-devtoken.test.ts'
+const NO_DEVTOKEN_TEST_FILE = path.posix.join(SHARED_DIR, 'google-ads-api-no-devtoken.test.ts')
+
+// Tests des handlers hors _shared/ (chemins complets, pas de join sur
+// SHARED_DIR) :
+//  - google-oauth-callback : branches de rejet précoce (consentement
+//    refusé, paramètres manquants, state invalide/expiré) ;
+//  - google-select-connection : régression sur le bug corrigé lors de
+//    l'audit du 2026-08-04 — la validation de locationResourceName
+//    rejetait TOUJOURS une sélection Business Profile légitime.
+const CALLBACK_TEST_FILE = 'supabase/functions/google-oauth-callback/index.test.ts'
+const SELECT_CONNECTION_TEST_FILE = 'supabase/functions/google-select-connection/index.test.ts'
+
+// Handlers publics de la fréquence/désinscription/webhook Brevo (2026-08-05) :
+//  - google-brevo-webhook : secret erroné rejeté, hard bounce/plainte
+//    créent bien une suppression scopée à l'organisation d'origine ;
+//  - google-review-unsubscribe : token opaque valide/invalide/expiré,
+//    idempotence de la confirmation, GET jamais destructif.
+const BREVO_WEBHOOK_TEST_FILE = 'supabase/functions/google-brevo-webhook/index.test.ts'
+const REVIEW_UNSUBSCRIBE_TEST_FILE = 'supabase/functions/google-review-unsubscribe/index.test.ts'
 
 // Valeurs factices — jamais un secret réel, uniquement des chaînes lues par
 // les mocks des tests pour emprunter le chemin "developer token présent".
+// SUPABASE_URL/ANON_KEY/SERVICE_ROLE_KEY sont toujours forcées ici (jamais
+// héritées de l'environnement de l'exécutant, même si un vrai projet y est
+// configuré) : google-oauth-auth.test.ts intercepte tout fetch vers ces
+// URLs, un vrai SUPABASE_URL de production romprait cette isolation en cas
+// de mock manquant/incomplet.
 const FAKE_TEST_ENV = {
   GOOGLE_ADS_DEVELOPER_TOKEN: 'test-dev-token',
   GOOGLE_OAUTH_CLIENT_ID: 'test-client-id',
+  GOOGLE_OAUTH_CLIENT_SECRET: 'test-client-secret',
+  GOOGLE_OAUTH_REDIRECT_URI: 'https://example.local/callback',
+  GOOGLE_OAUTH_STATE_SECRET: 'test-state-secret',
+  SUPABASE_URL: 'http://localhost:54321',
+  SUPABASE_ANON_KEY: 'test-anon-key',
+  SUPABASE_SERVICE_ROLE_KEY: 'test-service-key',
 }
 
 function runDeno(label, files, env) {
   console.log(`[test:deno] ${label}...`)
   const result = spawnSync(
     'deno',
-    ['test', '--allow-env', ...files.map((f) => path.posix.join(SHARED_DIR, f))],
+    ['test', '--allow-env', ...files],
     {
       stdio: ['inherit', 'inherit', 'inherit'],
       env,
@@ -92,8 +123,12 @@ function main() {
 
   const okStandard = runDeno('suite standard (Google OAuth state/refresh/Ads/Business)', STANDARD_TEST_FILES, standardEnv)
   const okNoDevToken = runDeno('scénario developer token absent (isolé)', [NO_DEVTOKEN_TEST_FILE], noDevTokenEnv)
+  const okCallback = runDeno('google-oauth-callback (rejets précoces)', [CALLBACK_TEST_FILE], standardEnv)
+  const okSelectConnection = runDeno('google-select-connection (régression sélection GBP)', [SELECT_CONNECTION_TEST_FILE], standardEnv)
+  const okBrevoWebhook = runDeno('google-brevo-webhook (secret, bounce/plainte)', [BREVO_WEBHOOK_TEST_FILE], standardEnv)
+  const okReviewUnsubscribe = runDeno('google-review-unsubscribe (token opaque valide/invalide/expiré)', [REVIEW_UNSUBSCRIBE_TEST_FILE], standardEnv)
 
-  if (!okStandard || !okNoDevToken) {
+  if (!okStandard || !okNoDevToken || !okCallback || !okSelectConnection || !okBrevoWebhook || !okReviewUnsubscribe) {
     process.exit(1)
   }
   console.log('[test:deno] OK — toutes les suites Deno ont réussi.')
