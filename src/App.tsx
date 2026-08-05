@@ -18,6 +18,8 @@ const InterventionDetailPage = lazy(() => import('@/pages/InterventionDetailPage
 const DevisPage = lazy(() => import('@/pages/DevisPage'))
 const DevisFormPage = lazy(() => import('@/pages/DevisFormPage'))
 const FacturesPage = lazy(() => import('@/pages/FacturesPage'))
+const EcheanciersPage = lazy(() => import('@/pages/EcheanciersPage'))
+const ImpayesPage = lazy(() => import('@/pages/ImpayesPage'))
 const ClientsPage = lazy(() => import('@/pages/ClientsPage'))
 const ClientDetailPage = lazy(() => import('@/pages/ClientDetailPage'))
 const MessagingPage = lazy(() => import('@/pages/MessagingPage'))
@@ -304,6 +306,8 @@ export default function App() {
         <Route path="devis/:id/editer" element={<Guard adminOnly><DevisFormPage /></Guard>} />
         <Route path="devis/:id/apercu" element={<Guard allowedRoles={['admin','intervenant']}><DevisApercuPage /></Guard>} />
         <Route path="factures" element={<Guard allowedRoles={['admin','intervenant']}><FacturesPage /></Guard>} />
+        <Route path="echeanciers" element={<Guard allowedRoles={['admin','intervenant']}><EcheanciersPage /></Guard>} />
+        <Route path="impayes" element={<Guard allowedRoles={['admin','intervenant']}><ImpayesPage /></Guard>} />
         <Route path="clients" element={<Guard allowedRoles={['admin','assistant']}><ClientsPage /></Guard>} />
         <Route path="clients/:id" element={<Guard allowedRoles={['admin','assistant']}><ClientDetailPage /></Guard>} />
         <Route path="catalogue" element={<Guard adminOnly><CataloguePage /></Guard>} />

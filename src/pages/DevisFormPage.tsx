@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase/client'
 import { pdfCache } from '@/lib/pdf/cache'
 import { uploadPdf } from '@/lib/supabase/storage'
 import { CustomSelect } from '@/components/CustomSelect'
+import { ClientAutocomplete } from '@/components/ClientAutocomplete'
 import { AddressAutocomplete } from '@/components/AddressAutocomplete'
 import type { Categorie, LigneDevis } from '@/types'
 
@@ -406,11 +407,10 @@ export default function DevisFormPage() {
                     <label>Client</label>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       <div style={{ flex: 1 }}>
-                        <CustomSelect
+                        <ClientAutocomplete
+                          clients={clients}
                           value={form.client_id}
-                          placeholder="Sélectionner un client…"
-                          options={clients.map(c => ({ value: c.id, label: [c.nom, c.prenom].filter(Boolean).join(' ') + (c.telephone ? ` · ${c.telephone}` : '') }))}
-                          onChange={v => { setForm(f => ({ ...f, client_id: v })); if (v) setClientExpanded(false) }}
+                          onSelect={c => { setForm(f => ({ ...f, client_id: c?.id || '' })); if (c) setClientExpanded(false) }}
                         />
                       </div>
                       {canElevated && (
@@ -430,11 +430,10 @@ export default function DevisFormPage() {
               <label>Client <span className="req">*</span></label>
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <div style={{ flex: 1 }}>
-                  <CustomSelect
+                  <ClientAutocomplete
+                    clients={clients}
                     value={form.client_id}
-                    placeholder="Sélectionner un client…"
-                    options={clients.map(c => ({ value: c.id, label: [c.nom, c.prenom].filter(Boolean).join(' ') + (c.telephone ? ` · ${c.telephone}` : '') }))}
-                    onChange={v => setForm(f => ({ ...f, client_id: v }))}
+                    onSelect={c => setForm(f => ({ ...f, client_id: c?.id || '' }))}
                   />
                 </div>
                 {canElevated && (

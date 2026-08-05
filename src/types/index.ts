@@ -8,6 +8,16 @@ export type ModePaiement = 'cb'|'especes'|'virement'|'cheque'
 export type Categorie = 'serrurerie'|'vitrerie'|'plomberie'|'electricite'|'chauffagiste'
 export type TypePhoto = 'avant'|'apres'|'autre'
 
+// ── Échéanciers de paiement / acomptes ──────────────────────────────────────
+export type StatutEcheancier =
+  | 'brouillon' | 'a_facturer' | 'facture' | 'en_attente_paiement'
+  | 'paiement_partiel' | 'paye' | 'en_retard' | 'impaye' | 'annule'
+export type ModeRepartition = 'egale' | 'pourcentages' | 'montants'
+export type ModePaiementEcheance = 'cb'|'especes'|'virement'|'cheque'|'prelevement'|'paypal'|'autre'
+export type TypeRelanceEcheance =
+  | 'rappel_avant' | 'jour_echeance' | 'relance_1' | 'relance_2'
+  | 'mise_en_demeure' | 'confirmation_paiement'
+
 export interface Profile {
   id: string; role: Role; type_intervenant?: TypeIntervenant; nom: string; prenom: string; email: string
   telephone?: string; commission_pct: number; actif: boolean; can_create_documents?: boolean
@@ -53,6 +63,8 @@ export interface ParametresEntreprise {
   avis_google_message_template?: string
   avis_google_relance_delai?: 'jamais' | '30j' | '60j' | '90j' | 'personnalise'
   avis_google_relance_jours_personnalise?: number | null
+  delai_impaye_jours: number; rappel_defaut_actif: boolean
+  rappel_defaut_decalages: number[]; modeles_relance_echeance: Record<string, unknown>
 }
 
 // Sous-ensemble non sensible de ParametresEntreprise (vue
@@ -113,8 +125,53 @@ export interface Facture {
   montant_ht: number; tva_montant: number; montant_ttc: number; acompte_recu: number
   date_emission: string; date_echeance?: string; date_paiement?: string
   relance_1_le?: string; relance_2_le?: string; notes?: string; pdf_url?: string
+  type_facture?: 'classique' | 'acompte' | 'intermediaire' | 'solde' | 'avoir'
+  echeance_id?: string; facture_origine_id?: string
   created_by?: string; created_at: string; updated_at: string
   client?: Client; devis?: Devis
+}
+
+export interface Echeancier {
+  id: string; organisation_id: string; devis_id: string; client_id: string
+  montant_ht: number; tva_montant: number; montant_ttc: number
+  montant_paye: number; montant_restant: number
+  nombre_echeances: number; mode_repartition: ModeRepartition; statut: StatutEcheancier
+  note_interne?: string; note_visible_client: boolean
+  created_by?: string; created_at: string; updated_at: string
+  annule_le?: string; annule_par?: string; motif_annulation?: string
+  devis?: Devis; client?: Client; echeances?: Echeance[]
+}
+
+export interface Echeance {
+  id: string; organisation_id: string; echeancier_id: string; devis_id: string
+  facture_id?: string; client_id: string
+  numero_ordre: number; libelle: string; pourcentage: number
+  montant_ht: number; tva_montant: number; montant_ttc: number
+  date_prevue: string; montant_paye: number; montant_restant: number
+  statut: StatutEcheancier
+  rappel_actif: boolean; rappel_client_email: boolean
+  dernier_rappel_le?: string; prochain_rappel_le?: string; paye_le?: string
+  created_at: string; updated_at: string; annule_le?: string
+  facture?: Facture; paiements?: Paiement[]
+}
+
+export interface Paiement {
+  id: string; organisation_id: string; client_id: string
+  devis_id?: string; facture_id?: string; echeancier_id?: string; echeance_id?: string
+  montant: number; date_paiement: string; mode_paiement: ModePaiementEcheance
+  reference?: string; note?: string; piece_jointe_url?: string
+  created_by?: string; created_at: string; updated_at: string
+  deleted_at?: string; deleted_by?: string; motif_suppression?: string
+}
+
+export interface RelancePaiement {
+  id: string; organisation_id: string; client_id: string
+  echeancier_id: string; echeance_id: string; facture_id?: string
+  type_relance: TypeRelanceEcheance; canal: 'email' | 'interne'
+  decalage_jours?: number; prevu_le: string; envoye_le?: string
+  statut: 'planifie' | 'envoye' | 'echec' | 'annule'
+  destinataire?: string; objet?: string; message?: string; erreur_message?: string
+  cle_idempotence: string; created_by?: string; created_at: string
 }
 
 export interface Commission {

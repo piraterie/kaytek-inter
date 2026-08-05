@@ -216,6 +216,11 @@ async function main() {
   await upsertProfile({ id: adminBId, email: process.env.TEST_ADMIN_B_EMAIL, nom: 'Admin', prenom: 'B', role: 'admin', organisationId: orgBId })
   await ensureActiveSubscription(adminBId, orgBId)
 
+  if (process.env.TEST_ASSISTANT_A_EMAIL && process.env.TEST_ASSISTANT_A_PASSWORD) {
+    const assistantAId = await upsertUser(process.env.TEST_ASSISTANT_A_EMAIL, process.env.TEST_ASSISTANT_A_PASSWORD)
+    await upsertProfile({ id: assistantAId, email: process.env.TEST_ASSISTANT_A_EMAIL, nom: 'Assistant', prenom: 'A', role: 'assistant', organisationId: orgAId })
+  }
+
   // ── Données Google (Ads/GBP), client, facture payée — org A uniquement.
   // Org B reste volontairement SANS aucune donnée Google : les tests
   // d'isolation cross-org vérifient qu'admin B ne voit ni les connexions,
@@ -249,7 +254,7 @@ async function main() {
   await ensureMockGoogleAdsConnection(orgAId, '1234567890')
   await ensureMockGbpConnection(orgAId, 'ChIJ_TEST_PLACE_ID_LOCAL')
 
-  console.log('[seed-local] OK — admin A, intervenant A, admin B prêts (org A/B, abonnements actifs, clients + factures + connexions Google mock sur org A).')
+  console.log('[seed-local] OK — admin A, intervenant A, admin B (+ assistant A si défini) prêts (org A/B, abonnements actifs, clients + factures + connexions Google mock sur org A).')
 }
 
 main().catch((err) => { console.error('[seed-local] ÉCHEC —', err.message); process.exit(1) })

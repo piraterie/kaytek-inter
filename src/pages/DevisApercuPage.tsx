@@ -6,6 +6,7 @@ import { useAuthStore, useToastStore } from '@/lib/store'
 import SignatureModal from '@/components/SignatureModal'
 import EmailDevisModal from '@/components/EmailDevisModal'
 import { AddressAutocomplete } from '@/components/AddressAutocomplete'
+import EcheancierSection from '@/components/EcheancierSection'
 
 export default function DevisApercuPage() {
   const { id } = useParams<{ id: string }>()
@@ -509,6 +510,8 @@ export default function DevisApercuPage() {
           </div>
         </div>
       </div>
+
+      <EcheancierSection devis={devis} canManage={isAdmin || user?.can_create_documents === true} />
 
       {/* Barre d'action fixe mobile */}
       {hasMobileBar && (

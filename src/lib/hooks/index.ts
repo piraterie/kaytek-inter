@@ -998,7 +998,7 @@ export function useFactures(filters?: { statut?: string }) {
   return useQuery<Facture[]>({
     queryKey: ['factures', filters, user?.id],
     queryFn: async () => {
-      let q = supabase.from('factures').select('*, client:clients(id,nom,prenom,email,telephone), devis:devis(id,modele_id,activite,lignes,total_ht,tva_montant,remise_pct,remise_montant)').order('created_at', { ascending: false })
+      let q = supabase.from('factures').select('*, client:clients(id,nom,prenom,email,telephone), devis:devis(id,numero,modele_id,activite,lignes,total_ht,tva_montant,total_ttc,remise_pct,remise_montant)').order('created_at', { ascending: false })
       if (filters?.statut && filters.statut !== 'tous') q = q.eq('statut_paiement', filters.statut)
       const { data, error } = await q
       if (error) throw error; return (data || []) as any

@@ -18,6 +18,8 @@ const params: ParametresEntreprise = {
   email_envoi_devis: true, email_relance_facture: true,
   email_paiement_recu: true, email_new_intervention: true,
   updated_at: new Date().toISOString(),
+  delai_impaye_jours: 30, rappel_defaut_actif: true,
+  rappel_defaut_decalages: [-7, -3, -1, 0, 3, 7], modeles_relance_echeance: {},
 }
 
 function manyLignes(n: number): LigneDevis[] {

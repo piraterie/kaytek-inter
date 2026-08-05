@@ -5,6 +5,7 @@ import { test as base, expect, type Page } from '@playwright/test'
 const ADMIN_AUTH       = 'tests/.auth/admin.json'
 const INTERVENANT_AUTH = 'tests/.auth/intervenant.json'
 const ADMIN_B_AUTH     = 'tests/.auth/admin-b.json'
+const ASSISTANT_AUTH   = 'tests/.auth/assistant.json'
 
 // ── Admin org A ──────────────────────────────────────────────────────────────
 export const adminTest = base.extend<object>({
@@ -19,6 +20,11 @@ export const intervenantTest = base.extend<object>({
 // ── Admin org B (multi-tenant) ───────────────────────────────────────────────
 export const adminBTest = base.extend<object>({
   storageState: ADMIN_B_AUTH,
+})
+
+// ── Assistant org A (aucun accès financier — cf. SEC-01) ─────────────────────
+export const assistantTest = base.extend<object>({
+  storageState: ASSISTANT_AUTH,
 })
 
 // ── Non authentifié ──────────────────────────────────────────────────────────

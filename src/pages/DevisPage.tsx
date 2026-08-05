@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import {
   FileText, CheckCircle2, Euro, Search, X, FileSpreadsheet, CheckSquare,
   Trash2, Clock, AlertTriangle, Mail, Eye, Pencil, XCircle, Receipt,
-  Send, Copy, MoreHorizontal, User, ArrowLeft, BadgeCheck,
+  Send, Copy, MoreHorizontal, User, ArrowLeft, BadgeCheck, CalendarClock,
 } from 'lucide-react'
 import { useDevis, useDeleteDevis, useDeleteAllDevis, useDevisToFacture, useUpdateDevis, useParametres, useDuplicateDevis, notifyUser, REQUIRED_PARAMS } from '@/lib/hooks'
+import { useEcheanciersByDevisMap } from '@/lib/hooks/echeancier'
 import { useAuthStore, useToastStore, useParamsStore } from '@/lib/store'
 import ConfirmModal from '@/components/ConfirmModal'
 import EmailDevisModal from '@/components/EmailDevisModal'
+import EcheancierCreateModal from '@/components/EcheancierCreateModal'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
 import { exportDevisPremium } from '@/lib/exportPremium'
 import type { Devis } from '@/types'
@@ -62,11 +64,13 @@ export default function DevisPage() {
   const delAll = useDeleteAllDevis()
   const upd = useUpdateDevis()
   const dup = useDuplicateDevis()
+  const { data: echeanciersMap } = useEcheanciersByDevisMap()
 
   const [filterStatut, setFilterStatut] = useState('tous')
   const [search, setSearch] = useState('')
   const [showMobileActions, setShowMobileActions] = useState(false)
   const [emailDevis, setEmailDevis] = useState<Devis | null>(null)
+  const [echeancierDevis, setEcheancierDevis] = useState<Devis | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; action: () => void } | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectionMode, setSelectionMode] = useState(false)
@@ -655,6 +659,30 @@ export default function DevisPage() {
                 onClick={() => { setActiveSheet(null); handleToFacture(activeSheet.id) }}
                 disabled={toFacture.isPending}
               />
+              {(() => {
+                const entry = echeanciersMap?.get(activeSheet.id)
+                if (entry) {
+                  return (
+                    <SheetRow
+                      icon={<CalendarClock size={16} />}
+                      label="Voir l'échéancier"
+                      sublabel={`${entry.nombre_echeances} échéance(s) – ${eur(entry.montant_restant)} restant`}
+                      onClick={() => { setActiveSheet(null); nav(`/devis/${activeSheet.id}/apercu`) }}
+                    />
+                  )
+                }
+                if (!['refuse', 'expire'].includes(activeSheet.statut)) {
+                  return (
+                    <SheetRow
+                      icon={<CalendarClock size={16} />}
+                      label="Créer un échéancier / acompte"
+                      sublabel="Gérer un acompte et jusqu'à 4 paiements"
+                      onClick={() => { setActiveSheet(null); setEcheancierDevis(activeSheet) }}
+                    />
+                  )
+                }
+                return null
+              })()}
             </>
           )}
           {isAdmin && activeSheet.statut === 'brouillon' && (
@@ -776,6 +804,14 @@ export default function DevisPage() {
               })
             setEmailDevis(null)
           }}
+        />
+      )}
+
+      {echeancierDevis && (
+        <EcheancierCreateModal
+          devis={echeancierDevis}
+          onClose={() => setEcheancierDevis(null)}
+          onCreated={() => { setEcheancierDevis(null); nav(`/devis/${echeancierDevis.id}/apercu`) }}
         />
       )}
     </>

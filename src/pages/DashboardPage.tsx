@@ -5,6 +5,7 @@ import {
   FileText, Mail, ArrowRight, Flame,
 } from 'lucide-react'
 import { useDashboard, useInterventions, useCommissions } from '@/lib/hooks'
+import { useEcheanciersList } from '@/lib/hooks/echeancier'
 import { useAuthStore } from '@/lib/store'
 import { format } from 'date-fns'; import { fr } from 'date-fns/locale'
 
@@ -27,10 +28,16 @@ export default function DashboardPage() {
   const isAdmin = user?.role === 'admin'
   const isAssistant = user?.role === 'assistant'
   const canManageOps = isAdmin || isAssistant
+  const { data: echeanciers = [] } = useEcheanciersList()
 
   const recent = interventions.slice(0, 5)
   const urgentes = interventions.filter(i => i.urgence && i.statut === 'en_attente').slice(0, 3)
   const commDues = commissions.filter(c => c.statut === 'a_payer').slice(0, 3)
+
+  const echeancesASurveiller = echeanciers
+    .flatMap(e => (e.echeances || []).filter(ec => !['paye', 'annule'].includes(ec.statut)).map(ec => ({ ...ec, client: e.client, devis: e.devis, devis_id: e.devis_id })))
+    .sort((a, b) => new Date(a.date_prevue).getTime() - new Date(b.date_prevue).getTime())
+    .slice(0, 5)
 
   return (
     <div>
@@ -128,6 +135,33 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+          {isAdmin && echeancesASurveiller.length > 0 && (
+            <div className="card" data-testid="dashboard-paiements-surveiller">
+              <div className="card-header">
+                <span className="card-title">Paiements à surveiller</span>
+                <button className="btn btn-secondary btn-sm" onClick={() => nav('/echeanciers')}>Voir tout <ArrowRight size={13} /></button>
+              </div>
+              <div style={{ padding: '8px 14px' }}>
+                {echeancesASurveiller.map(ec => {
+                  const enRetard = ec.statut === 'en_retard' || ec.statut === 'impaye'
+                  return (
+                    <div key={ec.id} className="feed-item" style={{ cursor: 'pointer' }} onClick={() => nav(`/devis/${ec.devis_id}/apercu`)}>
+                      <div className="feed-dot" style={{ background: enRetard ? 'var(--rdBg)' : 'var(--blBg)', color: enRetard ? 'var(--rdTx)' : 'var(--blTx)' }}>
+                        {enRetard ? <AlertTriangle size={13} /> : <Clock size={13} />}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500 }}>{ec.client?.nom} {ec.client?.prenom}</div>
+                        <div style={{ fontSize: 12, color: 'var(--t2)' }}>
+                          {ec.libelle} · {format(new Date(ec.date_prevue), 'dd/MM/yyyy')}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: enRetard ? 'var(--rdTx)' : 'var(--t0)' }}>{eur(ec.montant_restant)}</div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
