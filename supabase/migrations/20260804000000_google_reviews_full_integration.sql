@@ -193,8 +193,14 @@ REVOKE ALL ON FUNCTION public.parametres_entreprise_public_rows() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.parametres_entreprise_public_rows() FROM anon;
 GRANT EXECUTE ON FUNCTION public.parametres_entreprise_public_rows() TO authenticated;
 
--- Le DROP ... CASCADE plus haut a supprimé la vue publique (elle dépendait
--- de la fonction) — recréée à l'identique (même définition que 20260731000000).
+-- Le DROP FUNCTION ... CASCADE plus haut ne supprime la vue publique QUE
+-- si elle en dépendait déjà (cas où 20260731000000 est appliquée avant
+-- celle-ci). Sur un environnement où 20260731000000 n'est PAS encore
+-- appliquée, la vue existe toujours sous son ancienne définition (créée
+-- par une migration antérieure, sans wrapper function) — le DROP FUNCTION
+-- ne la touche pas. DROP explicite ici pour rendre cette migration
+-- idempotente dans les deux cas, sans dépendance d'ordre sur 20260731000000.
+DROP VIEW IF EXISTS public.parametres_entreprise_public CASCADE;
 CREATE VIEW public.parametres_entreprise_public
 WITH (security_invoker = true) AS
 SELECT * FROM public.parametres_entreprise_public_rows();
