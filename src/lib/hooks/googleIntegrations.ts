@@ -31,7 +31,35 @@ export async function invokeGoogleFunction<T>(
     ...(body ? { body } : {}),
     headers: { Authorization: `Bearer ${session.access_token}` },
   })
-  return { data: data ?? null, error }
+  if (!error) return { data: data ?? null, error: null }
+
+  // Un FunctionsHttpError (statut non-2xx volontaire — 401/403/409/429/502…)
+  // porte le corps JSON réel de notre Edge Function dans error.context
+  // (Response brute, jamais lue par supabase-js dans ce cas) — sans cette
+  // lecture, error.message reste le générique "Edge Function returned a
+  // non-2xx status code" qui ne dit jamais la cause réelle. On la lit ici
+  // une fois pour toutes, pour tous les appels Google.
+  const response: Response | undefined = (error as { context?: Response }).context
+  if (response && typeof response.json === 'function') {
+    try {
+      const parsed = await response.json()
+      if (parsed && typeof parsed === 'object') {
+        // Formes structurées ({ok:false, reason, detail} ou {ok:false, error})
+        // attendues telles quelles par les appelants existants (déjà
+        // capables de distinguer par raison) — jamais une simple Error.
+        if ('ok' in parsed || 'reason' in parsed) return { data: parsed as T, error: null }
+        if (typeof (parsed as { error?: unknown }).error === 'string' && (parsed as { error: string }).error) {
+          return { data: null, error: new Error((parsed as { error: string }).error) }
+        }
+      }
+    } catch {
+      // Corps non-JSON (ex. erreur de gateway en texte brut) — jamais
+      // l'exposer tel quel (pourrait contenir une trace serveur), repli
+      // ci-dessous sur un message générique mais au moins situé (statut HTTP).
+    }
+    return { data: null, error: new Error(`Erreur serveur (HTTP ${response.status}) — réessayez dans un instant.`) }
+  }
+  return { data: null, error }
 }
 
 export type GoogleProvider = 'google_ads' | 'google_business'
@@ -67,7 +95,8 @@ export interface GoogleConnectionInfo {
 // ── Découverte et sélection de comptes (Phase 3) ─────────────────────────
 export type AdsAccountsErrorReason =
   | 'not_connected' | 'needs_reconnect' | 'developer_token_missing'
-  | 'developer_token_unapproved' | 'api_not_enabled' | 'insufficient_permission' | 'google_error'
+  | 'developer_token_unapproved' | 'api_not_enabled' | 'insufficient_scope'
+  | 'insufficient_permission' | 'google_error'
 
 export interface AdsAccountInfo {
   customerId: string
@@ -102,7 +131,8 @@ export interface GbpLocationInfo {
 }
 
 export type GbpLocationsErrorReason =
-  | 'not_connected' | 'needs_reconnect' | 'api_not_enabled' | 'insufficient_permission' | 'google_error'
+  | 'not_connected' | 'needs_reconnect' | 'api_not_enabled' | 'insufficient_scope'
+  | 'insufficient_permission' | 'google_error'
 
 export type GbpLocationsResponse =
   | { ok: true; accounts: { accountResourceName: string; accountName: string | null; accountType: string | null; locations: GbpLocationInfo[] }[] }

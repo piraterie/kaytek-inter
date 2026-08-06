@@ -34,6 +34,7 @@ const ADS_ERROR_LABEL: Record<AdsAccountsErrorReason, string> = {
   developer_token_missing: 'Google Ads n\'est pas encore configuré par l\'administrateur de la plateforme.',
   developer_token_unapproved: 'L\'accès à l\'API Google Ads n\'est pas encore approuvé par Google pour ce compte.',
   api_not_enabled: 'L\'API Google Ads n\'est pas activée pour ce compte Google.',
+  insufficient_scope: 'Le compte Google connecté n\'a pas accordé l\'autorisation nécessaire (jeton sans le bon scope). Depuis myaccount.google.com/permissions, retirez l\'accès existant de cette application, puis reconnectez-vous ici.',
   insufficient_permission: 'Ce compte Google n\'a pas les droits suffisants sur les comptes Google Ads demandés.',
   google_error: 'Google n\'a pas pu répondre à cette demande. Réessayez dans un instant.',
 }
@@ -42,6 +43,7 @@ const GBP_ERROR_LABEL: Record<GbpLocationsErrorReason, string> = {
   not_connected: 'Connectez d\'abord un compte Google.',
   needs_reconnect: 'La connexion a expiré — reconnectez-vous à Google.',
   api_not_enabled: 'L\'API Google Business Profile n\'est pas activée pour ce compte Google.',
+  insufficient_scope: 'Le compte Google connecté n\'a pas accordé l\'autorisation nécessaire (jeton sans le bon scope). Depuis myaccount.google.com/permissions, retirez l\'accès existant de cette application, puis reconnectez-vous ici.',
   insufficient_permission: 'Ce compte Google n\'a pas les droits suffisants sur les établissements demandés.',
   google_error: 'Google n\'a pas pu répondre à cette demande. Réessayez dans un instant.',
 }
@@ -114,7 +116,10 @@ function AdsSelector({ info }: { info: GoogleConnectionInfo | undefined }) {
         // retour anticipé (res resterait typé comme l'union complète) —
         // la garde par opérateur `in` reste fiable indépendamment de ce
         // réglage.
-        if ('reason' in res) setLoadError(ADS_ERROR_LABEL[res.reason] ?? 'Erreur inconnue')
+        if ('reason' in res) {
+          const label = ADS_ERROR_LABEL[res.reason] ?? 'Erreur inconnue'
+          setLoadError(res.detail ? `${label} (${res.detail})` : label)
+        }
         setAccounts(null)
       },
       onError: (err: any) => { setLoadError(err?.message || 'Erreur de chargement'); setAccounts(null) },
@@ -201,7 +206,10 @@ function GbpSelector({ info }: { info: GoogleConnectionInfo | undefined }) {
     loadMut.mutate(undefined, {
       onSuccess: (res: GbpLocationsResponse) => {
         if (res.ok) { setFlatLocations(res.accounts.flatMap((a) => a.locations)); return }
-        if ('reason' in res) setLoadError(GBP_ERROR_LABEL[res.reason] ?? 'Erreur inconnue')
+        if ('reason' in res) {
+          const label = GBP_ERROR_LABEL[res.reason] ?? 'Erreur inconnue'
+          setLoadError(res.detail ? `${label} (${res.detail})` : label)
+        }
         setFlatLocations(null)
       },
       onError: (err: any) => { setLoadError(err?.message || 'Erreur de chargement'); setFlatLocations(null) },

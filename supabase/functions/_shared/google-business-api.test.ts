@@ -156,3 +156,35 @@ Deno.test('erreur Google (API non activée) — reason=api_not_enabled, aucun to
     restoreFetch()
   }
 })
+
+// Reproduit l'incident production du 2026-08-06 : jeton émis sans le scope
+// business.manage (403 + reason=ACCESS_TOKEN_SCOPE_INSUFFICIENT dans le
+// corps structuré Google) — doit être distingué de insufficient_permission
+// générique, le correctif étant côté utilisateur (révocation +
+// reconnexion), pas un problème de droits sur l'établissement.
+Deno.test('erreur Google (scope insuffisant sur le jeton) — reason=insufficient_scope, distincte de insufficient_permission', async () => {
+  makeFetchRouter([
+    {
+      match: (u) => u.includes('/accounts') && !u.includes('locations'),
+      status: 403,
+      json: {
+        error: {
+          code: 403,
+          message: 'Request had insufficient authentication scopes.',
+          status: 'PERMISSION_DENIED',
+          details: [{ reason: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT', domain: 'googleapis.com' }],
+        },
+      },
+    },
+  ])
+  try {
+    const result = await listAccessibleGbpLocations(makeFakeSupabase(true) as any, ORG_ID)
+    assertEquals(result.ok, false)
+    if (!result.ok) {
+      assertEquals(result.reason, 'insufficient_scope')
+      assertEquals((result.detail ?? '').includes(ACCESS_TOKEN), false)
+    }
+  } finally {
+    restoreFetch()
+  }
+})

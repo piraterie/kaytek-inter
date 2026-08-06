@@ -34,6 +34,7 @@ export type GbpLocationsErrorReason =
   | 'not_connected'
   | 'needs_reconnect'
   | 'api_not_enabled'
+  | 'insufficient_scope'
   | 'insufficient_permission'
   | 'google_error'
 
@@ -48,6 +49,17 @@ function classifyGbpError(status: number, bodyText: string): { reason: GbpLocati
   const low = bodyText.toLowerCase()
   if (low.includes('has not been used') || (status === 403 && low.includes('disabled'))) {
     return { reason: 'api_not_enabled', detail }
+  }
+  // Le jeton d'accès a été émis SANS le scope business.manage — distinct
+  // d'un simple refus de permission (le compte Google connecté n'a
+  // peut-être pas le problème, c'est l'autorisation OAuth elle-même qui
+  // est incomplète) : arrive typiquement quand Google Console conserve un
+  // consentement antérieur plus restreint malgré prompt=consent. Le
+  // correctif est côté utilisateur (myaccount.google.com/permissions →
+  // révoquer l'accès existant → reconnecter), jamais un bug de notre state
+  // OAuth — voir classification distincte pour guider l'admin correctement.
+  if (low.includes('access_token_scope_insufficient') || low.includes('insufficient authentication scopes')) {
+    return { reason: 'insufficient_scope', detail }
   }
   if (low.includes('permission_denied') || status === 403 || status === 401) {
     return { reason: 'insufficient_permission', detail }

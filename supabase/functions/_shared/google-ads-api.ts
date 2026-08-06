@@ -33,6 +33,7 @@ export type AdsAccountsErrorReason =
   | 'developer_token_missing'
   | 'developer_token_unapproved'
   | 'api_not_enabled'
+  | 'insufficient_scope'
   | 'insufficient_permission'
   | 'google_error'
 
@@ -51,6 +52,12 @@ function classifyGoogleAdsError(status: number, bodyText: string): { reason: Ads
   }
   if (low.includes('has not been used') || (status === 403 && low.includes('disabled'))) {
     return { reason: 'api_not_enabled', detail }
+  }
+  // Voir commentaire équivalent dans _shared/google-business-api.ts — jeton
+  // émis sans le scope adwords, correctif côté utilisateur (révoquer
+  // depuis myaccount.google.com/permissions puis reconnecter).
+  if (low.includes('access_token_scope_insufficient') || low.includes('insufficient authentication scopes')) {
+    return { reason: 'insufficient_scope', detail }
   }
   if (low.includes('user_permission_denied') || low.includes('permission_denied') || status === 403) {
     return { reason: 'insufficient_permission', detail }
