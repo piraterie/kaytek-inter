@@ -1057,7 +1057,9 @@ export function useUpdateFacture() {
       if (!updated || updated.length === 0) throw new Error('Mise à jour impossible — droits insuffisants ou facture introuvable')
       console.log('[useUpdateFacture] DB updated', updated[0]?.id, '| statut_paiement:', updated[0]?.statut_paiement, '| statut:', (updated[0] as any)?.statut)
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      // Le PDF en cache mémoire peut refléter un statut (payée/impayée) périmé — voir src/lib/pdf/cache.ts
+      pdfCache.del(variables.id)
       qc.invalidateQueries({ queryKey: ['factures'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       qc.invalidateQueries({ queryKey: ['commissions-data'] })
