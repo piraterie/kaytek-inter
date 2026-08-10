@@ -219,7 +219,11 @@ export default function PublicDocumentPage() {
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.62)', marginTop: 3 }}>{fmtDate(dateDoc)}</div>
               {dateEcheance && (
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.50)', marginTop: 2 }}>
-                  {isDevis ? "Valable jusqu'au " : 'Échéance '}{fmtDate(dateEcheance)}
+                  {isDevis
+                    ? `Valable jusqu'au ${fmtDate(dateEcheance)}`
+                    : dateEcheance === dateDoc
+                      ? 'Payable immédiatement'
+                      : `Échéance ${fmtDate(dateEcheance)}`}
                 </div>
               )}
             </div>

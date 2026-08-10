@@ -15,6 +15,7 @@ import { supabase } from '@/lib/supabase/client'
 import { uploadPhoto as uploadPhotoStorage } from '@/lib/supabase/storage'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { pdfCache } from '@/lib/pdf/cache'
+import { calculerEcheanceFacture, isPaiementImmediat } from '@/lib/facturation'
 import type { Intervention, Devis, Facture, Client, Commission, Message, Profile, Prestation, ParametresEntreprise, ParametresEntreprisePublic, DashboardStats, JournalEntry } from '@/types'
 
 const uid = () => useAuthStore.getState().user?.id
@@ -740,7 +741,6 @@ export function useDevisToFacture() {
         throw new Error('Ce devis a déjà été converti en facture — consultez l\'onglet Factures.')
 
       const org_id = orgId(); if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
-      const echeance = new Date(); echeance.setDate(echeance.getDate() + 30)
       const facturePayload: any = {
         devis_id: devisId,
         client_id: devis.client_id,
@@ -748,7 +748,7 @@ export function useDevisToFacture() {
         tva_montant: devis.tva_montant,
         montant_ttc: devis.total_ttc,
         statut_paiement: 'impayee',
-        date_echeance: echeance.toISOString().split('T')[0],
+        date_echeance: calculerEcheanceFacture(devis.activite),
         created_by: uid(),
         ...(devis.notes ? { notes: devis.notes } : {}),
         organisation_id: org_id
@@ -1017,10 +1017,14 @@ export function useCreateFacture() {
       const canBypass = !isAdm() && user?.can_bypass_validation === true
       const { numero: _dropNumero, ...cleanFacture } = data
       const org_id = orgId(); if (!org_id) throw new Error("Organisation introuvable — reconnectez-vous")
+      const { data: intervention } = await supabase.from('interventions').select('type').eq('id', data.intervention_id).single()
+      const dateEmission = new Date().toISOString().split('T')[0]
       const payload = {
         ...cleanFacture,
         statut_paiement: canBypass ? 'impayee' : 'en_attente_validation',
-        date_emission: new Date().toISOString().split('T')[0],
+        date_emission: dateEmission,
+        // Serrurerie = paiement immédiat après intervention, pas de délai
+        ...(isPaiementImmediat(intervention?.type) ? { date_echeance: dateEmission } : {}),
         created_by: uid(),
         acompte_recu: cleanFacture.acompte_recu ?? 0,
         organisation_id: org_id

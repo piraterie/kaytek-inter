@@ -59,8 +59,8 @@ function LegalPage({ cgv }: { cgv: string }) {
 }
 
 // ── HEADER ──────────────────────────────────────────────────────
-function Header({ type, numero, date, valide, params, accent, primary }: {
-  type: string; numero: string; date: string; valide?: string
+function Header({ type, numero, date, valide, valideLabel = "Valide jusqu'au", params, accent, primary }: {
+  type: string; numero: string; date: string; valide?: string; valideLabel?: string
   params: ParametresEntreprise; accent: string; primary: string
 }) {
   return (
@@ -95,7 +95,7 @@ function Header({ type, numero, date, valide, params, accent, primary }: {
             </View>
             {valide && (
               <View style={[base.row, { justifyContent: 'space-between' }]}>
-                <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 8 }}>Valide jusqu'au</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 8 }}>{valideLabel}</Text>
                 <Text style={[base.bold, { color: accent, fontSize: 8 }]}>{valide}</Text>
               </View>
             )}
@@ -294,11 +294,24 @@ export async function generateFacturePDF(facture: Facture, devis: Devis | null, 
   const footerLine = hasCgv
     ? "Conditions générales de vente et d'intervention en page suivante."
     : 'Merci pour votre confiance.'
+  // Échéance == date d'émission : paiement immédiat (ex. serrurerie), pas de délai
+  const paiementImmediat = !!facture.date_echeance && facture.date_echeance === facture.date_emission
 
   const doc = (
     <Document>
       <Page size="A4" style={[base.page, { padding: 44 }]}>
-        <Header type={isEcheance ? TYPE_FACTURE_LABELS[typeFacture!] : 'FACTURE'} numero={facture.numero} date={fmt(facture.date_emission)} valide={facture.date_echeance ? 'Échéance : ' + fmt(facture.date_echeance) : undefined} params={params} accent={estPayee ? '#16a34a' : accent} primary={primary} />
+        <Header
+          type={isEcheance ? TYPE_FACTURE_LABELS[typeFacture!] : 'FACTURE'}
+          numero={facture.numero}
+          date={fmt(facture.date_emission)}
+          valideLabel={paiementImmediat ? 'Paiement' : undefined}
+          valide={
+            paiementImmediat
+              ? 'Immédiat (à réception)'
+              : facture.date_echeance ? 'Échéance : ' + fmt(facture.date_echeance) : undefined
+          }
+          params={params} accent={estPayee ? '#16a34a' : accent} primary={primary}
+        />
 
         {isEcheance && devis && (() => {
           const montantTotalDevis = devis.total_ttc || (devis.total_ht || 0) + (devis.tva_montant || 0)
