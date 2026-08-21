@@ -448,7 +448,12 @@ export default function DevisApercuPage() {
                 <tbody>
                   {(devis.lignes || []).map((l, i) => (
                     <tr key={l.id} style={{ borderBottom: '1px solid var(--b0)', background: i % 2 === 0 ? 'transparent' : 'var(--s1)' }}>
-                      <td style={{ padding: '10px 12px' }}>{l.description}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        {l.description}
+                        {l.notes?.trim() && (
+                          <div style={{ marginTop: 3, fontSize: 12, fontWeight: 400, color: 'var(--t3)' }}>{l.notes.trim()}</div>
+                        )}
+                      </td>
                       <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--t2)' }}>{l.quantite}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--t2)' }}>{eur(l.prix_ht)}</td>
                       <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--t2)' }}>{l.tva_pct}%</td>

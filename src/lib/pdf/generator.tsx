@@ -148,7 +148,12 @@ function LignesTable({ lignes, accent, primary }: { lignes: Devis['lignes']; acc
           borderBottomWidth: 1, borderBottomColor: '#e5e7eb'
         }]}>
           <Text style={{ width: 26, color: '#9ca3af', fontSize: 8 }}>{i + 1}</Text>
-          <Text style={{ flex: 1 }}>{l.description}</Text>
+          <View style={{ flex: 1 }}>
+            <Text>{l.description}</Text>
+            {l.notes?.trim() ? (
+              <Text style={{ fontSize: 7.5, color: '#667085', marginTop: 2, lineHeight: 1.3 }}>{l.notes.trim()}</Text>
+            ) : null}
+          </View>
           <Text style={{ width: 64, textAlign: 'right' }}>{eur(l.prix_ht)}</Text>
           <Text style={{ width: 32, textAlign: 'center', color: '#6b7280' }}>{l.quantite}</Text>
           <Text style={{ width: 44, textAlign: 'center', color: '#6b7280' }}>{l.tva_pct}%</Text>

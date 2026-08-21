@@ -273,7 +273,12 @@ export default function PublicDocumentPage() {
                     <tbody>
                       {lignes.map((l: any, i: number) => (
                         <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? 'transparent' : '#f8fafc' }}>
-                          <td style={{ padding: '10px 8px', fontWeight: 500, color: '#1e293b' }}>{l.description || '—'}</td>
+                          <td style={{ padding: '10px 8px', fontWeight: 500, color: '#1e293b' }}>
+                            {l.description || '—'}
+                            {l.notes?.trim() && (
+                              <div style={{ marginTop: 3, fontSize: 11, fontWeight: 400, color: '#94a3b8' }}>{l.notes.trim()}</div>
+                            )}
+                          </td>
                           <td style={{ padding: '10px 8px', textAlign: 'center', color: '#64748b' }}>{l.quantite ?? 1}</td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', color: '#64748b' }}>{eur(l.prix_ht)}</td>
                           <td style={{ padding: '10px 8px', textAlign: 'center', color: '#64748b' }}>{TVA_LABEL[l.tva_pct] ?? `${l.tva_pct ?? 0} %`}</td>

@@ -604,6 +604,14 @@ export default function DevisFormPage() {
                         <button onClick={() => setLignes(ls => ls.filter((_, idx) => idx !== i))} style={{ width: 28, height: 28, borderRadius: 8, border: '1px solid var(--rdBd)', background: 'var(--rdBg)', color: 'var(--rdTx)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}>🗑</button>
                       </div>
                     </div>
+                    {/* Détail de la prestation */}
+                    <textarea
+                      value={l.notes || ''}
+                      onChange={e => updLine(i, 'notes', e.target.value)}
+                      placeholder="Détail de la prestation (optionnel)…"
+                      rows={1}
+                      style={{ width: '100%', border: 'none', background: 'transparent', padding: '0 0 10px', margin: 0, fontSize: 12, color: 'var(--t2)', fontStyle: 'italic', outline: 'none', resize: 'none', fontFamily: 'inherit' }}
+                    />
                     {/* Controls */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -823,7 +831,7 @@ export default function DevisFormPage() {
                 </select>
               </div>
               <div className="form-group" style={{ margin: 0 }}>
-                <label>Notes (optionnel)</label>
+                <label>Détail de la prestation (optionnel)</label>
                 <textarea
                   value={manuelModal.notes}
                   onChange={e => setManuelModal(m => m && { ...m, notes: e.target.value })}
@@ -841,7 +849,7 @@ export default function DevisFormPage() {
                 style={{ width: '100%', justifyContent: 'center', minHeight: 54, fontSize: 16, borderRadius: 14 }}
                 onClick={() => {
                   if (!manuelModal.description.trim()) { add('La description est obligatoire', 'warning'); return }
-                  setLignes(ls => [...ls, calc({ ...newLine(), description: manuelModal.description.trim(), quantite: parseFloat(manuelModal.quantite) || 1, prix_ht: parseFloat(manuelModal.prix_ht) || 0, tva_pct: manuelModal.tva_pct })])
+                  setLignes(ls => [...ls, calc({ ...newLine(), description: manuelModal.description.trim(), quantite: parseFloat(manuelModal.quantite) || 1, prix_ht: parseFloat(manuelModal.prix_ht) || 0, tva_pct: manuelModal.tva_pct, notes: manuelModal.notes.trim() || undefined })])
                   setManuelModal(null)
                 }}
               >+ Ajouter cette prestation</button>

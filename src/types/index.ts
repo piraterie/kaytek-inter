@@ -104,7 +104,7 @@ export interface Intervention {
 
 export interface LigneDevis {
   id: string; description: string; quantite: number; prix_ht: number
-  tva_pct: number; total_ht: number; total_ttc: number
+  tva_pct: number; total_ht: number; total_ttc: number; notes?: string
 }
 
 export interface Devis {
