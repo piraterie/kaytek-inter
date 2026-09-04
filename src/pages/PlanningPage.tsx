@@ -10,12 +10,12 @@ import frLocale from '@fullcalendar/core/locales/fr'
 import { useNavigate } from 'react-router-dom'
 import {
   AlertTriangle, MapPin, User, Bell, CalendarDays, Car, Clock,
-  CheckCircle2, ChevronUp, ChevronDown,
+  CheckCircle2, ChevronUp, ChevronDown, Receipt,
 } from 'lucide-react'
-import { useInterventions, useUpdateIntervention, useIsMobile } from '@/lib/hooks'
+import { useInterventions, useUpdateIntervention, useIsMobile, useFactures } from '@/lib/hooks'
 import { useAuthStore, useToastStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase/client'
-import type { Intervention } from '@/types'
+import type { Intervention, Facture } from '@/types'
 
 // ── Couleurs statuts ──────────────────────────────────────────────
 // Clés liées aux variables CSS sémantiques (--rd/--or/--am/--bl/--pu/--gn/--gr)
@@ -77,8 +77,78 @@ function clientLabel(i: Intervention): string {
     : `Intervention ${i.numero}`
 }
 
+// ── Nom client (facture) ──────────────────────────────────────────
+function factureClientLabel(f: Facture): string {
+  return f.client
+    ? `${f.client.prenom ?? ''} ${f.client.nom ?? ''}`.trim() || f.numero
+    : f.numero
+}
+
+// ── EventCard (facture) ───────────────────────────────────────────
+function FactureEventCard({ info, isMobile }: { info: EventContentArg; isMobile: boolean }) {
+  const f       = info.event.extendedProps.facture as Facture
+  const name    = factureClientLabel(f)
+  const montant = f.montant_ttc != null
+    ? f.montant_ttc.toLocaleString('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 })
+    : null
+  const isList = info.view.type.startsWith('list')
+
+  if (isList) {
+    return (
+      <div style={{ padding:'2px 0', display:'flex', alignItems:'center', gap:8 }}>
+        <Receipt size={14} color="var(--ivTx)" style={{ flexShrink:0 }} />
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontWeight:600, fontSize:13, color:'var(--t0)', display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
+            <span className="pill pill-teal" style={{ fontSize:9.5, flexShrink:0 }}>Facture</span>
+            <span style={{ flex:'1 1 auto', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{name}</span>
+          </div>
+          {f.numero && (
+            <div style={{ fontSize:11, color:'var(--t3)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              N° {f.numero}
+            </div>
+          )}
+        </div>
+        {montant && <span style={{ fontSize:11, fontWeight:700, color:'var(--t2)', flexShrink:0 }}>{montant}</span>}
+      </div>
+    )
+  }
+
+  // Puce compacte — vue Mois (dayGridMonth) et zone "Toute la journée" des
+  // vues Semaine/Jour (timeGrid) : une facture n'a pas d'heure, elle est
+  // donc systématiquement rendue en allDay et n'apparaît jamais dans la
+  // grille horaire — ce même rendu compact couvre les deux cas.
+  if (isMobile) {
+    return (
+      <div style={{ width:'100%', padding:'2px 4px', overflow:'hidden' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:3 }}>
+          <Receipt size={8.5} style={{ flexShrink:0 }} />
+          <span style={{ fontSize:7.5, fontWeight:800, letterSpacing:.3, flexShrink:0, opacity:.85 }}>FACTURE</span>
+        </div>
+        <div style={{ display:'flex', alignItems:'baseline', gap:4, marginTop:1 }}>
+          <span style={{ flex:1, minWidth:0, fontSize:10, fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            {name}
+          </span>
+          {montant && <span style={{ fontSize:9.5, fontWeight:800, flexShrink:0 }}>{montant}</span>}
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div style={{ width:'100%', padding:'2px 6px', display:'flex', alignItems:'center', gap:4, overflow:'hidden' }}>
+      <Receipt size={10} style={{ flexShrink:0 }} />
+      <span style={{ flex:1, minWidth:0, fontSize:11, fontWeight:700, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+        {name}
+      </span>
+      {montant && <span style={{ fontSize:10, fontWeight:700, flexShrink:0 }}>{montant}</span>}
+    </div>
+  )
+}
+
 // ── EventCard ─────────────────────────────────────────────────────
 function EventCard({ info, isMobile }: { info: EventContentArg; isMobile: boolean }) {
+  if (info.event.extendedProps.type === 'facture') {
+    return <FactureEventCard info={info} isMobile={isMobile} />
+  }
   const i         = info.event.extendedProps.intervention as Intervention
   const statusKey = info.event.extendedProps.statusKey as StatusKey
   const dotColor  = `var(${STATUS_VAR[statusKey]})`
@@ -210,6 +280,10 @@ function Legend() {
           <span style={{ fontSize:11, color:'var(--t2)', fontWeight:500 }}>{e.label}</span>
         </div>
       ))}
+      <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+        <Receipt size={10} color="var(--iv)" style={{ flexShrink:0 }} />
+        <span style={{ fontSize:11, color:'var(--t2)', fontWeight:500 }}>Facture</span>
+      </div>
     </div>
   )
 }
@@ -314,6 +388,7 @@ export default function PlanningPage() {
   const [checkingRappels, setCheckingRappels] = useState(false)
 
   const { data: interventions = [], isLoading } = useInterventions()
+  const { data: factures = [] } = useFactures()
   const updateIntervention = useUpdateIntervention()
 
   // ── Calculs dashboard ──────────────────────────────────────────
@@ -372,8 +447,8 @@ export default function PlanningPage() {
     }
   }, [interventions, now])
 
-  // ── Événements FullCalendar ────────────────────────────────────
-  const events = useMemo(() =>
+  // ── Événements FullCalendar : interventions ────────────────────
+  const interventionEvents = useMemo(() =>
     interventions
       .filter(i => i.date_prevue || i.date_debut)
       .map(i => {
@@ -390,8 +465,34 @@ export default function PlanningPage() {
       }),
   [interventions])
 
+  // ── Événements FullCalendar : factures ─────────────────────────
+  // Une facture est liée à une date (date_emission), pas à une heure —
+  // elle est donc positionnée comme événement "journée entière" (allDay),
+  // dans la zone dédiée du calendrier plutôt qu'avec un horaire inventé
+  // qui laisserait croire à une heure de facturation réelle.
+  const factureEvents = useMemo(() =>
+    factures
+      .filter(f => f.date_emission)
+      .map(f => ({
+        id:    `facture-${f.id}`,
+        title: factureClientLabel(f),
+        start: f.date_emission,
+        allDay: true,
+        borderColor: 'var(--iv)',
+        classNames: ['ev-fact'],
+        editable: false,
+        extendedProps: { type: 'facture', facture: f },
+      })),
+  [factures])
+
+  const events = useMemo(() => [...interventionEvents, ...factureEvents], [interventionEvents, factureEvents])
+
   // ── Handlers ──────────────────────────────────────────────────
   const handleEventClick = useCallback((info: EventClickArg) => {
+    if (info.event.extendedProps.type === 'facture') {
+      nav('/factures', { state: { openFactureId: (info.event.extendedProps.facture as Facture).id } })
+      return
+    }
     nav(`/interventions/${info.event.id}`)
   }, [nav])
 
@@ -403,6 +504,7 @@ export default function PlanningPage() {
   }, [])
 
   const handleEventDrop = useCallback(async (info: EventDropArg) => {
+    if (info.event.extendedProps.type === 'facture') { info.revert(); return }
     if (!canManageOps) {
       info.revert()
       add('Seul un admin ou un assistant peut modifier le planning', 'warning')
@@ -620,7 +722,7 @@ export default function PlanningPage() {
             nowIndicator
             weekends
             firstDay={1}
-            allDaySlot={false}
+            allDaySlot={true}
             eventMinHeight={isMobile ? 64 : 32}
             listDayFormat={{ weekday:'long', day:'numeric', month:'long' }}
             listDaySideFormat={false}

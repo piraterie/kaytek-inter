@@ -1,6 +1,6 @@
 // src/pages/FacturesPage.tsx
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   FileSpreadsheet, CheckSquare, Trash2, Clock, AlertTriangle, Mail, MoreHorizontal,
   Search, X, Euro, FileText, CheckCircle2, XCircle, Link2, Loader2, Send, Check,
@@ -30,6 +30,7 @@ const ns = (s: string) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toL
 
 export default function FacturesPage() {
   const nav = useNavigate()
+  const location = useLocation()
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
   const { params: storeParams } = useParamsStore()
@@ -64,6 +65,16 @@ export default function FacturesPage() {
   const createLink = useCreatePublicLink()
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [copiedShare, setCopiedShare] = useState(false)
+
+  // Ouverture automatique venant du Planning (clic sur une facture)
+  useEffect(() => {
+    const targetId = (location.state as { openFactureId?: string } | null)?.openFactureId
+    if (!targetId || isLoading) return
+    const f = factures.find(x => x.id === targetId)
+    if (f) openSheet(f)
+    nav(location.pathname, { replace: true, state: null })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, factures, isLoading])
 
   const filtered = factures
     .filter(f => filterStatut === 'tous' || f.statut_paiement === filterStatut)

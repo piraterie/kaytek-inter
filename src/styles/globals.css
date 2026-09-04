@@ -45,6 +45,7 @@
   --pu:#7C3AED;--puBg:#F5F3FF;--puBd:#DDD6FE;--puTx:#5B21B6;
   --or:#EA580C;--orBg:#FFF7ED;--orBd:#FED7AA;--orTx:#9A3412;
   --gr:#64748B;--grBg:#F1F5F9;--grBd:#CBD5E1;--grTx:#475569;
+  --iv:#0D9488;--ivBg:#F0FDFA;--ivBd:#99F6E4;--ivTx:#0F766E;
 
   /* Toast — toujours sombre pour la lisibilité */
   --toastBg:#1E293B;--toastColor:#F1F5F9;
@@ -104,6 +105,7 @@
   --pu:#A855F7;--puBg:rgba(168,85,247,.12);--puBd:rgba(168,85,247,.40);--puTx:#C4B5FD;
   --or:#F97316;--orBg:rgba(249,115,22,.12);--orBd:rgba(249,115,22,.40);--orTx:#FDBA74;
   --gr:#94A3B8;--grBg:rgba(148,163,184,.14);--grBd:rgba(148,163,184,.42);--grTx:#CBD5E1;
+  --iv:#2DD4BF;--ivBg:rgba(45,212,191,.12);--ivBd:rgba(45,212,191,.40);--ivTx:#5EEAD4;
 
   /* Toast */
   --toastBg:#1A253E;--toastColor:#F0F4FC;
@@ -267,6 +269,7 @@ textarea{resize:vertical;min-height:80px}
 .pill-red{background:var(--rdBg);color:var(--rdTx)}
 .pill-purple{background:var(--puBg);color:var(--puTx)}
 .pill-orange{background:var(--orBg);color:var(--orTx)}
+.pill-teal{background:var(--ivBg);color:var(--ivTx)}
 .pill-gray{background:var(--s2);color:var(--t2)}
 
 /* ── Buttons ─────────────────────────────────────────────── */
@@ -471,6 +474,7 @@ label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;le
 .kaytek-planning .fc .fc-event.ev-pu{background:var(--puBg) !important;border-color:var(--puBd) !important;color:var(--puTx) !important;--fc-event-text-color:var(--puTx)}
 .kaytek-planning .fc .fc-event.ev-gn{background:var(--gnBg) !important;border-color:var(--gnBd) !important;color:var(--gnTx) !important;--fc-event-text-color:var(--gnTx)}
 .kaytek-planning .fc .fc-event.ev-gr{background:var(--grBg) !important;border-color:var(--grBd) !important;color:var(--grTx) !important;--fc-event-text-color:var(--grTx)}
+.kaytek-planning .fc .fc-event.ev-fact{background:var(--ivBg) !important;border-color:var(--ivBd) !important;color:var(--ivTx) !important;--fc-event-text-color:var(--ivTx)}
 
 /* "Aujourd'hui" */
 .kaytek-planning .fc .fc-day-today .fc-col-header-cell-cushion{color:var(--bl);font-weight:800}
@@ -486,6 +490,7 @@ label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;le
 .kaytek-planning .fc .fc-list-event.ev-pu td{background:var(--puBg)}
 .kaytek-planning .fc .fc-list-event.ev-gn td{background:var(--gnBg)}
 .kaytek-planning .fc .fc-list-event.ev-gr td{background:var(--grBg)}
+.kaytek-planning .fc .fc-list-event.ev-fact td{background:var(--ivBg)}
 .kaytek-planning .fc .fc-list-day th{border-color:var(--b1)}
 .kaytek-planning .fc .fc-list-empty{color:var(--t3);font-size:14px;padding:48px 0}
 /* "More" popover */
