@@ -8,9 +8,6 @@ const EMAIL_KEY = 'kaytek-biometric-email'
 // correspond à aucun identifiant connu de la plateforme), navigator.credentials.get()/
 // create() peut ne jamais se résoudre NI rejeter — le `timeout` de l'objet publicKey
 // n'est qu'une suggestion que les authenticateurs plateforme ignorent fréquemment.
-// Sans le signal ci-dessous, un tel blocage laissait l'écran de connexion figé
-// indéfiniment (bouton "Vérification…" bloqué) dès que l'utilisateur appuyait sur
-// le bouton empreinte — c'est le bug corrigé ici.
 const DEFAULT_TIMEOUT_MS = 25000
 
 function toB64(buf: ArrayBuffer): string {
@@ -24,10 +21,29 @@ function fromB64(s: string): Uint8Array {
   return Uint8Array.from(atob(padded + '='.repeat(pad)), c => c.charCodeAt(0))
 }
 
-export function isBiometricAvailable(): boolean {
-  return typeof window !== 'undefined'
-    && 'credentials' in navigator
-    && typeof PublicKeyCredential !== 'undefined'
+// `typeof PublicKeyCredential !== 'undefined'` prouve seulement que le navigateur
+// connaît la SYNTAXE de l'API WebAuthn — pas qu'un authenticateur plateforme
+// (empreinte/visage) est réellement présent, activé et fonctionnel sur cet
+// appareil. Sur Android en particulier, `PublicKeyCredential` est défini même
+// sans empreinte enregistrée dans les paramètres système ou avec un Credential
+// Manager/Play Services cassé — appeler create()/get() dans cet état est
+// justement la situation où Chrome-sur-Android est connu pour bloquer
+// indéfiniment la promesse (voir les rapports Chromium sur ce sujet). La bonne
+// méthode de détection est asynchrone : isUserVerifyingPlatformAuthenticatorAvailable().
+export async function isBiometricAvailable(): Promise<boolean> {
+  if (typeof window === 'undefined' || !('credentials' in navigator) || typeof PublicKeyCredential === 'undefined') {
+    return false
+  }
+  if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') {
+    // Navigateur ancien sans cette méthode : on retombe sur la détection basique
+    // plutôt que de désactiver la biométrie partout.
+    return true
+  }
+  try {
+    return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+  } catch {
+    return false
+  }
 }
 
 export function hasBiometricRegistered(): boolean {
@@ -39,9 +55,9 @@ export function getBiometricEmail(): string | null {
 }
 
 // 'ok'            : assertion WebAuthn réussie
-// 'unavailable'   : API WebAuthn absente de ce navigateur/contexte
+// 'unavailable'   : API WebAuthn absente ou authenticateur plateforme non disponible
 // 'no-credential' : aucune empreinte enregistrée sur cet appareil
-// 'timeout'       : l'authenticateur n'a jamais répondu — notre AbortController a coupé
+// 'timeout'       : l'authenticateur n'a jamais répondu — notre timeout local a coupé
 // 'denied'        : annulation utilisateur OU échec natif (WebAuthn fusionne volontairement
 //                    ces deux cas dans NotAllowedError pour des raisons de confidentialité —
 //                    impossible de les distinguer côté site, donc on ne les traite jamais
@@ -54,7 +70,7 @@ export async function registerBiometric(
   email: string,
   timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<boolean> {
-  if (!isBiometricAvailable()) return false
+  if (!(await isBiometricAvailable())) return false
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
@@ -95,7 +111,7 @@ export async function registerBiometric(
 }
 
 export async function authenticateWithBiometric(timeoutMs = DEFAULT_TIMEOUT_MS): Promise<BiometricAuthResult> {
-  if (!isBiometricAvailable()) return 'unavailable'
+  if (!(await isBiometricAvailable())) return 'unavailable'
   const stored = localStorage.getItem(CRED_KEY)
   if (!stored) return 'no-credential'
 

@@ -26,6 +26,31 @@ function setBF(v: { count: number; lockedUntil: number | null }) {
 }
 function clearBF() { localStorage.removeItem(BF_KEY) }
 
+// Le blocage réel de la connexion biométrique sur mobile ne vient pas de
+// WebAuthn (purement local, quasi instantané) mais de ce qui le suit :
+// supabase.auth.getSession() (et la requête profils) parlent réellement au
+// réseau — un rafraîchissement de token sur une connexion mobile dégradée peut
+// rester en attente indéfiniment, sans qu'aucun timeout ne soit déclenché côté
+// client (aucun mécanisme de ce type n'existe dans supabase-js pour l'appel de
+// rafraîchissement HTTP sous-jacent). D'où withTimeout ci-dessous.
+class TimeoutError extends Error {
+  constructor(label: string) { super(`TIMEOUT:${label}`); this.name = 'TimeoutError' }
+}
+
+// Timeout indépendant de toute coopération du navigateur ou de la lib
+// Supabase — contrairement à un AbortSignal passé à une API tierce, ce
+// setTimeout se déclenche TOUJOURS après `ms`, que la promesse sous-jacente
+// (fetch réseau, WebAuthn, etc.) respecte ou non un mécanisme d'annulation.
+function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new TimeoutError(label)), ms)
+    promise.then(
+      v => { clearTimeout(timer); resolve(v) },
+      e => { clearTimeout(timer); reject(e) }
+    )
+  })
+}
+
 export default function LoginPage() {
   const [email, setEmail]           = useState('')
   const [pw, setPw]                 = useState('')
@@ -58,7 +83,20 @@ export default function LoginPage() {
   const { setUser, setSubscriptionBlocked } = useAuthStore()
   const nav = useNavigate()
 
-  const bioAvailable  = isBiometricAvailable()
+  // isBiometricAvailable() est asynchrone : elle interroge réellement l'appareil
+  // (PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()) plutôt
+  // que de se fier à la simple présence de l'API WebAuthn, qui reste définie même
+  // sans authenticateur plateforme fonctionnel — voir biometric.ts. Par défaut à
+  // false : tant que la vérification n'a pas répondu, l'UI biométrique reste
+  // masquée plutôt que d'offrir un bouton qui appellerait un authenticateur non
+  // opérationnel.
+  const [bioAvailable, setBioAvailable] = useState(false)
+  useEffect(() => {
+    let mounted = true
+    isBiometricAvailable().then(v => { if (mounted) setBioAvailable(v) })
+    return () => { mounted = false }
+  }, [])
+
   const bioRegistered = hasBiometricRegistered()
   const bioEmail      = getBiometricEmail()
   const showBioFirst  = bioAvailable && bioRegistered && !showPwForm
@@ -150,7 +188,15 @@ export default function LoginPage() {
         return
       }
 
-      const { data: { session } } = await supabase.auth.getSession()
+      // À partir d'ici, l'empreinte est validée — mais cela ne prouve RIEN côté
+      // Supabase : WebAuthn ne fait que déverrouiller localement l'accès à une
+      // session déjà stockée, sans jamais recontacter Supabase pour authentifier
+      // qui que ce soit. getSession() est le premier appel qui parle réellement
+      // au serveur (et peut déclencher un rafraîchissement de token réseau si
+      // l'access token est expiré) — c'est ce point, pas WebAuthn, qui peut
+      // rester bloqué indéfiniment sur une connexion mobile dégradée, car
+      // aucun timeout n'existe nativement dans supabase-js pour ce cas.
+      const { data: { session } } = await withTimeout(supabase.auth.getSession(), 12000, 'getSession')
       if (!session?.user) {
         // Le credential WebAuthn (lié à cet appareil) reste valable même si la session
         // Supabase a expiré (liée au refresh token) — on ne l'efface donc pas ici, sans
@@ -160,8 +206,11 @@ export default function LoginPage() {
         return
       }
 
-      const { data: profile } = await supabase
-        .from('profiles').select('*').eq('id', session.user.id).single()
+      const { data: profile } = await withTimeout(
+        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+        12000,
+        'profileFetch'
+      )
       if (!profile) {
         setErr('Profil introuvable.')
         setShowPwForm(true)
@@ -169,10 +218,14 @@ export default function LoginPage() {
       }
 
       setUser(profile)
-      setSubscriptionBlocked(await fetchSubscriptionBlocked())
+      setSubscriptionBlocked(await withTimeout(fetchSubscriptionBlocked(), 12000, 'subscriptionBlocked'))
       redirectAfterLogin()
-    } catch {
-      setErr('Authentification échouée. Utilisez votre mot de passe.')
+    } catch (err) {
+      if (err instanceof TimeoutError) {
+        setErr('Connexion au serveur trop lente. Vérifiez votre réseau et réessayez, ou utilisez votre mot de passe.')
+      } else {
+        setErr('Authentification échouée. Utilisez votre mot de passe.')
+      }
       setShowPwForm(true)
     } finally {
       setBioLoading(false)
