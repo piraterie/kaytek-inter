@@ -248,6 +248,45 @@ test.describe('Connexion par passkey (architecture native Supabase)', () => {
       await expect(page.locator('h1, [class*="page-title"]').first()).toBeVisible()
     }
   })
+
+  // Cause racine du bug "connecté sans empreinte" (2026-09-12) : le serveur
+  // Supabase envoie userVerification: 'preferred' dans les options d'assertion
+  // (vérifié via POST /auth/v1/passkeys/authentication/options — ce champ n'est
+  // configurable nulle part côté Supabase). Avec 'preferred', un authenticateur
+  // peut se contenter de la présence de l'utilisateur sans exiger empreinte/PIN.
+  // biometric.ts force désormais 'required' avant d'appeler
+  // navigator.credentials.get() — ce test vérifie que cette valeur est
+  // RÉELLEMENT celle reçue par le navigateur, indépendamment de ce que le
+  // serveur a suggéré.
+  test('userVerification est forcé à \'required\' avant l\'appel WebAuthn, quelle que soit la préférence du serveur', async ({ page }) => {
+    await addVirtualAuthenticator(page)
+    await loginWithPassword(page)
+    await registerPasskeyFromDashboard(page)
+    await logout(page)
+    await page.goto('/login')
+
+    const capturedUserVerification: string[] = []
+    await page.exposeFunction('__reportUserVerification', (value: string) => {
+      capturedUserVerification.push(value)
+    })
+    await page.evaluate(() => {
+      const originalGet = navigator.credentials.get.bind(navigator.credentials)
+      Object.defineProperty(navigator.credentials, 'get', {
+        configurable: true,
+        value: (options?: CredentialRequestOptions) => {
+          ;(window as any).__reportUserVerification(options?.publicKey?.userVerification ?? 'undefined')
+          return originalGet(options)
+        },
+      })
+    })
+
+    const bioButton = page.getByRole('button', { name: bioButtonRe })
+    await expect(bioButton).toBeVisible({ timeout: 10_000 })
+    await bioButton.click()
+
+    await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 })
+    expect(capturedUserVerification).toEqual(['required'])
+  })
 })
 
 test.describe('Formulaire de connexion — compatibilité gestionnaires de mots de passe', () => {
