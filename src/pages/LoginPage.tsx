@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase/client'
 import { fetchSubscriptionBlocked } from '@/lib/subscription'
 import {
   isBiometricAvailable, hasBiometricRegistered, getBiometricEmail,
-  authenticateWithBiometric, registerBiometric, clearBiometric,
+  authenticateWithBiometric, registerBiometric,
 } from '@/lib/biometric'
 import type { Profile } from '@/types'
 import KaytekLogo from '@/components/KaytekLogo'
@@ -35,6 +35,7 @@ export default function LoginPage() {
   const [mode, setMode]             = useState<'login' | 'reset'>('login')
   const [resetOk, setResetOk]       = useState(false)
   const [offerBio, setOfferBio]     = useState(false)
+  const [bioRegisterLoading, setBioRegisterLoading] = useState(false)
   const [pendingProfile, setPendingProfile] = useState<Profile | null>(null)
   const [showPwForm, setShowPwForm] = useState(false)
   const [lockRemaining, setLockRemaining] = useState(0)
@@ -133,17 +134,28 @@ export default function LoginPage() {
     setErr('')
     setBioLoading(true)
     try {
-      const ok = await authenticateWithBiometric()
-      if (!ok) {
-        setErr('Empreinte non reconnue. Utilisez votre mot de passe.')
+      const result = await authenticateWithBiometric()
+      if (result !== 'ok') {
+        if (result === 'timeout') {
+          setErr("L'appareil n'a pas répondu à temps. Réessayez ou utilisez votre mot de passe.")
+        } else if (result === 'unavailable' || result === 'no-credential') {
+          setErr('Empreinte indisponible sur cet appareil. Utilisez votre mot de passe.')
+        } else {
+          // 'denied' : annulation utilisateur ou échec natif — WebAuthn ne permet pas de
+          // distinguer les deux de façon fiable. On ne désactive jamais l'empreinte ici :
+          // le rejet ne prouve pas que l'identifiant enregistré est invalide.
+          setErr('Empreinte non reconnue. Réessayez ou utilisez votre mot de passe.')
+        }
         setShowPwForm(true)
         return
       }
 
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) {
+        // Le credential WebAuthn (lié à cet appareil) reste valable même si la session
+        // Supabase a expiré (liée au refresh token) — on ne l'efface donc pas ici, sans
+        // quoi l'utilisateur devrait ré-enregistrer son empreinte après chaque expiration.
         setErr('Session expirée. Reconnectez-vous avec votre mot de passe.')
-        clearBiometric()
         setShowPwForm(true)
         return
       }
@@ -169,12 +181,20 @@ export default function LoginPage() {
 
   async function handleRegisterBiometric() {
     if (!pendingProfile) { redirectAfterLogin(); return }
-    await registerBiometric(
-      pendingProfile.id,
-      `${pendingProfile.prenom} ${pendingProfile.nom}`,
-      pendingProfile.email
-    )
-    redirectAfterLogin()
+    setBioRegisterLoading(true)
+    try {
+      // registerBiometric() ne rejette jamais (voir biometric.ts) — un échec ou une
+      // annulation renvoie simplement false, sans bloquer la suite de la connexion :
+      // l'utilisateur pourra réessayer l'activation plus tard depuis /login.
+      await registerBiometric(
+        pendingProfile.id,
+        `${pendingProfile.prenom} ${pendingProfile.nom}`,
+        pendingProfile.email
+      )
+    } finally {
+      setBioRegisterLoading(false)
+      redirectAfterLogin()
+    }
   }
 
   async function handleReset(e: React.FormEvent) {
@@ -205,13 +225,15 @@ export default function LoginPage() {
             </p>
             <button
               className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center', marginBottom: 10 }}
+              style={{ width: '100%', justifyContent: 'center', marginBottom: 10, opacity: bioRegisterLoading ? 0.7 : 1 }}
               onClick={handleRegisterBiometric}
+              disabled={bioRegisterLoading}
             >
-              Activer l'empreinte
+              {bioRegisterLoading ? 'Activation…' : "Activer l'empreinte"}
             </button>
             <button
               onClick={() => redirectAfterLogin()}
+              disabled={bioRegisterLoading}
               style={{ background: 'none', border: 'none', color: 'var(--t2)', fontSize: 13, cursor: 'pointer', padding: 8 }}
             >
               Non merci, continuer

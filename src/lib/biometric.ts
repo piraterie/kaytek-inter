@@ -2,6 +2,17 @@
 const CRED_KEY = 'kaytek-biometric-cred'
 const EMAIL_KEY = 'kaytek-biometric-email'
 
+// Hint passé à l'authenticateur ET verrou de secours côté navigateur (AbortController).
+// Sur certains navigateurs/OS mobiles (notamment Chrome Android quand le Credential
+// Manager/Play Services est dans un état incohérent, ou quand allowCredentials ne
+// correspond à aucun identifiant connu de la plateforme), navigator.credentials.get()/
+// create() peut ne jamais se résoudre NI rejeter — le `timeout` de l'objet publicKey
+// n'est qu'une suggestion que les authenticateurs plateforme ignorent fréquemment.
+// Sans le signal ci-dessous, un tel blocage laissait l'écran de connexion figé
+// indéfiniment (bouton "Vérification…" bloqué) dès que l'utilisateur appuyait sur
+// le bouton empreinte — c'est le bug corrigé ici.
+const DEFAULT_TIMEOUT_MS = 25000
+
 function toB64(buf: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(buf)))
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
@@ -27,15 +38,30 @@ export function getBiometricEmail(): string | null {
   return localStorage.getItem(EMAIL_KEY)
 }
 
+// 'ok'            : assertion WebAuthn réussie
+// 'unavailable'   : API WebAuthn absente de ce navigateur/contexte
+// 'no-credential' : aucune empreinte enregistrée sur cet appareil
+// 'timeout'       : l'authenticateur n'a jamais répondu — notre AbortController a coupé
+// 'denied'        : annulation utilisateur OU échec natif (WebAuthn fusionne volontairement
+//                    ces deux cas dans NotAllowedError pour des raisons de confidentialité —
+//                    impossible de les distinguer côté site, donc on ne les traite jamais
+//                    comme une preuve que l'empreinte enregistrée est invalide)
+export type BiometricAuthResult = 'ok' | 'unavailable' | 'no-credential' | 'timeout' | 'denied'
+
 export async function registerBiometric(
   userId: string,
   displayName: string,
-  email: string
+  email: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<boolean> {
   if (!isBiometricAvailable()) return false
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const challenge = crypto.getRandomValues(new Uint8Array(32))
     const cred = await navigator.credentials.create({
+      signal: controller.signal,
       publicKey: {
         challenge,
         rp: { name: 'Kaytek Inter', id: window.location.hostname },
@@ -53,7 +79,7 @@ export async function registerBiometric(
           userVerification: 'required',
           residentKey: 'preferred',
         },
-        timeout: 60000,
+        timeout: timeoutMs,
       },
     }) as PublicKeyCredential | null
 
@@ -63,27 +89,39 @@ export async function registerBiometric(
     return true
   } catch {
     return false
+  } finally {
+    clearTimeout(timer)
   }
 }
 
-export async function authenticateWithBiometric(): Promise<boolean> {
-  if (!isBiometricAvailable()) return false
+export async function authenticateWithBiometric(timeoutMs = DEFAULT_TIMEOUT_MS): Promise<BiometricAuthResult> {
+  if (!isBiometricAvailable()) return 'unavailable'
   const stored = localStorage.getItem(CRED_KEY)
-  if (!stored) return false
+  if (!stored) return 'no-credential'
+
+  const controller = new AbortController()
+  let timedOut = false
+  const timer = setTimeout(() => { timedOut = true; controller.abort() }, timeoutMs)
+
   try {
     const credId = fromB64(stored)
     const challenge = crypto.getRandomValues(new Uint8Array(32))
     const assertion = await navigator.credentials.get({
+      signal: controller.signal,
       publicKey: {
         challenge: challenge as BufferSource,
         allowCredentials: [{ type: 'public-key', id: credId as BufferSource }],
         userVerification: 'required',
-        timeout: 60000,
+        timeout: timeoutMs,
       },
     })
-    return !!assertion
+    return assertion ? 'ok' : 'denied'
   } catch {
-    return false
+    // Notre propre abort déclenche une AbortError — on la reconnaît via `timedOut`
+    // plutôt que par le nom de l'exception, qui peut varier selon le navigateur.
+    return timedOut ? 'timeout' : 'denied'
+  } finally {
+    clearTimeout(timer)
   }
 }
 
