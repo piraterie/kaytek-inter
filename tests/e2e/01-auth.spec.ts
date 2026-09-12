@@ -7,19 +7,25 @@ const ADMIN_AUTH = 'tests/.auth/admin.json'
 test.describe('Admin — session active', () => {
   test.use({ storageState: ADMIN_AUTH })
 
-  // Playwright storageState ne capture pas sessionStorage. kaytek-active est
-  // requis par initAuth() (App.tsx) pour charger le profil depuis la session
-  // Supabase restaurée via localStorage — sans lui, user reste null → /login
-  // (voir tests/responsive/01-viewports.spec.ts, seul endroit où ce garde
-  // était déjà contourné avant ce fichier).
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => sessionStorage.setItem('kaytek-active', '1'))
-  })
-
   test('dashboard accessible après connexion', async ({ page }) => {
     await page.goto('/dashboard')
     await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 })
     // Le contenu principal du dashboard est visible
+    await expect(page.locator('h1, [class*="page-title"]').first()).toBeVisible()
+  })
+
+  // Régression : Playwright storageState ne restaure QUE localStorage, jamais
+  // sessionStorage — c'est exactement le scénario mobile (PWA standalone tuée
+  // par l'OS puis relancée, ou onglet déchargé sous pression mémoire) : le
+  // refresh token Supabase survit en localStorage, sessionStorage non. App.tsx
+  // exigeait autrefois un flag sessionStorage ('kaytek-active') en plus d'une
+  // session Supabase valide pour restaurer le profil, ce qui cassait la
+  // restauration une fois sur deux sur mobile — voir memory
+  // project_auth_listener_fix / commit de correction. Ce test échoue si ce
+  // garde est réintroduit.
+  test('session valide en localStorage seul restaure le dashboard (sans sessionStorage)', async ({ page }) => {
+    await page.goto('/dashboard')
+    await expect(page).toHaveURL(/dashboard/, { timeout: 15_000 })
     await expect(page.locator('h1, [class*="page-title"]').first()).toBeVisible()
   })
 

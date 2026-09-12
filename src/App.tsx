@@ -170,7 +170,6 @@ export default function App() {
       // Ouverture depuis une notification push (push_open=1 ajouté par push-sw.js)
       const searchParams = new URLSearchParams(window.location.search)
       if (searchParams.get('push_open') === '1') {
-        sessionStorage.setItem('kaytek-active', '1')
         const cleanUrl = window.location.pathname + window.location.hash
         window.history.replaceState({}, '', cleanUrl)
       }
@@ -193,7 +192,13 @@ export default function App() {
           throw new Error(`Erreur de session: ${sessionError.message}`)
         }
 
-        if (session?.user && sessionStorage.getItem('kaytek-active')) {
+        // Toute session valide renvoyée par getSession() restaure le profil, sans
+        // condition supplémentaire : sur mobile (PWA standalone), l'OS peut tuer le
+        // processus/onglet et vider sessionStorage à tout moment sans toucher au
+        // localStorage où Supabase persiste le refresh token — exiger un flag
+        // sessionStorage ici forçait un /login intempestif sur une session pourtant
+        // valide et renouvelable (voir tests/e2e/01-auth.spec.ts pour le symptôme).
+        if (session?.user) {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -241,7 +246,7 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return
 
-      if (event === 'SIGNED_IN' && session?.user && sessionStorage.getItem('kaytek-active')) {
+      if (event === 'SIGNED_IN' && session?.user) {
         try {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')

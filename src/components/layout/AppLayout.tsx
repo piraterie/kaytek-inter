@@ -159,7 +159,6 @@ export default function AppLayout() {
       clearTimeout(timer)
       timer = setTimeout(async () => {
         await signOut()
-        sessionStorage.removeItem('kaytek-active')
         nav('/login')
       }, TIMEOUT)
     }
