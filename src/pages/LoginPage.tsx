@@ -6,10 +6,9 @@ import { signIn, resetPassword } from '@/lib/supabase/auth'
 import { supabase } from '@/lib/supabase/client'
 import { fetchSubscriptionBlocked } from '@/lib/subscription'
 import {
-  isBiometricAvailable, hasBiometricRegistered, getBiometricEmail,
-  authenticateWithBiometric, registerBiometric,
+  isBiometricAvailable, arePasskeysServerEnabled, hasPasskeyHint,
+  signInWithPasskey, registerPasskey, withTimeout, TimeoutError,
 } from '@/lib/biometric'
-import type { Profile } from '@/types'
 import KaytekLogo from '@/components/KaytekLogo'
 
 // Brute-force protection — 5 tentatives → blocage 15 minutes
@@ -26,31 +25,6 @@ function setBF(v: { count: number; lockedUntil: number | null }) {
 }
 function clearBF() { localStorage.removeItem(BF_KEY) }
 
-// Le blocage réel de la connexion biométrique sur mobile ne vient pas de
-// WebAuthn (purement local, quasi instantané) mais de ce qui le suit :
-// supabase.auth.getSession() (et la requête profils) parlent réellement au
-// réseau — un rafraîchissement de token sur une connexion mobile dégradée peut
-// rester en attente indéfiniment, sans qu'aucun timeout ne soit déclenché côté
-// client (aucun mécanisme de ce type n'existe dans supabase-js pour l'appel de
-// rafraîchissement HTTP sous-jacent). D'où withTimeout ci-dessous.
-class TimeoutError extends Error {
-  constructor(label: string) { super(`TIMEOUT:${label}`); this.name = 'TimeoutError' }
-}
-
-// Timeout indépendant de toute coopération du navigateur ou de la lib
-// Supabase — contrairement à un AbortSignal passé à une API tierce, ce
-// setTimeout se déclenche TOUJOURS après `ms`, que la promesse sous-jacente
-// (fetch réseau, WebAuthn, etc.) respecte ou non un mécanisme d'annulation.
-function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new TimeoutError(label)), ms)
-    promise.then(
-      v => { clearTimeout(timer); resolve(v) },
-      e => { clearTimeout(timer); reject(e) }
-    )
-  })
-}
-
 export default function LoginPage() {
   const [email, setEmail]           = useState('')
   const [pw, setPw]                 = useState('')
@@ -61,7 +35,6 @@ export default function LoginPage() {
   const [resetOk, setResetOk]       = useState(false)
   const [offerBio, setOfferBio]     = useState(false)
   const [bioRegisterLoading, setBioRegisterLoading] = useState(false)
-  const [pendingProfile, setPendingProfile] = useState<Profile | null>(null)
   const [showPwForm, setShowPwForm] = useState(false)
   const [lockRemaining, setLockRemaining] = useState(0)
 
@@ -83,27 +56,28 @@ export default function LoginPage() {
   const { setUser, setSubscriptionBlocked } = useAuthStore()
   const nav = useNavigate()
 
-  // isBiometricAvailable() est asynchrone : elle interroge réellement l'appareil
-  // (PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()) plutôt
-  // que de se fier à la simple présence de l'API WebAuthn, qui reste définie même
-  // sans authenticateur plateforme fonctionnel — voir biometric.ts. Par défaut à
-  // false : tant que la vérification n'a pas répondu, l'UI biométrique reste
-  // masquée plutôt que d'offrir un bouton qui appellerait un authenticateur non
-  // opérationnel.
-  const [bioAvailable, setBioAvailable] = useState(false)
+  // Deux conditions indépendantes doivent être vraies pour proposer la connexion
+  // par passkey : un authenticateur plateforme réellement disponible sur cet
+  // appareil (isBiometricAvailable — interroge le device, pas seulement l'API),
+  // ET les passkeys activés côté serveur pour ce projet Supabase
+  // (arePasskeysServerEnabled — Dashboard → Authentication). Par défaut à false
+  // le temps de la vérification : mieux vaut masquer temporairement le bouton
+  // que d'en offrir un qui échouerait à coup sûr.
+  const [canUsePasskeys, setCanUsePasskeys] = useState(false)
   useEffect(() => {
     let mounted = true
-    isBiometricAvailable().then(v => { if (mounted) setBioAvailable(v) })
+    Promise.all([isBiometricAvailable(), arePasskeysServerEnabled()]).then(([device, server]) => {
+      if (mounted) setCanUsePasskeys(device && server)
+    })
     return () => { mounted = false }
   }, [])
 
-  const bioRegistered = hasBiometricRegistered()
-  const bioEmail      = getBiometricEmail()
-  const showBioFirst  = bioAvailable && bioRegistered && !showPwForm
-
-  function activateSession(profile: Profile) {
-    setUser(profile)
-  }
+  // Indice purement local (pas un credential) : a-t-on déjà enregistré une
+  // passkey sur cet appareil ? Sert uniquement à choisir l'écran affiché en
+  // premier — la seule chose qui authentifie réellement est la vérification
+  // serveur dans signInWithPasskey() (voir biometric.ts).
+  const passkeyHint = hasPasskeyHint()
+  const showBioFirst = canUsePasskeys && passkeyHint && !showPwForm
 
   function redirectAfterLogin() {
     const redirect = sessionStorage.getItem('kaytek-push-redirect')
@@ -151,13 +125,15 @@ export default function LoginPage() {
       }
       if (!profile) { setErr('Profil utilisateur introuvable'); setLoading(false); return }
 
-      // Connexion réussie — réinitialiser le compteur
+      // Connexion réussie — réinitialiser le compteur. Ne PAS appeler
+      // e.preventDefault() plus tôt ni vider email/pw ici : le gestionnaire de
+      // mots de passe du navigateur associe la soumission du <form> à cette
+      // navigation réussie pour proposer "Enregistrer le mot de passe ?".
       clearBF()
       setSubscriptionBlocked(!!subscriptionBlocked)
-      activateSession(profile)
+      setUser(profile)
 
-      if (bioAvailable && !bioRegistered) {
-        setPendingProfile(profile)
+      if (canUsePasskeys && !passkeyHint) {
         setOfferBio(true)
       } else {
         redirectAfterLogin()
@@ -168,46 +144,34 @@ export default function LoginPage() {
     }
   }
 
-  async function handleBiometricLogin() {
+  async function handlePasskeySignIn() {
     setErr('')
     setBioLoading(true)
     try {
-      const result = await authenticateWithBiometric()
-      if (result !== 'ok') {
-        if (result === 'timeout') {
-          setErr("L'appareil n'a pas répondu à temps. Réessayez ou utilisez votre mot de passe.")
-        } else if (result === 'unavailable' || result === 'no-credential') {
+      const result = await signInWithPasskey()
+      if (result.status !== 'ok') {
+        if (result.status === 'timeout') {
+          setErr("Le serveur n'a pas répondu à temps. Réessayez ou utilisez votre mot de passe.")
+        } else if (result.status === 'unavailable') {
           setErr('Empreinte indisponible sur cet appareil. Utilisez votre mot de passe.')
+        } else if (result.status === 'not-supported-by-server') {
+          setErr("La connexion par empreinte n'est pas disponible pour le moment. Utilisez votre mot de passe.")
         } else {
           // 'denied' : annulation utilisateur ou échec natif — WebAuthn ne permet pas de
           // distinguer les deux de façon fiable. On ne désactive jamais l'empreinte ici :
-          // le rejet ne prouve pas que l'identifiant enregistré est invalide.
+          // le rejet ne prouve pas que la passkey enregistrée est invalide.
           setErr('Empreinte non reconnue. Réessayez ou utilisez votre mot de passe.')
         }
         setShowPwForm(true)
         return
       }
 
-      // À partir d'ici, l'empreinte est validée — mais cela ne prouve RIEN côté
-      // Supabase : WebAuthn ne fait que déverrouiller localement l'accès à une
-      // session déjà stockée, sans jamais recontacter Supabase pour authentifier
-      // qui que ce soit. getSession() est le premier appel qui parle réellement
-      // au serveur (et peut déclencher un rafraîchissement de token réseau si
-      // l'access token est expiré) — c'est ce point, pas WebAuthn, qui peut
-      // rester bloqué indéfiniment sur une connexion mobile dégradée, car
-      // aucun timeout n'existe nativement dans supabase-js pour ce cas.
-      const { data: { session } } = await withTimeout(supabase.auth.getSession(), 12000, 'getSession')
-      if (!session?.user) {
-        // Le credential WebAuthn (lié à cet appareil) reste valable même si la session
-        // Supabase a expiré (liée au refresh token) — on ne l'efface donc pas ici, sans
-        // quoi l'utilisateur devrait ré-enregistrer son empreinte après chaque expiration.
-        setErr('Session expirée. Reconnectez-vous avec votre mot de passe.')
-        setShowPwForm(true)
-        return
-      }
-
+      // result.session/result.user sont désormais une VRAIE session Supabase,
+      // vérifiée et émise par le serveur — contrairement à l'ancienne
+      // implémentation, il n'y a plus de "session éventuellement encore valide"
+      // à aller chercher après coup : signInWithPasskey() vient de l'émettre.
       const { data: profile } = await withTimeout(
-        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+        supabase.from('profiles').select('*').eq('id', result.user.id).single(),
         12000,
         'profileFetch'
       )
@@ -232,18 +196,13 @@ export default function LoginPage() {
     }
   }
 
-  async function handleRegisterBiometric() {
-    if (!pendingProfile) { redirectAfterLogin(); return }
+  async function handleRegisterPasskey() {
     setBioRegisterLoading(true)
     try {
-      // registerBiometric() ne rejette jamais (voir biometric.ts) — un échec ou une
-      // annulation renvoie simplement false, sans bloquer la suite de la connexion :
-      // l'utilisateur pourra réessayer l'activation plus tard depuis /login.
-      await registerBiometric(
-        pendingProfile.id,
-        `${pendingProfile.prenom} ${pendingProfile.nom}`,
-        pendingProfile.email
-      )
+      // registerPasskey() ne rejette jamais (voir biometric.ts) — un échec ou une
+      // annulation renvoie simplement un statut, sans bloquer la suite de la
+      // connexion : l'utilisateur pourra réessayer l'activation plus tard depuis /login.
+      await registerPasskey()
     } finally {
       setBioRegisterLoading(false)
       redirectAfterLogin()
@@ -279,7 +238,7 @@ export default function LoginPage() {
             <button
               className="btn btn-primary"
               style={{ width: '100%', justifyContent: 'center', marginBottom: 10, opacity: bioRegisterLoading ? 0.7 : 1 }}
-              onClick={handleRegisterBiometric}
+              onClick={handleRegisterPasskey}
               disabled={bioRegisterLoading}
             >
               {bioRegisterLoading ? 'Activation…' : "Activer l'empreinte"}
@@ -320,13 +279,8 @@ export default function LoginPage() {
               {/* ── Biometric login ──────────────────────────────────── */}
               {showBioFirst && (
                 <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                  {bioEmail && (
-                    <p style={{ fontSize: 13, color: 'var(--t2)', marginBottom: 16 }}>
-                      {bioEmail}
-                    </p>
-                  )}
                   <button
-                    onClick={handleBiometricLogin}
+                    onClick={handlePasskeySignIn}
                     disabled={bioLoading}
                     style={{
                       width: '100%', padding: '14px 0', fontSize: 15, fontWeight: 600,
@@ -361,26 +315,60 @@ export default function LoginPage() {
                       <strong>Réessayez dans {Math.floor(lockRemaining / 60)}:{String(lockRemaining % 60).padStart(2, '0')}</strong>
                     </div>
                   )}
-                  <form onSubmit={handleLogin}>
+                  {/* Formulaire natif classique — <form>/<input> avec name/id/autocomplete
+                      corrects, soumission via onSubmit (SPA, sans rechargement de page) :
+                      c'est ce que Chrome/Android et Safari/iOS attendent pour reconnaître
+                      un formulaire de connexion et proposer d'enregistrer le mot de passe.
+                      Ne jamais enregistrer email/mot de passe nous-mêmes (localStorage/
+                      sessionStorage) — cela reste entièrement délégué au navigateur. */}
+                  <form onSubmit={handleLogin} autoComplete="on">
                     <div className="form-group">
-                      <label>Email</label>
-                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="vous@email.fr" required autoFocus autoComplete="email" />
+                      <label htmlFor="login-email">Email</label>
+                      <input
+                        id="login-email"
+                        name="username"
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        placeholder="vous@email.fr"
+                        required
+                        autoFocus
+                        autoComplete="username"
+                      />
                     </div>
                     <div className="form-group">
-                      <label>Mot de passe</label>
-                      <input type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="••••••••••••" required autoComplete="current-password" />
+                      <label htmlFor="login-password">Mot de passe</label>
+                      <input
+                        id="login-password"
+                        name="current-password"
+                        type="password"
+                        value={pw}
+                        onChange={e => setPw(e.target.value)}
+                        placeholder="••••••••••••"
+                        required
+                        autoComplete="current-password"
+                      />
                     </div>
                     {err && <div style={{ color: 'var(--rdTx)', fontSize: 12, marginBottom: 12, padding: '8px 10px', background: 'var(--rdBg)', borderRadius: 7, border: '1px solid var(--rdBd)' }}>⚠ {err}</div>}
                     <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: 4 }} disabled={loading || lockRemaining > 0}>
                       {loading ? 'Connexion…' : lockRemaining > 0 ? `Bloqué (${Math.ceil(lockRemaining / 60)} min)` : 'Se connecter'}
                     </button>
                   </form>
-                  {showPwForm && bioAvailable && bioRegistered && (
+                  {/* Visible même sans indice local de passkey (localStorage vidé, app
+                      réinstallée, appareil redémarré, connexion depuis un nouvel
+                      onglet...) — tant que l'appareil et le serveur le permettent, la
+                      connexion par empreinte reste atteignable sans dépendre d'un état
+                      local qui a pu disparaître. */}
+                  {!showBioFirst && canUsePasskeys && (
                     <button
-                      onClick={() => { setShowPwForm(false); setErr('') }}
+                      onClick={() => {
+                        setErr('')
+                        if (passkeyHint) { setShowPwForm(false) } else { handlePasskeySignIn() }
+                      }}
+                      disabled={bioLoading}
                       style={{ background: 'none', border: 'none', color: 'var(--blTx)', fontSize: 12, cursor: 'pointer', marginTop: 10, display: 'block', textAlign: 'center', width: '100%' }}
                     >
-                      ← Retour à l'empreinte
+                      {passkeyHint ? "← Retour à l'empreinte" : (bioLoading ? 'Vérification…' : 'Se connecter avec l\'empreinte')}
                     </button>
                   )}
                   <button
@@ -401,10 +389,19 @@ export default function LoginPage() {
                   <p>Email envoyé à <strong>{email}</strong></p>
                 </div>
               ) : (
-                <form onSubmit={handleReset}>
+                <form onSubmit={handleReset} autoComplete="on">
                   <div className="form-group">
-                    <label>Email</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
+                    <label htmlFor="reset-email">Email</label>
+                    <input
+                      id="reset-email"
+                      name="username"
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      required
+                      autoFocus
+                      autoComplete="username"
+                    />
                   </div>
                   {err && <div style={{ color: 'var(--rdTx)', fontSize: 12, marginBottom: 12 }}>⚠ {err}</div>}
                   <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>

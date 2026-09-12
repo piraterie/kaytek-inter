@@ -1,42 +1,69 @@
 // src/lib/biometric.ts
-const CRED_KEY = 'kaytek-biometric-cred'
-const EMAIL_KEY = 'kaytek-biometric-email'
+//
+// Connexion par empreinte/passkey — architecture native Supabase.
+//
+// L'ancienne implémentation stockait un identifiant de credential WebAuthn en
+// localStorage et se contentait de vérifier l'assertion CÔTÉ CLIENT (aucune
+// vérification de signature serveur), avant d'aller voir si une session
+// Supabase antérieure traînait encore en localStorage. Deux défauts de fond :
+//   1. Ce n'était pas une authentification réelle — juste un déverrouillage
+//      local d'un état déjà là. Si la session Supabase sous-jacente n'existait
+//      plus (déconnexion, expiration, changement d'appareil), l'empreinte ne
+//      pouvait STRUCTURELLEMENT rien faire d'autre qu'échouer, quel que soit
+//      son propre succès.
+//   2. Rien ne garantissait que le credential WebAuthn appartenait bien à
+//      l'utilisateur ciblé : sans vérification serveur de la signature, un
+//      empreinte valide localement ne prouve rien à Supabase.
+//
+// `supabase.auth.registerPasskey()` / `signInWithPasskey()` (API "experimental"
+// du SDK, mais qui délègue tout le travail cryptographique et l'émission de
+// session au serveur GoTrue) corrigent les deux : le serveur génère le challenge,
+// vérifie la signature WebAuthn, et — seulement si elle est valide — émet une
+// vraie session Supabase (refresh token inclus), exactement comme un login par
+// mot de passe. Il n'y a plus de "session éventuellement encore valide" à aller
+// chercher après coup.
+import { supabase } from './supabase/client'
+import type { Session, User } from '@supabase/supabase-js'
 
-// Hint passé à l'authenticateur ET verrou de secours côté navigateur (AbortController).
-// Sur certains navigateurs/OS mobiles (notamment Chrome Android quand le Credential
-// Manager/Play Services est dans un état incohérent, ou quand allowCredentials ne
-// correspond à aucun identifiant connu de la plateforme), navigator.credentials.get()/
-// create() peut ne jamais se résoudre NI rejeter — le `timeout` de l'objet publicKey
-// n'est qu'une suggestion que les authenticateurs plateforme ignorent fréquemment.
-const DEFAULT_TIMEOUT_MS = 25000
+// Indice purement cosmétique — sert uniquement à décider si on propose le
+// bouton passkey en premier sur cet appareil. Ce n'est PAS un credential et sa
+// présence/absence ne accorde ni ne retire jamais d'accès : la seule chose qui
+// authentifie réellement, c'est la vérification serveur dans signInWithPasskey().
+const PASSKEY_HINT_KEY = 'kaytek-passkey-registered'
 
-function toB64(buf: ArrayBuffer): string {
-  return btoa(String.fromCharCode(...new Uint8Array(buf)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+const DEFAULT_TIMEOUT_MS = 15000
+
+export class TimeoutError extends Error {
+  constructor(label: string) { super(`TIMEOUT:${label}`); this.name = 'TimeoutError' }
 }
 
-function fromB64(s: string): Uint8Array {
-  const padded = s.replace(/-/g, '+').replace(/_/g, '/')
-  const pad = (4 - (padded.length % 4)) % 4
-  return Uint8Array.from(atob(padded + '='.repeat(pad)), c => c.charCodeAt(0))
+// Timeout indépendant de toute coopération du navigateur, de supabase-js ou du
+// serveur — contrairement à un AbortSignal transmis à une API tierce, ce
+// setTimeout se déclenche TOUJOURS après `ms`, que la promesse sous-jacente
+// (fetch réseau, cérémonie WebAuthn, etc.) respecte ou non un mécanisme
+// d'annulation. C'est la garantie qui manquait dans les versions précédentes :
+// signInWithPasskey() effectue en interne un fetch (challenge) → cérémonie
+// WebAuthn → fetch (vérification) ; un `signal` ne couvre que le milieu de cette
+// chaîne, jamais les deux appels réseau qui l'encadrent.
+export function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new TimeoutError(label)), ms)
+    promise.then(
+      v => { clearTimeout(timer); resolve(v) },
+      e => { clearTimeout(timer); reject(e) }
+    )
+  })
 }
 
 // `typeof PublicKeyCredential !== 'undefined'` prouve seulement que le navigateur
 // connaît la SYNTAXE de l'API WebAuthn — pas qu'un authenticateur plateforme
-// (empreinte/visage) est réellement présent, activé et fonctionnel sur cet
-// appareil. Sur Android en particulier, `PublicKeyCredential` est défini même
-// sans empreinte enregistrée dans les paramètres système ou avec un Credential
-// Manager/Play Services cassé — appeler create()/get() dans cet état est
-// justement la situation où Chrome-sur-Android est connu pour bloquer
-// indéfiniment la promesse (voir les rapports Chromium sur ce sujet). La bonne
+// (empreinte/visage) est réellement présent, activé et fonctionnel. La bonne
 // méthode de détection est asynchrone : isUserVerifyingPlatformAuthenticatorAvailable().
 export async function isBiometricAvailable(): Promise<boolean> {
   if (typeof window === 'undefined' || !('credentials' in navigator) || typeof PublicKeyCredential === 'undefined') {
     return false
   }
   if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') {
-    // Navigateur ancien sans cette méthode : on retombe sur la détection basique
-    // plutôt que de désactiver la biométrie partout.
     return true
   }
   try {
@@ -46,102 +73,127 @@ export async function isBiometricAvailable(): Promise<boolean> {
   }
 }
 
-export function hasBiometricRegistered(): boolean {
-  return !!localStorage.getItem(CRED_KEY)
-}
-
-export function getBiometricEmail(): string | null {
-  return localStorage.getItem(EMAIL_KEY)
-}
-
-// 'ok'            : assertion WebAuthn réussie
-// 'unavailable'   : API WebAuthn absente ou authenticateur plateforme non disponible
-// 'no-credential' : aucune empreinte enregistrée sur cet appareil
-// 'timeout'       : l'authenticateur n'a jamais répondu — notre timeout local a coupé
-// 'denied'        : annulation utilisateur OU échec natif (WebAuthn fusionne volontairement
-//                    ces deux cas dans NotAllowedError pour des raisons de confidentialité —
-//                    impossible de les distinguer côté site, donc on ne les traite jamais
-//                    comme une preuve que l'empreinte enregistrée est invalide)
-export type BiometricAuthResult = 'ok' | 'unavailable' | 'no-credential' | 'timeout' | 'denied'
-
-export async function registerBiometric(
-  userId: string,
-  displayName: string,
-  email: string,
-  timeoutMs = DEFAULT_TIMEOUT_MS
-): Promise<boolean> {
-  if (!(await isBiometricAvailable())) return false
-
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
+// Vérifie que le PROJET Supabase (pas seulement le SDK) a les passkeys activés
+// — Dashboard → Authentication. Sans ce garde, on proposerait un bouton qui
+// échouerait à coup sûr tant que ce n'est pas activé côté serveur. Résultat mis
+// en cache pour la durée de la session (le paramètre ne change pas en cours de
+// route) — /auth/v1/settings est un endpoint public, aucune authentification
+// requise, sûr à interroger avant même toute connexion.
+let serverEnabledCache: boolean | null = null
+export async function arePasskeysServerEnabled(): Promise<boolean> {
+  if (serverEnabledCache !== null) return serverEnabledCache
   try {
-    const challenge = crypto.getRandomValues(new Uint8Array(32))
-    const cred = await navigator.credentials.create({
-      signal: controller.signal,
-      publicKey: {
-        challenge,
-        rp: { name: 'Kaytek Inter', id: window.location.hostname },
-        user: {
-          id: new TextEncoder().encode(userId),
-          name: email,
-          displayName,
-        },
-        pubKeyCredParams: [
-          { type: 'public-key', alg: -7 },
-          { type: 'public-key', alg: -257 },
-        ],
-        authenticatorSelection: {
-          authenticatorAttachment: 'platform',
-          userVerification: 'required',
-          residentKey: 'preferred',
-        },
-        timeout: timeoutMs,
-      },
-    }) as PublicKeyCredential | null
-
-    if (!cred) return false
-    localStorage.setItem(CRED_KEY, toB64(cred.rawId))
-    localStorage.setItem(EMAIL_KEY, email)
-    return true
+    const url = import.meta.env.VITE_SUPABASE_URL
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+    const res = await withTimeout(
+      fetch(`${url}/auth/v1/settings`, { headers: { apikey: key } }),
+      5000,
+      'passkeySettings'
+    )
+    if (!res.ok) { serverEnabledCache = false; return false }
+    const data = await res.json()
+    serverEnabledCache = data?.passkeys_enabled === true
+    return serverEnabledCache
   } catch {
+    serverEnabledCache = false
     return false
-  } finally {
-    clearTimeout(timer)
   }
 }
 
-export async function authenticateWithBiometric(timeoutMs = DEFAULT_TIMEOUT_MS): Promise<BiometricAuthResult> {
-  if (!(await isBiometricAvailable())) return 'unavailable'
-  const stored = localStorage.getItem(CRED_KEY)
-  if (!stored) return 'no-credential'
+export function hasPasskeyHint(): boolean {
+  return localStorage.getItem(PASSKEY_HINT_KEY) === '1'
+}
 
+export function clearPasskeyHint(): void {
+  localStorage.removeItem(PASSKEY_HINT_KEY)
+}
+
+// 'ok'                   : passkey enregistrée avec succès
+// 'unavailable'          : pas d'authenticateur plateforme fonctionnel sur cet appareil
+// 'not-supported-by-server' : passkeys désactivés sur ce projet Supabase
+// 'no-session'           : registerPasskey() exige une session active (on ne peut
+//                          associer une passkey qu'à un compte déjà authentifié)
+// 'timeout'              : ni le réseau ni la cérémonie WebAuthn n'ont répondu à temps
+// 'denied'               : annulation utilisateur OU échec natif (WebAuthn fusionne
+//                          volontairement ces deux cas pour des raisons de
+//                          confidentialité — impossible de les distinguer côté site)
+export type PasskeyRegisterResult =
+  | 'ok' | 'unavailable' | 'not-supported-by-server' | 'no-session' | 'timeout' | 'denied' | 'error'
+
+export async function registerPasskey(timeoutMs = DEFAULT_TIMEOUT_MS): Promise<PasskeyRegisterResult> {
+  if (!(await isBiometricAvailable())) return 'unavailable'
+  if (!(await arePasskeysServerEnabled())) return 'not-supported-by-server'
+
+  // L'AbortController est une courtoisie envers le navigateur (annuler une
+  // cérémonie WebAuthn encore affichée si notre propre timeout se déclenche
+  // avant elle) — la garantie de déblocage vient de withTimeout ci-dessous,
+  // pas de ce signal, que rien n'oblige un navigateur/OS à honorer. `timedOut`
+  // est indispensable : si notre abort() fait échouer signInWithPasskey() AVANT
+  // que le rejet de withTimeout ne se propage (course entre deux timers), l'erreur
+  // renvoyée par le SDK a le même code ERROR_CEREMONY_ABORTED qu'une vraie
+  // annulation utilisateur — sans ce drapeau, un timeout serait donc affiché à
+  // tort comme "empreinte non reconnue".
   const controller = new AbortController()
   let timedOut = false
   const timer = setTimeout(() => { timedOut = true; controller.abort() }, timeoutMs)
 
   try {
-    const credId = fromB64(stored)
-    const challenge = crypto.getRandomValues(new Uint8Array(32))
-    const assertion = await navigator.credentials.get({
-      signal: controller.signal,
-      publicKey: {
-        challenge: challenge as BufferSource,
-        allowCredentials: [{ type: 'public-key', id: credId as BufferSource }],
-        userVerification: 'required',
-        timeout: timeoutMs,
-      },
-    })
-    return assertion ? 'ok' : 'denied'
-  } catch {
-    // Notre propre abort déclenche une AbortError — on la reconnaît via `timedOut`
-    // plutôt que par le nom de l'exception, qui peut varier selon le navigateur.
-    return timedOut ? 'timeout' : 'denied'
+    const { data, error } = await withTimeout(
+      supabase.auth.registerPasskey({ options: { signal: controller.signal } }),
+      timeoutMs,
+      'registerPasskey'
+    )
+    if (error) {
+      if (timedOut) return 'timeout'
+      if ('code' in error && error.code === 'ERROR_CEREMONY_ABORTED') return 'denied'
+      if ('status' in error && error.status === 401) return 'no-session'
+      return 'error'
+    }
+    if (!data) return 'error'
+    localStorage.setItem(PASSKEY_HINT_KEY, '1')
+    return 'ok'
+  } catch (err) {
+    return timedOut || err instanceof TimeoutError ? 'timeout' : 'error'
   } finally {
     clearTimeout(timer)
   }
 }
 
-export function clearBiometric(): void {
-  localStorage.removeItem(CRED_KEY)
-  localStorage.removeItem(EMAIL_KEY)
+export type PasskeySignInResult =
+  | { status: 'ok'; session: Session; user: User }
+  | { status: 'unavailable' | 'not-supported-by-server' | 'timeout' | 'denied' | 'error' }
+
+export async function signInWithPasskey(timeoutMs = DEFAULT_TIMEOUT_MS): Promise<PasskeySignInResult> {
+  if (!(await isBiometricAvailable())) return { status: 'unavailable' }
+  if (!(await arePasskeysServerEnabled())) return { status: 'not-supported-by-server' }
+
+  // Voir le commentaire équivalent dans registerPasskey() : `timedOut` évite de
+  // classer par erreur notre propre timeout comme un rejet natif ("empreinte
+  // non reconnue") lorsque notre abort() gagne la course contre withTimeout.
+  const controller = new AbortController()
+  let timedOut = false
+  const timer = setTimeout(() => { timedOut = true; controller.abort() }, timeoutMs)
+
+  try {
+    const { data, error } = await withTimeout(
+      supabase.auth.signInWithPasskey({ options: { signal: controller.signal } }),
+      timeoutMs,
+      'signInWithPasskey'
+    )
+    if (error) {
+      if (timedOut) return { status: 'timeout' }
+      if ('code' in error && error.code === 'ERROR_CEREMONY_ABORTED') return { status: 'denied' }
+      return { status: 'error' }
+    }
+    if (!data?.session || !data?.user) return { status: 'error' }
+    // Authentification réelle confirmée par le serveur : on peut maintenant
+    // renforcer l'indice local (utile si l'enregistrement avait eu lieu sur un
+    // autre appareil/navigateur synchronisé, ex. passkey iCloud/Google).
+    localStorage.setItem(PASSKEY_HINT_KEY, '1')
+    return { status: 'ok', session: data.session, user: data.user }
+  } catch (err) {
+    return { status: timedOut || err instanceof TimeoutError ? 'timeout' : 'error' }
+  } finally {
+    clearTimeout(timer)
+  }
 }

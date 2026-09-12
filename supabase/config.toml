@@ -185,14 +185,16 @@ minimum_password_length = 6
 password_requirements = ""
 
 # Configure passkey sign-ins.
-# [auth.passkey]
-# enabled = false
+[auth.passkey]
+enabled = true
 
 # Configure WebAuthn relying party settings (required when passkey is enabled).
-# [auth.webauthn]
-# rp_display_name = "Supabase"
-# rp_id = "localhost"
-# rp_origins = ["http://127.0.0.1:3000"]
+# rp_id/rp_origins pointent vers le serveur de dev Vite (tests e2e + `npm run dev`),
+# pas vers site_url (127.0.0.1:3000) qui n'est utilisé nulle part pour servir l'app.
+[auth.webauthn]
+rp_display_name = "Kaytek Inter"
+rp_id = "localhost"
+rp_origins = ["http://localhost:5173"]
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
