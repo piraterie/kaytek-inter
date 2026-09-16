@@ -9,7 +9,7 @@ import {
   MessageCircle, Bell, Menu, User, Smartphone, Monitor, X,
   CheckCheck, Trash2, ChevronUp, ChevronDown, AlertTriangle,
   CheckCircle2, XCircle, Info, Link2, Megaphone, Star, Activity, Send,
-  CalendarClock, AlertOctagon,
+  CalendarClock,
 } from 'lucide-react'
 import KaytekLogo from '@/components/KaytekLogo'
 import WelcomeModal from '@/components/WelcomeModal'
@@ -33,7 +33,6 @@ const NAV: { path: string; label: string; icon: NavIcon; section: string; adminO
   { path: '/devis',         label: 'Devis',         icon: FileText,        section: 'Terrain', allowedRoles: ['admin','intervenant'] },
   { path: '/factures',      label: 'Factures',      icon: Receipt,         section: 'Terrain', allowedRoles: ['admin','intervenant'] },
   { path: '/echeanciers',   label: 'Échéanciers',   icon: CalendarClock,   section: 'Terrain', allowedRoles: ['admin','intervenant'] },
-  { path: '/impayes',       label: 'Impayés',       icon: AlertOctagon,    section: 'Terrain', allowedRoles: ['admin','intervenant'] },
   { path: '/clients',       label: 'Clients',       icon: Users,           section: 'Gestion', allowedRoles: ['admin','assistant'] },
   { path: '/catalogue',     label: 'Catalogue',     icon: Package,         section: 'Gestion', adminOnly: true },
   { path: '/commissions',   label: 'Commissions',   icon: DollarSign,      section: 'Gestion', allowedRoles: ['admin','intervenant'] },

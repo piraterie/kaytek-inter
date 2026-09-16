@@ -114,7 +114,7 @@ export function useGenerateFactureEcheance(devisId: string | undefined) {
   })
 }
 
-// ── Liste org-wide (onglets Échéanciers / Impayés) ──────────────
+// ── Liste org-wide (page Échéanciers) ────────────────────────────
 export interface EcheancierListRow extends Omit<Echeancier, 'devis' | 'client' | 'echeances'> {
   devis: { numero: string } | null
   client: { nom: string; prenom?: string } | null
@@ -130,34 +130,6 @@ export function useEcheanciersList() {
         .from('echeanciers')
         .select('*, devis:devis(numero), client:clients(nom,prenom), echeances(id,numero_ordre,libelle,date_prevue,statut,montant_ttc,montant_paye,montant_restant)')
         .order('created_at', { ascending: false })
-      if (error) throw error
-      return (data || []) as any
-    },
-    enabled: !!user
-  })
-}
-
-export interface EcheanceImpayeeRow extends Echeance {
-  echeancier: { montant_restant: number } | null
-  devis: { numero: string } | null
-  client: { id: string; nom: string; prenom?: string; telephone?: string } | null
-}
-
-// Échéances en retard, impayées, ou partiellement réglées (non soldées) —
-// cf. cahier des charges section 8 : "échéances dépassées non payées,
-// factures en retard, paiements partiels non soldés".
-const IMPAYES_STATUTS = ['en_retard', 'impaye', 'paiement_partiel']
-
-export function useEcheancesImpayees() {
-  const user = useAuthStore(s => s.user)
-  return useQuery<EcheanceImpayeeRow[]>({
-    queryKey: ['echeances-impayees', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('echeances')
-        .select('*, echeancier:echeanciers(montant_restant), devis:devis(numero), client:clients(id,nom,prenom,telephone)')
-        .in('statut', IMPAYES_STATUTS)
-        .order('date_prevue', { ascending: true })
       if (error) throw error
       return (data || []) as any
     },

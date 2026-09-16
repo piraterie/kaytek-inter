@@ -77,7 +77,7 @@ test.describe('Échéancier — isolation multi-tenant, permissions, règles mé
   })
 
   // ── 38. Permissions admin / intervenant / assistant ──────────────────────
-  test('38a. un assistant est bloqué au niveau route sur /echeanciers et /impayes', async ({ browser }) => {
+  test('38a. un assistant est bloqué au niveau route sur /echeanciers', async ({ browser }) => {
     test.skip(!process.env.TEST_ASSISTANT_EMAIL, 'TEST_ASSISTANT_EMAIL non défini')
     const ctx = await browser.newContext({ storageState: ASSISTANT_A_AUTH })
     await addKaytekActive(ctx)
@@ -86,10 +86,6 @@ test.describe('Échéancier — isolation multi-tenant, permissions, règles mé
     await page.goto('/echeanciers')
     await page.waitForTimeout(1000)
     await expect(page).not.toHaveURL(/\/echeanciers$/)
-
-    await page.goto('/impayes')
-    await page.waitForTimeout(1000)
-    await expect(page).not.toHaveURL(/\/impayes$/)
 
     await ctx.close()
   })

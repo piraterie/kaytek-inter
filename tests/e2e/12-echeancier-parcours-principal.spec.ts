@@ -248,14 +248,6 @@ test.describe('Échéancier — parcours principal (devis 619,08 € / acompte 3
     await expect(row.getByTestId('echeanciers-row-statut')).toContainText('Paiement partiel')
   })
 
-  // ── 19. Page Impayés (l'échéance solde n'est pas en retard → absente) ───
-  test('19. la page Impayés ne montre pas une échéance non encore en retard', async ({ page }) => {
-    await page.goto('/impayes')
-    await page.waitForLoadState('networkidle').catch(() => {})
-    const rows = page.locator('[data-testid="impaye-row"]', { hasText: devisNumero })
-    await expect(rows).toHaveCount(0)
-  })
-
   // ── 20. Situation financière client ──────────────────────────────────────
   test('20. la fiche client affiche la situation financière exacte', async ({ page }) => {
     const { data: client } = await dbAdmin.from('clients').select('id').eq('nom', clientLabel).single()

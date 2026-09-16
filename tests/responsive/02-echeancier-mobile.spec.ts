@@ -1,6 +1,6 @@
 // tests/responsive/02-echeancier-mobile.spec.ts
-// 33. Affichage mobile : nouvelles pages Échéanciers/Impayés + parcours de
-// création d'échéancier via carte mobile, sans débordement horizontal.
+// 33. Affichage mobile : page Échéanciers + parcours de création
+// d'échéancier via carte mobile, sans débordement horizontal.
 // Lancé automatiquement sur les projets mobile-360/390/430 et tablet.
 import { test, expect } from '@playwright/test'
 import { dbAdmin, getOrgId, getProfileId, createTestDevis, cleanupTestDevis } from '../helpers/echeancierDb'
@@ -19,15 +19,11 @@ async function noHorizontalOverflow(page: any) {
 const devisIdsToClean: string[] = []
 const clientIdsToClean: string[] = []
 
-test.describe('Responsive — Échéanciers / Impayés / création mobile', () => {
-  test('pages Échéanciers et Impayés sans débordement horizontal', async ({ page }) => {
+test.describe('Responsive — Échéanciers / création mobile', () => {
+  test('page Échéanciers sans débordement horizontal', async ({ page }) => {
     await page.goto('/echeanciers')
     await page.waitForTimeout(500)
     expect(await noHorizontalOverflow(page), 'Débordement horizontal sur /echeanciers').toBeFalsy()
-
-    await page.goto('/impayes')
-    await page.waitForTimeout(500)
-    expect(await noHorizontalOverflow(page), 'Débordement horizontal sur /impayes').toBeFalsy()
   })
 
   test('création d\'un échéancier via la carte mobile du devis, sans débordement', async ({ page }) => {
