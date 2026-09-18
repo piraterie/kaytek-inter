@@ -341,6 +341,7 @@ export async function generateFacturePDF(facture: Facture, devis: Devis | null, 
           clientNom={clientNom}
           clientPhone={facture.client?.telephone}
           clientEmail={facture.client?.email}
+          clientAdresse={facture.client?.adresse_intervention}
           accent={estPayee ? '#16a34a' : accent}
           right={
             <View style={{ backgroundColor: estPayee ? '#dcfce7' : '#fef2f2', borderRadius: 6, padding: 14, borderLeftWidth: 3, borderLeftColor: estPayee ? '#16a34a' : '#dc2626' }}>

@@ -96,8 +96,8 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
       // réseau) — voir REQUIRED_PARAMS / audit envoi devis.
       try {
         // Devis signé : récupérer les données fraîches depuis la DB pour garantir
-        // que signature_client est présente dans le PDF — le cache mémoire et le
-        // storage peuvent contenir un PDF pré-généré AVANT la signature
+        // que signature_client est présente dans le PDF — le cache mémoire
+        // peut contenir un PDF pré-généré AVANT la signature
         const isSigned = !!(_devis.signature_url || _devis.signature_client || _devis.statut === 'accepte')
         if (isSigned) {
           const { data: freshData } = await supabase
@@ -110,21 +110,13 @@ export default function EmailDevisModal({ devis, params, onClose, onSent }: Prop
           blob = await generateDevisPDF(devisForPdf, paramsForPDF, devisForPdf.modele_id ?? _devis.modele_id ?? 0)
           pdfCache.set(_devis.id, blob)
         } else {
-          // Niveau 1 : cache mémoire (instant)
+          // Cache mémoire (instant) uniquement — jamais le PDF stocké dans
+          // le storage : un devis ancien peut y avoir un PDF généré avant
+          // un correctif du générateur (ex. adresse client absente), donc
+          // on ne le réutilise plus jamais et on régénère systématiquement
+          // depuis les données actuelles avec le générateur actuel.
           blob = pdfCache.get(_devis.id)
 
-          // Niveau 2 : storage Supabase (~200ms vs 2-3s)
-          if (!blob && _devis.pdf_url) {
-            try {
-              const { data, error } = await supabase.storage.from('pdf-documents').download(_devis.pdf_url)
-              if (!error && data) {
-                blob = data
-                pdfCache.set(_devis.id, data)
-              }
-            } catch { /* fallback */ }
-          }
-
-          // Niveau 3 : génération fraîche (fallback)
           if (!blob) {
             const paramsForPDF = _logo ? { ..._params, logo_url: _logo } : _params
             blob = await generateDevisPDF(_devis, paramsForPDF, _devis.modele_id ?? 0)

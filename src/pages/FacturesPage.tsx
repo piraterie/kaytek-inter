@@ -11,7 +11,6 @@ import ConfirmModal from '@/components/ConfirmModal'
 import ReviewRequestPromptModal from '@/components/ReviewRequestPromptModal'
 import { useCreateReviewRequest } from '@/lib/hooks/googleReviewRequests'
 import { pdfCache } from '@/lib/pdf/cache'
-import { supabase } from '@/lib/supabase/client'
 import { envoyerEmail } from '@/lib/supabase/auth'
 import { getTheme } from '@/lib/themes'
 import { DocSheet, SheetRow, SheetSection } from '@/components/DocSheet'
@@ -202,26 +201,16 @@ export default function FacturesPage() {
     ;(async () => {
       const t0 = Date.now()
       try {
-        // Niveau 1 : cache mémoire (instant)
+        // Cache mémoire (instant) uniquement — jamais le PDF stocké dans le
+        // storage : une facture ancienne peut y avoir un PDF généré avant
+        // un correctif du générateur (ex. adresse client absente), donc on
+        // ne le réutilise plus jamais et on régénère systématiquement
+        // depuis les données actuelles avec le générateur actuel.
         let blob: Blob | undefined = pdfCache.get(f.id)
         if (blob) {
           console.log(`[facture-email] PDF depuis cache mémoire (0ms)`)
         }
 
-        // Niveau 2 : storage Supabase (~200ms vs 2-3s)
-        if (!blob && f.pdf_url) {
-          try {
-            const tS = Date.now()
-            const { data, error } = await supabase.storage.from('pdf-documents').download(f.pdf_url)
-            if (!error && data) {
-              blob = data
-              pdfCache.set(f.id, data)
-              console.log(`[facture-email] PDF depuis storage ${Date.now() - tS}ms`)
-            }
-          } catch { /* fallback */ }
-        }
-
-        // Niveau 3 : génération fraîche (fallback)
         if (!blob) {
           const tG = Date.now()
           const { generateFacturePDF } = await import('@/lib/pdf/generator')

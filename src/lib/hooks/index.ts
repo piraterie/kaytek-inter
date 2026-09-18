@@ -589,7 +589,7 @@ export function useDevis(filters?: { statut?: string }) {
   return useQuery<Devis[]>({
     queryKey: ['devis', filters, user?.id],
     queryFn: async () => {
-      let q = supabase.from('devis').select('id,numero,statut,total_ht,tva_montant,total_ttc,remise_pct,remise_montant,modele_id,valide_jusqu_au,envoye_le,notes,pdf_url,signature_url,signature_client,signature_date,signe_le,signe_par,created_at,updated_at,client_id,intervenant_id,intervention_id,activite,lignes,created_by, client:clients(id,nom,prenom,email,telephone), intervenant:profiles!intervenant_id(id,nom,prenom)').order('created_at', { ascending: false })
+      let q = supabase.from('devis').select('id,numero,statut,total_ht,tva_montant,total_ttc,remise_pct,remise_montant,modele_id,valide_jusqu_au,envoye_le,notes,pdf_url,signature_url,signature_client,signature_date,signe_le,signe_par,created_at,updated_at,client_id,intervenant_id,intervention_id,activite,lignes,created_by, client:clients(id,nom,prenom,email,telephone,adresse_intervention), intervenant:profiles!intervenant_id(id,nom,prenom)').order('created_at', { ascending: false })
       if (!isAdm()) q = q.eq('intervenant_id', user!.id)
       if (filters?.statut && filters.statut !== 'tous') q = q.eq('statut', filters.statut)
       const { data, error } = await q
@@ -998,7 +998,7 @@ export function useFactures(filters?: { statut?: string }) {
   return useQuery<Facture[]>({
     queryKey: ['factures', filters, user?.id],
     queryFn: async () => {
-      let q = supabase.from('factures').select('*, client:clients(id,nom,prenom,email,telephone), devis:devis(id,numero,modele_id,activite,lignes,total_ht,tva_montant,total_ttc,remise_pct,remise_montant)').order('created_at', { ascending: false })
+      let q = supabase.from('factures').select('*, client:clients(id,nom,prenom,email,telephone,adresse_intervention), devis:devis(id,numero,modele_id,activite,lignes,total_ht,tva_montant,total_ttc,remise_pct,remise_montant)').order('created_at', { ascending: false })
       if (filters?.statut && filters.statut !== 'tous') q = q.eq('statut_paiement', filters.statut)
       const { data, error } = await q
       if (error) throw error; return (data || []) as any
