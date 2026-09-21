@@ -453,6 +453,10 @@ verify_jwt = false
 [functions.google-ads-sync-metrics]
 verify_jwt = false
 
+# Cron horaire / ventilations (pg_cron → X-Internal-Secret, jamais de JWT utilisateur).
+[functions.google-ads-sync-intraday]
+verify_jwt = false
+
 # Endpoints publics — jamais de JWT (lien d'e-mail / webhook tiers). Chacun
 # valide sa propre preuve d'autorisation dans le code (token opaque /
 # secret en paramètre de requête), jamais la passerelle Supabase.

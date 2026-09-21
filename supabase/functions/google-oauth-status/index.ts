@@ -46,7 +46,7 @@ serve(async (req) => {
   // ne sont JAMAIS demandées ici, même pour les exclure après coup.
   const [adsRes, gbpRes] = await Promise.all([
     svc.from('google_ads_connections')
-      .select('google_customer_id, google_login_customer_id, google_account_email, status, connected_at, last_synced_at, last_error, updated_at, customer_descriptive_name, is_manager_account, currency_code, time_zone, selected_at')
+      .select('google_customer_id, google_login_customer_id, google_account_email, status, connected_at, last_synced_at, last_error, updated_at, customer_descriptive_name, is_manager_account, currency_code, time_zone, selected_at, metrics_synced_at')
       .eq('organisation_id', auth.organisationId)
       .maybeSingle(),
     svc.from('gbp_connections')

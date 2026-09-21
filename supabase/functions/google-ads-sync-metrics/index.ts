@@ -1,18 +1,17 @@
 // supabase/functions/google-ads-sync-metrics/index.ts — Phase 5
 //
 // Synchronisation des métriques Google Ads (GAQL, côté serveur uniquement).
-// Deux chemins : admin authentifié (bouton "Synchroniser") ou interne
-// (X-Internal-Secret, pg_cron quotidien, toutes les organisations avec un
-// compte Ads sélectionné).
+// Deux chemins :
+//  - interne (X-Internal-Secret, pg_cron quotidien) : métriques quotidiennes +
+//    structure (statut réel des campagnes, zones ciblées, noms de zones) pour
+//    toutes les organisations avec un compte Ads sélectionné ;
+//  - admin authentifié (bouton "Synchroniser") : synchronisation COMPLÈTE
+//    (quotidien, horaire, appareils, âge/sexe, géographie, structure), limitée à
+//    1 fois toutes les 10 minutes par organisation.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders, respond, requireActiveAdmin, serviceClient, logOAuthEvent } from '../_shared/google-oauth.ts'
-import { syncGoogleAdsMetrics } from '../_shared/google-ads-metrics.ts'
-
-async function getInternalSecret(svc: ReturnType<typeof serviceClient>): Promise<string | null> {
-  const { data, error } = await svc.rpc('get_internal_push_secret')
-  if (error) return null
-  return (data as string) ?? null
-}
+import { runDailyJob, runManualFull } from '../_shared/google-ads-intraday.ts'
+import { getInternalSecret, safeEqual } from '../_shared/internal-secret.ts'
 
 const STATUS_BY_REASON: Record<string, number> = {
   not_connected: 409, needs_reconnect: 409, no_customer_selected: 409,
@@ -28,34 +27,32 @@ export async function handleSyncAdsMetrics(req: Request): Promise<Response> {
 
   if (internalSecret) {
     const expected = await getInternalSecret(svc)
-    if (!expected || internalSecret !== expected) return respond({ error: 'Secret interne invalide' }, 401)
+    if (!expected || !safeEqual(internalSecret, expected)) return respond({ error: 'Secret interne invalide' }, 401)
 
-    const { data: orgs } = await svc.from('google_ads_connections').select('organisation_id').eq('status', 'connected').not('google_customer_id', 'is', null)
-    let succeeded = 0
-    let failed = 0
-    for (const o of orgs ?? []) {
-      // Isolation stricte entre organisations — voir google-gbp-sync-performance
-      // pour la justification (une exception réseau sur une organisation ne
-      // doit jamais interrompre le traitement des suivantes).
-      try {
-        const result = await syncGoogleAdsMetrics(svc, o.organisation_id)
-        if (result.ok) succeeded++
-        else failed++
-      } catch {
-        failed++
-      }
-    }
-    return respond({ ok: true, organisationsSynced: succeeded, organisationsFailed: failed })
+    // Isolation stricte entre organisations dans runDailyJob (une exception
+    // réseau sur une organisation ne doit jamais interrompre les suivantes).
+    const r = await runDailyJob({ svc })
+    return respond({ ok: true, organisationsSynced: r.synced, organisationsFailed: r.failed, eligible: r.eligible })
   }
 
   const auth = await requireActiveAdmin(req)
   if (!auth.ok) return respond({ error: auth.error }, auth.status)
 
-  const result = await syncGoogleAdsMetrics(svc, auth.organisationId)
-  if (!result.ok) return respond({ ok: false, reason: result.reason, detail: result.detail }, STATUS_BY_REASON[result.reason] ?? 502)
+  const result = await runManualFull({ svc }, auth.organisationId)
+  if (!result.ok) {
+    const detail = result.daily && !result.daily.ok ? result.daily.detail : undefined
+    return respond({ ok: false, reason: result.reason, detail }, STATUS_BY_REASON[result.reason] ?? 502)
+  }
+  // Limitation atteinte : aucun appel Google effectué. Réponse 200 (ce n'est pas une erreur).
+  if (result.throttled) return respond({ ok: true, throttled: true, rowsUpserted: 0, next_allowed_at: result.nextAllowedAt })
 
-  await logOAuthEvent(svc, auth.organisationId, 'google_ads', 'metrics_synced', `${result.rowsUpserted} ligne(s)`)
-  return respond({ ok: true, rowsUpserted: result.rowsUpserted })
+  await logOAuthEvent(svc, auth.organisationId, 'google_ads', 'metrics_synced', `${result.daily.rowsUpserted} ligne(s)`)
+  return respond({
+    ok: true,
+    rowsUpserted: result.daily.rowsUpserted,
+    // Code d'erreur court par jeu de données (jamais de détail brut ni de jeton).
+    datasets: result.datasets.map((d) => ({ dataset: d.dataset, ok: d.ok, rows: d.rows, error: d.error })),
+  })
 }
 
 if (import.meta.main) serve(handleSyncAdsMetrics)

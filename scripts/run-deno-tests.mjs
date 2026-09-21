@@ -41,6 +41,11 @@ const STANDARD_TEST_FILES = [
   'google-business-api.test.ts',
   'google-ads-api.test.ts',
   'google-disconnect.test.ts',
+  'google-ads-time.test.ts',
+  'google-ads-queries.test.ts',
+  'google-ads-client.test.ts',
+  'google-ads-intraday.test.ts',
+  'google-ads-metrics.test.ts',
 ].map((f) => path.posix.join(SHARED_DIR, f))
 
 const NO_DEVTOKEN_TEST_FILE = path.posix.join(SHARED_DIR, 'google-ads-api-no-devtoken.test.ts')
@@ -54,6 +59,8 @@ const NO_DEVTOKEN_TEST_FILE = path.posix.join(SHARED_DIR, 'google-ads-api-no-dev
 //    rejetait TOUJOURS une sélection Business Profile légitime.
 const CALLBACK_TEST_FILE = 'supabase/functions/google-oauth-callback/index.test.ts'
 const SELECT_CONNECTION_TEST_FILE = 'supabase/functions/google-select-connection/index.test.ts'
+// Point d'entrée planifié de la synchronisation horaire / ventilations (rejets précoces).
+const INTRADAY_HANDLER_TEST_FILE = 'supabase/functions/google-ads-sync-intraday/index.test.ts'
 
 // Handlers publics de la fréquence/désinscription/webhook Brevo (2026-08-05) :
 //  - google-brevo-webhook : secret erroné rejeté, hard bounce/plainte
@@ -127,11 +134,12 @@ function main() {
   const okStandard = runDeno('suite standard (Google OAuth state/refresh/Ads/Business)', STANDARD_TEST_FILES, standardEnv)
   const okNoDevToken = runDeno('scénario developer token absent (isolé)', [NO_DEVTOKEN_TEST_FILE], noDevTokenEnv)
   const okCallback = runDeno('google-oauth-callback (rejets précoces)', [CALLBACK_TEST_FILE], standardEnv)
+  const okIntradayHandler = runDeno('google-ads-sync-intraday (rejets précoces du handler planifié)', [INTRADAY_HANDLER_TEST_FILE], standardEnv)
   const okSelectConnection = runDeno('google-select-connection (régression sélection GBP)', [SELECT_CONNECTION_TEST_FILE], standardEnv)
   const okBrevoWebhook = runDeno('google-brevo-webhook (secret, bounce/plainte)', [BREVO_WEBHOOK_TEST_FILE], standardEnv)
   const okReviewUnsubscribe = runDeno('google-review-unsubscribe (token opaque valide/invalide/expiré)', [REVIEW_UNSUBSCRIBE_TEST_FILE], standardEnv)
 
-  if (!okStandard || !okNoDevToken || !okCallback || !okSelectConnection || !okBrevoWebhook || !okReviewUnsubscribe) {
+  if (!okStandard || !okNoDevToken || !okCallback || !okIntradayHandler || !okSelectConnection || !okBrevoWebhook || !okReviewUnsubscribe) {
     process.exit(1)
   }
   console.log('[test:deno] OK — toutes les suites Deno ont réussi.')
