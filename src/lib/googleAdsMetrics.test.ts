@@ -5,6 +5,7 @@ import {
   previousPeriod, computeDelta, ratioDelta, deltaLabel, deltaDirection, aggregate, byCampaign,
   filterSortCampaigns, describeSyncError, ctrPct, cpcMicros, costPerConvMicros, formatRelative, fmtEurMicros, fmtPct, MIN_BASE,
   formatPeriodLabel, formatDayLong, maskCustomerId, dailySeries, insightStats, campaignChanges, sharePct, buildKpis, fmtCompact,
+  describeSyncResult, withIdleCampaigns, friendlyCampaignName, fmtConv,
 } from './googleAdsMetrics'
 import type { AdsMetricRow } from '@/lib/hooks/googleStats'
 
@@ -55,10 +56,15 @@ describe('computeDelta — jamais de pourcentage absurde', () => {
     expect(computeDelta(null, 10, 1)).toEqual({ kind: 'none' })
     expect(computeDelta(10, null, 1)).toEqual({ kind: 'none' })
   })
-  it('pourcentage plafonné à 999 %', () => {
+  it('pourcentage > 300 % → écart absolu avec unité, jamais « +>999 % »', () => {
     const d = computeDelta(100_000, 100, 10)
-    expect(d).toEqual({ kind: 'pct', pct: 999 })
-    expect(deltaLabel(d, String)).toBe('+>999 %')
+    expect(d).toEqual({ kind: 'abs', diff: 99_900 })
+    expect(deltaLabel(d, String, 'clics')).toBe('+99900 clics')
+    expect(deltaLabel(d, String)).not.toMatch(/>|999 %/)
+  })
+  it('baisse ou hausse ≤ 300 % → pourcentage normal', () => {
+    expect(computeDelta(400, 100, 10)).toEqual({ kind: 'pct', pct: 300 })
+    expect(deltaLabel(computeDelta(401, 100, 10), String, 'clics')).toBe('+301 clics')
   })
   it('variation < 0,5 % → « Stable »', () => {
     const d = computeDelta(1001, 1000, 10)
@@ -101,14 +107,15 @@ describe('aggregate / byCampaign', () => {
   it('agrège les totaux', () => {
     expect(aggregate(rows)).toEqual({ impressions: 1510, clicks: 76, costMicros: 36_000_000, conversions: 6 })
   })
-  it('regroupe par campagne, dérive CTR / statut, repli du nom sur l’id', () => {
-    const list = byCampaign(rows)
+  it('regroupe par campagne, statut RÉEL (jamais déduit), repli du nom sur l’id', () => {
+    const list = byCampaign(rows, new Map([['a', 'PAUSED']]))
     const a = list.find((c) => c.id === 'a')!
-    expect(a).toMatchObject({ impressions: 1500, clicks: 75, costMicros: 35_000_000, active: true })
+    // Campagne avec activité mais en pause : le statut vient de Google, pas de l'activité.
+    expect(a).toMatchObject({ impressions: 1500, clicks: 75, costMicros: 35_000_000, status: 'PAUSED' })
     expect(a.ctr).toBe(5)
     expect(a.costPerConv).toBe(35_000_000 / 6)
     const b = list.find((c) => c.id === 'b')!
-    expect(b.active).toBe(false)
+    expect(b.status).toBeNull()
     expect(b.ctr).toBeNull()
     expect(list.find((c) => c.id === 'c')!.name).toBe('c')
   })
@@ -119,7 +126,7 @@ describe('filterSortCampaigns', () => {
     row({ campaign_id: 'a', campaign_name: 'Alpha', impressions: 1000, clicks: 50, cost_micros: 25_000_000, conversions: 5 }),
     row({ campaign_id: 'b', campaign_name: 'Bravo', impressions: 0 }),
     row({ campaign_id: 'c', campaign_name: 'Charlie', impressions: 200, clicks: 20, cost_micros: 40_000_000, conversions: 0 }),
-  ])
+  ], new Map([['a', 'ENABLED'], ['b', 'PAUSED'], ['c', 'ENABLED']]))
   const base = { query: '', status: 'all' as const, sortKey: 'costMicros' as const, sortDir: 'desc' as const }
 
   it('tri par dépenses décroissantes', () => {
@@ -136,8 +143,12 @@ describe('filterSortCampaigns', () => {
     expect(filterSortCampaigns([...list], { ...base, query: 'CHAR' }).map((c) => c.id)).toEqual(['c'])
   })
   it('filtre par statut', () => {
-    expect(filterSortCampaigns([...list], { ...base, status: 'inactive' }).map((c) => c.id)).toEqual(['b'])
-    expect(filterSortCampaigns([...list], { ...base, status: 'active' }).map((c) => c.id).sort()).toEqual(['a', 'c'])
+    expect(filterSortCampaigns([...list], { ...base, status: 'paused' }).map((c) => c.id)).toEqual(['b'])
+    expect(filterSortCampaigns([...list], { ...base, status: 'enabled' }).map((c) => c.id).sort()).toEqual(['a', 'c'])
+    expect(filterSortCampaigns([...list], { ...base, status: 'removed' })).toEqual([])
+  })
+  it('tri par statut : actives d’abord', () => {
+    expect(filterSortCampaigns([...list], { ...base, sortKey: 'status', sortDir: 'desc' }).map((c) => c.id)[2]).toBe('b')
   })
 })
 
@@ -275,5 +286,49 @@ describe('buildKpis', () => {
   })
   it('sans comparaison possible : aucune variation malgré des valeurs', () => {
     expect(buildKpis(cur, prev, true, false).every((x) => x.delta.kind === 'none')).toBe(true)
+  })
+})
+
+describe('describeSyncResult — jamais « 0 ligne(s) »', () => {
+  it('synchronisation temporisée (< 10 min) : message informatif, pas une erreur', () => {
+    const r = describeSyncResult({ rowsUpserted: 0, throttled: true, datasets: [] })
+    expect(r).toEqual({ tone: 'info', message: 'Données déjà synchronisées récemment.' })
+    expect(r.message).not.toMatch(/ligne/)
+  })
+  it('succès : aucun compteur de lignes', () => {
+    const r = describeSyncResult({ rowsUpserted: 1234, throttled: false, datasets: [{ dataset: 'hourly', ok: true }] })
+    expect(r.tone).toBe('success')
+    expect(r.message).not.toMatch(/ligne|1234/)
+  })
+  it('un jeu de données en échec : avertissement, pas succès', () => {
+    const r = describeSyncResult({ rowsUpserted: 10, throttled: false, datasets: [{ dataset: 'hourly', ok: true }, { dataset: 'geo', ok: false }] })
+    expect(r.tone).toBe('warning')
+    expect(r.message).toMatch(/partielle/)
+  })
+})
+
+describe('withIdleCampaigns', () => {
+  it('ajoute les campagnes actives ou en pause sans activité (0 réel), pas les supprimées', () => {
+    const base = byCampaign([row({ campaign_id: 'a', impressions: 5 })], new Map([['a', 'ENABLED']]))
+    const out = withIdleCampaigns(base, [
+      { campaign_id: 'a', name: 'A', status: 'ENABLED' }, { campaign_id: 'p', name: 'Pausée', status: 'PAUSED' }, { campaign_id: 'r', name: 'Supprimée', status: 'REMOVED' },
+    ])
+    expect(out.map((c) => c.id)).toEqual(['a', 'p'])
+    expect(out[1]).toMatchObject({ name: 'Pausée', status: 'PAUSED', impressions: 0, ctr: null })
+  })
+})
+
+describe('friendlyCampaignName', () => {
+  it('nom technique des campagnes Services Locaux remplacé, autres noms inchangés', () => {
+    expect(friendlyCampaignName('LocalServicesCampaign:SystemGenerated:000631154a2ad5bb')).toBe('Services Locaux (généré par Google)')
+    expect(friendlyCampaignName('Campagne Baziege')).toBe('Campagne Baziege')
+    expect(friendlyCampaignName(null, '42')).toBe('42')
+  })
+})
+
+describe('deltaLabel — écart arrondi à zéro', () => {
+  it('jamais « −0 conv. » : aucun badge', () => {
+    expect(deltaLabel({ kind: 'abs', diff: -0.04 }, fmtConv, 'conv.')).toBeNull()
+    expect(deltaLabel({ kind: 'abs', diff: 3 }, fmtConv, 'conv.')).toBe('+3 conv.')
   })
 })

@@ -19,7 +19,7 @@ export const PAGE_CSS = `
 .gads-dot.none{background:var(--t3);box-shadow:0 0 0 3px var(--s1)}
 
 /* ── Période ── */
-.gads-period{padding:14px 16px;margin-bottom:26px}
+.gads-period{padding:14px 16px;margin-bottom:26px;container-type:inline-size}
 .gads-seg{display:flex;gap:2px;padding:4px;background:var(--s1);border-radius:var(--rpill)}
 .gads-period .gads-seg{max-width:460px}
 .gads-seg button{flex:1 1 auto;min-height:36px;min-width:0;padding:0 8px;border:0;border-radius:var(--rpill);background:transparent;font:inherit;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
@@ -175,5 +175,108 @@ export const PAGE_CSS = `
 
 @media(pointer:coarse){
   .gads .btn-sm,.gads-seg button,.gads-seg.compact button,.gads-chip{min-height:40px}
+}
+
+/* ── Période : libellés courts sur petites largeurs ── */
+.gads-seg button .long{display:none}
+@container (min-width:470px){.gads-period .gads-seg button .long{display:inline}.gads-period .gads-seg button .short{display:none}}
+.gads-fresh{display:inline-flex;align-items:center;gap:5px}
+
+/* ── Panneaux (Appareils, Démographie, Zones) ── */
+.gads-panel{padding:14px 16px 16px;display:flex;flex-direction:column;gap:14px;container-type:inline-size}
+.gads-panel .gads-seg.compact{max-width:100%}
+.gads-panel-note{font-size:11.5px;line-height:1.45;color:var(--t3)}
+.gads-subtitle{margin:2px 0 8px;font-size:12px;font-weight:700;color:var(--t2)}
+.gads-subtitle-n{font-weight:500;color:var(--t3)}
+.gads-bars{display:flex;flex-direction:column;gap:12px}
+.gads-brow{min-width:0}
+.gads-brow-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.gads-brow-label{min-width:0;font-size:13px;font-weight:600;color:var(--t0);word-break:break-word}
+.gads-brow-hint{font-weight:500;color:var(--t3);font-size:11.5px}
+.gads-brow-val{display:inline-flex;align-items:baseline;gap:8px;flex:none;font-size:13px;color:var(--t0);font-variant-numeric:tabular-nums}
+.gads-brow-share{min-width:38px;text-align:right;font-size:11.5px;color:var(--t3)}
+.gads-brow .gads-bar{margin-top:6px}
+.gads-brow-extra{margin-top:4px;font-size:11px;color:var(--t3);font-variant-numeric:tabular-nums;word-break:break-word}
+
+/* ── Carte SVG ── */
+.gads-map{width:100%;max-width:720px;margin:0 auto;min-width:0;border:1px solid var(--b1);border-radius:var(--r1);overflow:hidden;background:var(--s1)}
+.gads-map svg{max-width:100%;font-family:inherit}
+.gads-map .gm-bg{fill:var(--s1)}
+.gads-map .gm-france polygon{fill:var(--s2);stroke:var(--b1);stroke-width:1}
+.gads-map .gm-grid line{stroke:var(--b1);stroke-width:.6;stroke-dasharray:2 4;opacity:.8}
+.gads-map .gm-grid text{font-size:9.5px;fill:var(--t3)}
+.gads-map .gm-zone circle:first-child{fill:rgba(59,130,246,.14);stroke:#3b82f6;stroke-width:1.8}
+.gads-map .gm-zone.paused circle:first-child{fill:rgba(245,158,11,.10);stroke:#f59e0b;stroke-dasharray:5 4}
+.gads-map .gm-center{fill:#3b82f6}
+.gads-map .gm-zone.paused .gm-center{fill:#f59e0b}
+.gads-map .gm-badge{fill:var(--s0);stroke:var(--b1);stroke-width:1}
+.gads-map .gm-zone text{font-size:11px;font-weight:700;fill:var(--t0)}
+.gads-map .gm-bubble{fill:rgba(59,130,246,.35);stroke:#3b82f6;stroke-width:1}
+.gads-map .gm-scale line{stroke:var(--t1);stroke-width:1.5}
+.gads-map .gm-scale text,.gads-map .gm-north text{font-size:10.5px;font-weight:600;fill:var(--t1)}
+.gads-map .gm-north path{fill:var(--t1)}
+.gads-map .gm-inset rect{fill:var(--s0);stroke:var(--b1)}
+.gads-map .gm-inset polygon{fill:var(--s2);stroke:var(--t3);stroke-width:.6}
+.gads-map .gm-inset circle{fill:#ef4444}
+.gads-map-cap{padding:6px 10px;font-size:11px;color:var(--t3);border-top:1px solid var(--b1)}
+.gads-zlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.gads-zitem{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--b1);border-radius:var(--r1);background:var(--s1)}
+.gads-zbadge{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--s0);border:1px solid var(--b1);font-size:11px;font-weight:700;color:var(--t0)}
+.gads-zbody{min-width:0;flex:1}
+.gads-zhead{font-size:13px;color:var(--t0)}
+.gads-zmuted{font-size:11.5px;color:var(--t3);font-variant-numeric:tabular-nums}
+.gads-zcamps{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.gads-zcamp{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--t1)}
+.gads-zcamp-name{min-width:0;word-break:break-word}
+
+/* ── Compte connecté (repliable) ── */
+.gads-acc-sum{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;cursor:pointer;font-size:13px;color:var(--t0);min-height:44px}
+.gads-acc-sum::-webkit-details-marker{display:none}
+.gads-acc-sum:focus-visible{outline:2px solid var(--bl);outline-offset:-2px;border-radius:var(--r1)}
+.gads-acc-line{min-width:0;font-weight:600;word-break:break-word}
+.gads-acc-chev{flex:none;color:var(--t3);transition:transform .15s}
+details[open]>.gads-acc-sum .gads-acc-chev{transform:rotate(180deg)}
+
+/* ── Revue visuelle : lisibilité et compacité ── */
+.gads-chart{container-type:inline-size}
+.gads-chips.metric{display:flex}
+@container (max-width:439px){
+  .gads-chips.metric{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gads-chips.metric .gads-chip{justify-content:center}
+}
+.gads-chart-notes{display:flex;flex-direction:column;gap:3px;padding:8px 2px 0}
+.gads-explain{padding:8px 12px;border-radius:var(--r1);background:var(--s1);border:1px solid var(--b0);color:var(--t2)}
+.gads-explain strong{color:var(--t0)}
+.gads-note-top{color:var(--t2)}
+.gads-note-top strong{color:var(--t0)}
+.gads-bars{max-width:760px}
+.gads-brow-label{display:inline-flex;align-items:center;gap:8px}
+.gads-brow-ico{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--s1);flex:none}
+.gads-stack{display:flex;height:12px;border-radius:99px;overflow:hidden;gap:2px;background:var(--s2);max-width:760px}
+.gads-stack i{display:block;height:100%;min-width:4px}
+.gads-split{display:flex;flex-direction:column;gap:12px}
+@container (min-width:720px){.gads-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}}
+.gads-subcard{padding:12px 14px 14px;border:1px solid var(--b1);border-radius:var(--r1);background:var(--s1)}
+.gads-subcard.alt{border-color:var(--puBd, var(--b1))}
+.gads-subcard-title{margin-bottom:10px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--t2)}
+.gads-subcard.alt .gads-subcard-title{color:var(--puTx, var(--t2))}
+.gads-subcard .gads-bar{background:var(--s2)}
+.gads-fold{border:1px solid var(--b1);border-radius:var(--r1);background:var(--s1)}
+.gads-fold>summary{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;cursor:pointer;font-size:13px;font-weight:700;color:var(--t1);list-style:none}
+.gads-fold>summary::-webkit-details-marker{display:none}
+.gads-fold>summary::after{content:"+";margin-left:auto;font-size:18px;font-weight:600;color:var(--t3)}
+.gads-fold[open]>summary::after{content:"−"}
+.gads-fold>*:not(summary){margin:0 14px 14px}
+.gads-zlist{max-width:720px}
+.gads-zchips{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.gads-zchips li{padding:5px 12px;border:1px solid var(--b1);border-radius:var(--rpill);background:var(--s1);font-size:12.5px;font-weight:600;color:var(--t1)}
+.gads-zcamps+.gads-panel-note,.gads-zchips+.gads-panel-note{margin-top:10px}
+.gads-card.idle{padding:12px 14px}
+.gads-idle-cap{margin-top:4px;font-size:11.5px;color:var(--t3)}
+
+/* Cibles tactiles : 40 px minimum sur mobile / tablette / écran tactile */
+@media(pointer:coarse),(max-width:1024px){
+  .gads .btn-sm,.gads .btn-primary,.gads .btn-secondary,.gads-seg button,.gads-seg.compact button,.gads-chip,.gads-th-btn,.gads-fold>summary,.gads-acc-sum{min-height:40px}
+  .gads-search input,.gads-sortsel,.gads select,.gads input[type="date"]{min-height:40px}
 }
 `

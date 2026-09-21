@@ -80,6 +80,8 @@ export interface GoogleConnectionInfo {
   is_manager_account?: boolean | null
   currency_code?: string | null
   time_zone?: string | null
+  /** Dernière synchronisation des métriques (horaire/appareils/démographie/zones), exposée par google-oauth-status. */
+  metrics_synced_at?: string | null
   // Google Business Profile uniquement
   google_location_id?: string | null
   google_account_id?: string | null

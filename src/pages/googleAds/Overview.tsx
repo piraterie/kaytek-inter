@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { AreaChart, Area, ResponsiveContainer } from 'recharts'
 import { Eye, MousePointerClick, Euro, Target, Percent, Coins, Calculator } from 'lucide-react'
-import type { KpiData, KpiKey, DailyPoint } from '@/lib/googleAdsMetrics'
+import type { KpiData, KpiKey } from '@/lib/googleAdsMetrics'
 import { Section, DeltaPill } from './ui'
 
 const ICON: Record<KpiKey, { icon: ReactNode; tone: 'blue' | 'green' | 'amber' }> = {
@@ -25,10 +25,10 @@ const Value = ({ loading, children }: { loading: boolean; children: ReactNode })
   <div className="gads-kpi-value">{loading ? <span className="gads-skel" aria-label="Chargement" /> : children}</div>
 )
 
-export function Overview({ kpis, loading, spark }: { kpis: KpiData[]; loading: boolean; spark: DailyPoint[] }) {
+export function Overview({ kpis, loading, spark, caption = 'sur la période', aside }: { kpis: KpiData[]; loading: boolean; spark: { cost: number | null }[]; caption?: string; aside?: ReactNode }) {
   const [hero, ...rest] = kpis
   return (
-    <Section id="overview" title="Vue d'ensemble">
+    <Section id="overview" title="Vue d'ensemble" aside={aside}>
       <div className="gads-kpis-wrap">
         <div className="gads-kpis">
           <div className="card gads-hero">
@@ -36,8 +36,8 @@ export function Overview({ kpis, loading, spark }: { kpis: KpiData[]; loading: b
               <KpiLabel kpi={hero} />
               <Value loading={loading}>{hero.value}</Value>
               <div className="gads-kpi-foot">
-                <DeltaPill delta={hero.delta} fmtAbs={hero.fmtAbs} tone={hero.tone} />
-                <span className="gads-hero-cap">sur la période</span>
+                <DeltaPill delta={hero.delta} fmtAbs={hero.fmtAbs} tone={hero.tone} unit={hero.absUnit} />
+                <span className="gads-hero-cap">{caption}</span>
               </div>
             </div>
             {!loading && spark.length > 1 && (
@@ -50,7 +50,7 @@ export function Overview({ kpis, loading, spark }: { kpis: KpiData[]; loading: b
                         <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <Area type="monotone" dataKey="cost" stroke="#f59e0b" strokeWidth={2} fill="url(#gadsSpark)" dot={false} isAnimationActive={false} />
+                    <Area type="monotone" dataKey="cost" stroke="#f59e0b" strokeWidth={2} fill="url(#gadsSpark)" dot={false} isAnimationActive={false} connectNulls={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -60,7 +60,7 @@ export function Overview({ kpis, loading, spark }: { kpis: KpiData[]; loading: b
             <div key={k.key} className="card gads-kpi">
               <KpiLabel kpi={k} />
               <Value loading={loading}>{k.value}</Value>
-              <div className="gads-kpi-foot"><DeltaPill delta={k.delta} fmtAbs={k.fmtAbs} tone={k.tone} /></div>
+              <div className="gads-kpi-foot"><DeltaPill delta={k.delta} fmtAbs={k.fmtAbs} tone={k.tone} unit={k.absUnit} /></div>
             </div>
           ))}
         </div>

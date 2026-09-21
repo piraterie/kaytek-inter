@@ -1,9 +1,9 @@
 // src/pages/GoogleAdsPage.tsx — Phase 5
 // Tableau de bord Google Ads, organisé en blocs façon appli Google Ads (vue
 // d'ensemble, performances, campagnes, tendances, compte) avec l'identité Kaytek.
-// Affichage uniquement : aucune requête API ni logique de synchronisation n'est
-// modifiée ici. Les blocs vivent dans src/pages/googleAds/, les calculs purs dans
-// src/lib/googleAdsMetrics.ts.
+// Affichage uniquement : lecture des tables Google Ads (aucune écriture, aucun changement
+// de logique de synchronisation). Les blocs vivent dans src/pages/googleAds/, les calculs
+// purs dans src/lib/googleAds*.ts. Dates et heures : fuseau du COMPTE Google Ads.
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RefreshCw, Loader2, AlertTriangle, ArrowLeft, ShieldAlert, Info } from 'lucide-react'
@@ -11,14 +11,24 @@ import { useToastStore } from '@/lib/store'
 import { useGoogleOAuthStatus, useLoadGoogleAdsAccounts, type AdsAccountsErrorReason } from '@/lib/hooks/googleIntegrations'
 import { useGoogleAdsMetrics, useSyncGoogleAdsMetrics } from '@/lib/hooks/googleStats'
 import {
-  aggregate, buildKpis, byCampaign, campaignChanges, dailySeries, insightStats, previousPeriod, isoDaysAgo, todayIso,
-  describeSyncError, formatRelative, formatPeriodLabel, formatDayLong, maskCustomerId, STATS_LOAD_ERROR,
+  useGoogleAdsHourly, useGoogleAdsDevices, useGoogleAdsDemographics, useGoogleAdsGeo, useGoogleGeoNames,
+  useGoogleAdsZones, useGoogleAdsCampaigns, useGoogleAdsSyncState, campaignStatusMap,
+} from '@/lib/hooks/googleAdsData'
+import {
+  aggregate, buildKpis, byCampaign, withIdleCampaigns, campaignChanges, dailySeries, insightStats, previousPeriod,
+  describeSyncError, describeSyncResult, formatRelative, formatPeriodLabel, formatDayLong, maskCustomerId, STATS_LOAD_ERROR,
 } from '@/lib/googleAdsMetrics'
+import { resolveTimeZone, presetRange, addDays, formatHourMinute, type PeriodKey } from '@/lib/googleAdsTime'
+import { buildTodayView, hourlyToMetricRows, todayInsights } from '@/lib/googleAdsToday'
 import { PAGE_CSS } from './googleAds/styles'
 import { Overview } from './googleAds/Overview'
 import { PerformanceChart } from './googleAds/PerformanceChart'
 import { CampaignsSection } from './googleAds/CampaignsSection'
-import { InsightsSection } from './googleAds/InsightsSection'
+import { InsightsSection, TodayInsightsSection } from './googleAds/InsightsSection'
+import { TodayChart } from './googleAds/TodayChart'
+import { DevicesSection } from './googleAds/DevicesSection'
+import { DemographicsSection } from './googleAds/DemographicsSection'
+import { ZonesSection } from './googleAds/ZonesSection'
 import { AccountSection } from './googleAds/AccountSection'
 
 // Message exact exigé lorsque la configuration serveur (côté plateforme,
@@ -43,26 +53,31 @@ const ADS_CONFIG_ERROR_DETAIL: Partial<Record<AdsAccountsErrorReason, string>> =
   api_not_enabled: "L'API Google Ads n'est pas activée dans le projet Google Cloud de la plateforme.",
 }
 
-const PERIODS = [
-  { key: '7', label: '7 jours', days: 7 },
-  { key: '30', label: '30 jours', days: 30 },
-  { key: '90', label: '90 jours', days: 90 },
-] as const
+// `short` : libellé compact quand la largeur utile est faible (le nom accessible reste le libellé complet).
+const PERIODS: { key: PeriodKey; label: string; short: string }[] = [
+  { key: 'today', label: "Aujourd'hui", short: 'Auj.' },
+  { key: '7', label: '7 jours', short: '7 j' },
+  { key: '30', label: '30 jours', short: '30 j' },
+  { key: '90', label: '90 jours', short: '90 j' },
+]
 
 export default function GoogleAdsPage() {
   const nav = useNavigate()
   const { add } = useToastStore()
   const { data: status, isLoading: statusLoading } = useGoogleOAuthStatus()
-  const [periodKey, setPeriodKey] = useState<typeof PERIODS[number]['key']>('30')
+  const [periodKey, setPeriodKey] = useState<PeriodKey>('30')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [useCustom, setUseCustom] = useState(false)
   const [syncError, setSyncError] = useState<{ message: string; detail: string | null } | null>(null)
 
+  const ads = status?.google_ads
+  // Fuseau du compte Google Ads (jamais celui du navigateur) : « aujourd'hui » et les heures en dépendent.
+  const tz = resolveTimeZone(ads?.time_zone)
   const period = PERIODS.find((p) => p.key === periodKey)!
+  const isToday = !useCustom && periodKey === 'today'
   // Période de N jours = N jours calendaires inclusifs (aujourd'hui compris).
-  const presetFrom = isoDaysAgo(period.days - 1)
-  const presetTo = todayIso()
+  const { from: presetFrom, to: presetTo } = presetRange(periodKey, new Date(), tz)
   const customValid = useCustom && !!customFrom && !!customTo && customFrom <= customTo
   const customInvalid = useCustom && !!customFrom && !!customTo && customFrom > customTo
   const fromDate = customValid ? customFrom : presetFrom
@@ -74,7 +89,6 @@ export default function GoogleAdsPage() {
   const { data: prevRows } = useGoogleAdsMetrics(prev?.from ?? fromDate, prev?.to ?? toDate)
   const syncMut = useSyncGoogleAdsMetrics()
 
-  const ads = status?.google_ads
   const isConnected = ads?.status === 'connected'
   const hasCustomer = !!ads?.google_customer_id
 
@@ -102,31 +116,77 @@ export default function GoogleAdsPage() {
   const lastSyncedRelative = formatRelative(ads?.last_synced_at)
   const syncIsStale = !!ads?.last_synced_at && Date.now() - new Date(ads.last_synced_at).getTime() > 24 * 3_600_000
 
+  // ── Nouvelles données (lecture seule) ───────────────────────────────────
+  const customerId = ads?.google_customer_id
+  const yesterdayLocal = addDays(presetTo, -1)
+  const hourlyQ = useGoogleAdsHourly({ customerId, from: yesterdayLocal, to: presetTo, enabled: isToday })
+  const devicesQ = useGoogleAdsDevices({ customerId, from: fromDate, to: toDate })
+  const demoQ = useGoogleAdsDemographics({ customerId, from: fromDate, to: toDate })
+  const geoQ = useGoogleAdsGeo({ customerId, from: fromDate, to: toDate })
+  const zonesQ = useGoogleAdsZones(customerId)
+  const campaignsQ = useGoogleAdsCampaigns(customerId)
+  const syncStateQ = useGoogleAdsSyncState(customerId)
+  const geoIds = useMemo(() => [
+    ...(geoQ.data ?? []).map((r) => Number(r.geo_target_id)),
+    ...(zonesQ.data ?? []).flatMap((z) => (z.geo_target_id != null ? [Number(z.geo_target_id)] : [])),
+  ], [geoQ.data, zonesQ.data])
+  const geoNamesQ = useGoogleGeoNames(geoIds)
+  const statuses = useMemo(() => campaignStatusMap(campaignsQ.data), [campaignsQ.data])
+
+  // Fraîcheur : dernière synchronisation HORAIRE réussie (repli : metrics_synced_at de la connexion).
+  const syncedAtIso = syncStateQ.data?.find((d) => d.dataset === 'hourly')?.synced_at ?? ads?.metrics_synced_at ?? null
+  const syncedLabel = formatHourMinute(syncedAtIso, tz)
+  const todayView = useMemo(
+    () => (isToday ? buildTodayView(hourlyQ.data ?? [], presetTo, yesterdayLocal, syncedAtIso, tz) : null),
+    [isToday, hourlyQ.data, presetTo, yesterdayLocal, syncedAtIso, tz],
+  )
+
   // ── Données affichées ──────────────────────────────────────────────────
-  const hasData = (rows?.length ?? 0) > 0
+  // Aujourd'hui : une synchronisation a eu lieu aujourd'hui (même sans ligne = aucune activité, donc 0)
+  // ou des lignes horaires existent. Périodes : au moins une ligne journalière.
+  const hasData = todayView ? (todayView.syncedHour !== null || todayView.hasToday) : (rows?.length ?? 0) > 0
   // Sans donnée sur la période précédente (ex. au-delà de l'historique
   // synchronisé), aucune comparaison : un « 0 » implicite ferait afficher
   // un faux « Nouveau » / une hausse infinie.
-  const canCompare = hasData && (prevRows?.length ?? 0) > 0 && !!prev
+  const canCompare = todayView ? todayView.canCompare : hasData && (prevRows?.length ?? 0) > 0 && !!prev
   const totals = useMemo(() => aggregate(rows), [rows])
   const prevTotals = useMemo(() => aggregate(prevRows), [prevRows])
-  const kpis = useMemo(() => buildKpis(totals, prevTotals, hasData, canCompare), [totals, prevTotals, hasData, canCompare])
+  const kpis = useMemo(() => {
+    if (todayView) {
+      // Valeurs : tout ce qui est synchronisé aujourd'hui. Évolutions : heures COMPLÈTES des deux jours
+      // (00h → heure de synchro), jamais une journée partielle contre une journée entière.
+      const values = buildKpis(todayView.totals, todayView.compareYesterday, hasData, todayView.canCompare)
+      const deltas = buildKpis(todayView.compareToday, todayView.compareYesterday, hasData, todayView.canCompare)
+      return values.map((k, i) => ({ ...k, delta: deltas[i].delta }))
+    }
+    return buildKpis(totals, prevTotals, hasData, canCompare)
+  }, [todayView, totals, prevTotals, hasData, canCompare])
   const series = useMemo(() => dailySeries(rows), [rows])
-  const campaigns = useMemo(() => byCampaign(rows), [rows])
+  const todayRows = useMemo(() => (todayView ? hourlyToMetricRows(hourlyQ.data ?? [], todayView.todayDate) : undefined), [todayView, hourlyQ.data])
+  const campaigns = useMemo(
+    () => withIdleCampaigns(byCampaign(todayRows ?? rows, statuses), campaignsQ.data),
+    [todayRows, rows, statuses, campaignsQ.data],
+  )
   const prevCampaigns = useMemo(() => byCampaign(prevRows), [prevRows])
-  const changes = useMemo(() => (canCompare && campaigns.length > 1 ? campaignChanges(campaigns, prevCampaigns) : []), [canCompare, campaigns, prevCampaigns])
+  const changes = useMemo(() => (!todayView && canCompare && campaigns.length > 1 ? campaignChanges(campaigns, prevCampaigns) : []), [todayView, canCompare, campaigns, prevCampaigns])
   const insights = useMemo(() => insightStats(rows), [rows])
+  const hourInsights = useMemo(() => (todayView ? todayInsights(todayView.today) : null), [todayView])
+  const sparkHourly = useMemo(() => todayView?.today.map((p) => ({ cost: p.cost })), [todayView])
   const latestDataDate = useMemo(() => {
     let max = ''
     for (const r of rows ?? []) if (r.date > max) max = r.date
     return max ? formatDayLong(max) : null
   }, [rows])
+  const dataLoading = todayView ? hourlyQ.isLoading : isLoading
+  const dataError = todayView ? hourlyQ.isError : isError
 
   async function handleSync() {
     setSyncError(null)
     try {
       const res = await syncMut.mutateAsync()
-      add(`Synchronisation terminée — ${res.rowsUpserted} ligne(s) mise(s) à jour`)
+      // Synchronisation ignorée par le serveur (déjà faite il y a < 10 min) : message neutre, jamais « 0 ligne(s) ».
+      const done = describeSyncResult(res)
+      add(done.message, done.tone)
     } catch (e) {
       const described = describeSyncError(e)
       setSyncError(described)
@@ -134,7 +194,7 @@ export default function GoogleAdsPage() {
     }
   }
 
-  function selectPreset(key: typeof PERIODS[number]['key']) { setPeriodKey(key); setUseCustom(false) }
+  function selectPreset(key: PeriodKey) { setPeriodKey(key); setUseCustom(false) }
   function selectCustom() {
     setUseCustom(true)
     // Pré-remplit avec la période affichée pour que le passage en mode personnalisé ne change rien à l'écran.
@@ -234,7 +294,7 @@ export default function GoogleAdsPage() {
           </span>
         </div>
         {syncIsStale && <span style={{ color: 'var(--amTx)', fontWeight: 600 }}>Pensez à synchroniser pour des chiffres à jour</span>}
-        {latestDataDate && <span style={{ color: 'var(--t3)' }}>Données jusqu'au {latestDataDate}</span>}
+        {latestDataDate && !isToday && <span style={{ color: 'var(--t3)' }}>Données jusqu'au {latestDataDate}</span>}
       </div>
 
       {syncError && (
@@ -265,9 +325,13 @@ export default function GoogleAdsPage() {
       <div className="card gads-period">
         <div className="gads-seg" role="group" aria-label="Période">
           {PERIODS.map((p) => (
-            <button key={p.key} type="button" aria-pressed={!useCustom && periodKey === p.key} onClick={() => selectPreset(p.key)}>{p.label}</button>
+            <button key={p.key} type="button" aria-label={p.label} aria-pressed={!useCustom && periodKey === p.key} onClick={() => selectPreset(p.key)}>
+              <span className="short" aria-hidden="true">{p.short}</span><span className="long" aria-hidden="true">{p.label}</span>
+            </button>
           ))}
-          <button type="button" aria-pressed={useCustom} onClick={selectCustom}>Personnalisé</button>
+          <button type="button" aria-label="Personnalisé" aria-pressed={useCustom} onClick={selectCustom}>
+            <span className="short" aria-hidden="true">Perso.</span><span className="long" aria-hidden="true">Personnalisé</span>
+          </button>
         </div>
         {useCustom && (
           <div className="gads-range">
@@ -276,12 +340,14 @@ export default function GoogleAdsPage() {
           </div>
         )}
         <div className="gads-period-label">
-          <span className="gads-period-main">{formatPeriodLabel(fromDate, toDate)}</span>
+          <span className="gads-period-main">{isToday ? `Aujourd'hui · ${formatDayLong(presetTo)}` : formatPeriodLabel(fromDate, toDate)}</span>
           {hasData && (
             <span className="gads-period-cmp">
-              {canCompare && prev
-                ? `Comparaison avec la période précédente (${formatPeriodLabel(prev.from, prev.to)})`
-                : 'Comparaison indisponible : aucune donnée sur la période précédente (la synchronisation récupère les 30 derniers jours).'}
+              {isToday
+                ? (canCompare ? 'Comparaison avec hier sur les mêmes heures' : 'Comparaison avec hier indisponible pour le moment')
+                : canCompare && prev
+                  ? `Comparaison avec la période précédente (${formatPeriodLabel(prev.from, prev.to)})`
+                  : 'Comparaison indisponible : aucune donnée sur la période précédente (la synchronisation récupère les 30 derniers jours).'}
             </span>
           )}
         </div>
@@ -294,26 +360,40 @@ export default function GoogleAdsPage() {
         </div>
       )}
 
-      {isError && (
+      {dataError && (
         <div role="alert" className="gads-alert" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
           <AlertTriangle size={16} />
           <span>{STATS_LOAD_ERROR}</span>
-          {typeof refetch === 'function' && <button className="btn-secondary btn-sm" onClick={() => refetch()}>Réessayer</button>}
+          <button className="btn-secondary btn-sm" onClick={() => (todayView ? hourlyQ.refetch() : refetch())}>Réessayer</button>
         </div>
       )}
 
-      {!isLoading && !isError && !hasData && (
+      {!dataLoading && !dataError && !hasData && (
         <div className="gads-alert info">
           <Info size={16} />
-          <span>Aucune donnée synchronisée pour la période du {formatPeriodLabel(fromDate, toDate)}. Cliquez sur « Synchroniser » pour récupérer les métriques, ou choisissez une autre période.</span>
+          <span>
+            {isToday
+              ? "Aucune donnée synchronisée aujourd'hui pour l'instant. Cliquez sur « Synchroniser » pour récupérer les métriques, ou choisissez une autre période."
+              : `Aucune donnée synchronisée pour la période du ${formatPeriodLabel(fromDate, toDate)}. Cliquez sur « Synchroniser » pour récupérer les métriques, ou choisissez une autre période.`}
+          </span>
         </div>
       )}
 
-      {/* ── Blocs ── */}
-      <Overview kpis={kpis} loading={isLoading} spark={series} />
-      <PerformanceChart series={series} kpis={kpis} loading={isLoading} />
+      {/* ── Blocs (ordre mobile : vue d'ensemble, performances, campagnes, démographie, appareils, zones, tendances, compte) ── */}
+      <Overview kpis={kpis} loading={dataLoading} spark={sparkHourly ?? series} caption={isToday ? 'vs hier, mêmes heures' : 'sur la période'} aside={isToday && syncedLabel ? `Données synchronisées à ${syncedLabel}` : undefined} />
+      {todayView
+        ? <TodayChart view={todayView} kpis={kpis} loading={dataLoading} syncedLabel={syncedLabel} tzLabel={tz} />
+        : <PerformanceChart series={series} kpis={kpis} loading={isLoading} />}
       <CampaignsSection campaigns={campaigns} />
-      {hasData && <InsightsSection stats={insights} changes={changes} />}
+      <DemographicsSection rows={demoQ.data} loading={demoQ.isLoading} error={demoQ.isError} />
+      <DevicesSection rows={devicesQ.data} loading={devicesQ.isLoading} error={devicesQ.isError} />
+      <ZonesSection
+        geo={geoQ.data} geoLoading={geoQ.isLoading || geoNamesQ.isLoading} geoError={geoQ.isError}
+        names={geoNamesQ.data} zones={zonesQ.data} zonesLoading={zonesQ.isLoading} zonesError={zonesQ.isError}
+      />
+      {todayView
+        ? (hourInsights && hasData && <TodayInsightsSection stats={hourInsights} />)
+        : (hasData && <InsightsSection stats={insights} changes={changes} />)}
       {ads && <AccountSection info={ads} onManage={() => nav('/parametres/integrations')} />}
     </div>
   )

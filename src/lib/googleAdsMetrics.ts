@@ -58,19 +58,24 @@ export type Delta =
   | { kind: 'abs'; diff: number }    // base trop faible : écart absolu, jamais un %
   | { kind: 'pct'; pct: number }
 
-export const MAX_PCT = 999
+/**
+ * Au-delà de ±300 %, un pourcentage n'est plus représentatif (base précédente très faible) :
+ * on affiche l'écart ABSOLU (« +114 clics ») — jamais « +5 700 % » ni « +>999 % ».
+ */
+export const PCT_DISPLAY_LIMIT = 300
 
 /**
  * `minBase` = plus petite valeur précédente pour laquelle un pourcentage est
- * jugé significatif. En dessous, on affiche l'écart absolu (« +3 ») — évite
- * les « +4 800 % » quand la période précédente était quasi vide.
+ * jugé significatif. En dessous, ou si le pourcentage dépasse PCT_DISPLAY_LIMIT, on
+ * affiche l'écart absolu. Précédent = 0 et actuel > 0 → « Nouveau ».
  */
 export function computeDelta(current: number | null, previous: number | null, minBase: number): Delta {
   if (current === null || previous === null) return { kind: 'none' }
   if (previous === 0) return current > 0 ? { kind: 'new' } : { kind: 'none' }
   if (previous < minBase) return current === previous ? { kind: 'none' } : { kind: 'abs', diff: current - previous }
   const pct = ((current - previous) / previous) * 100
-  return { kind: 'pct', pct: Math.max(-MAX_PCT, Math.min(MAX_PCT, pct)) }
+  if (Math.abs(pct) > PCT_DISPLAY_LIMIT) return { kind: 'abs', diff: current - previous }
+  return { kind: 'pct', pct }
 }
 
 // Seuils de volume : un ratio (CTR, CPC, coût/conv.) n'est comparé que si les
@@ -96,17 +101,21 @@ export const fmtConv = (n: number | null) => (n === null ? DASH : NF_CONV.format
 export const fmtPct = (n: number | null) => (n === null ? DASH : `${NF_PCT.format(n)} %`)
 export const fmtEurMicros = (micros: number | null) => (micros === null ? DASH : NF_EUR.format(micros / 1_000_000))
 
-/** Libellé court d'un écart ; `fmtAbs` formate l'écart absolu dans l'unité de la mesure. */
-export function deltaLabel(d: Delta, fmtAbs: (n: number) => string): string | null {
+/** Libellé court d'un écart ; `fmtAbs` formate l'écart absolu, `unit` l'accompagne (« +114 clics »). */
+export function deltaLabel(d: Delta, fmtAbs: (n: number) => string, unit?: string): string | null {
   switch (d.kind) {
     case 'none': return null
     case 'new': return 'Nouveau'
-    case 'abs': return `${d.diff > 0 ? '+' : '−'}${fmtAbs(Math.abs(d.diff))}`
+    case 'abs': {
+      const abs = fmtAbs(Math.abs(d.diff))
+      // Écart qui s'arrondit à zéro (ex. 0,04 conversion) : aucun badge plutôt qu'un « −0 » trompeur.
+      if (/^0([.,]0+)?$/.test(abs)) return null
+      return `${d.diff > 0 ? '+' : '−'}${abs}${unit ? ` ${unit}` : ''}`
+    }
     case 'pct': {
       const rounded = Math.round(d.pct)
       if (rounded === 0) return 'Stable'
-      const capped = Math.abs(d.pct) >= MAX_PCT ? '>' : ''
-      return `${rounded > 0 ? '+' : '−'}${capped}${NF_INT.format(Math.abs(rounded))} %`
+      return `${rounded > 0 ? '+' : '−'}${NF_INT.format(Math.abs(rounded))} %`
     }
   }
 }
@@ -132,6 +141,16 @@ export function formatRelative(iso: string | null | undefined, now: Date = new D
 }
 
 // ── Campagnes : agrégation, tri, filtre ──────────────────────────────────
+/**
+ * Les campagnes « Services Locaux » créées par Google portent un nom technique
+ * (« LocalServicesCampaign:SystemGenerated:<id> ») : on affiche un libellé lisible. Autres noms inchangés.
+ */
+export function friendlyCampaignName(name: string | null | undefined, fallback = 'Campagne'): string {
+  const n = (name ?? '').trim()
+  if (!n) return fallback
+  return /^LocalServicesCampaign:/i.test(n) ? 'Services Locaux (généré par Google)' : n
+}
+
 export interface CampaignRow {
   id: string
   name: string
@@ -141,36 +160,55 @@ export interface CampaignRow {
   conversions: number
   ctr: number | null
   costPerConv: number | null
-  // Déduit de l'activité sur la période — la synchronisation ne récupère pas
-  // le statut réel (campaign.status) de la campagne dans Google Ads.
-  active: boolean
+  /** Statut RÉEL retourné par Google Ads (google_ads_campaigns) : ENABLED, PAUSED, REMOVED…
+   *  null = campagne absente de la table — jamais déduit de l'activité. */
+  status: string | null
 }
 
-export function byCampaign(rows: AdsMetricRow[] | undefined): CampaignRow[] {
+export function byCampaign(rows: AdsMetricRow[] | undefined, statuses?: ReadonlyMap<string, string>): CampaignRow[] {
   const map = new Map<string, CampaignRow>()
   for (const r of rows ?? []) {
     const e = map.get(r.campaign_id) ?? {
       id: r.campaign_id, name: r.campaign_name || r.campaign_id,
-      impressions: 0, clicks: 0, costMicros: 0, conversions: 0, ctr: null, costPerConv: null, active: false,
+      impressions: 0, clicks: 0, costMicros: 0, conversions: 0, ctr: null, costPerConv: null, status: null,
     }
     e.impressions += r.impressions; e.clicks += r.clicks; e.costMicros += r.cost_micros; e.conversions += r.conversions
-    if (r.campaign_name) e.name = r.campaign_name
+    if (r.campaign_name) e.name = friendlyCampaignName(r.campaign_name, r.campaign_id)
     map.set(r.campaign_id, e)
   }
   return Array.from(map.values()).map((c) => ({
     ...c,
     ctr: ctrPct(c.clicks, c.impressions),
     costPerConv: costPerConvMicros(c.costMicros, c.conversions),
-    active: c.impressions > 0 || c.costMicros > 0,
+    status: statuses?.get(c.id) ?? null,
   }))
+}
+
+/**
+ * Ajoute les campagnes actives ou en pause connues de Google Ads mais sans activité sur la période
+ * (valeurs à 0 = réel). Les campagnes supprimées sans activité ne sont pas listées.
+ */
+export function withIdleCampaigns(list: CampaignRow[], infos: { campaign_id: string; name: string | null; status: string }[] | undefined): CampaignRow[] {
+  if (!infos || infos.length === 0) return list
+  const seen = new Set(list.map((c) => c.id))
+  const extra: CampaignRow[] = infos
+    .filter((i) => !seen.has(String(i.campaign_id)) && (i.status === 'ENABLED' || i.status === 'PAUSED'))
+    .map((i) => ({ id: String(i.campaign_id), name: friendlyCampaignName(i.name, String(i.campaign_id)), impressions: 0, clicks: 0, costMicros: 0, conversions: 0, ctr: null, costPerConv: null, status: i.status }))
+  return [...list, ...extra]
 }
 
 export type SortKey = 'name' | 'status' | 'impressions' | 'clicks' | 'ctr' | 'costMicros' | 'conversions' | 'costPerConv'
 export type SortDir = 'asc' | 'desc'
-export type StatusFilter = 'all' | 'active' | 'inactive'
+/** Filtre sur le statut RÉEL Google : actives (ENABLED), en pause (PAUSED), supprimées (REMOVED). */
+export type StatusFilter = 'all' | 'enabled' | 'paused' | 'removed'
+
+const STATUS_FILTER_VALUE: Record<Exclude<StatusFilter, 'all'>, string> = { enabled: 'ENABLED', paused: 'PAUSED', removed: 'REMOVED' }
+
+/** Rang d'affichage : actives, en pause, autres statuts, puis statut indisponible. */
+const statusOrder = (s: string | null): number => (s === 'ENABLED' ? 3 : s === 'PAUSED' ? 2 : s ? 1 : 0)
 
 const SORT_VALUE: Record<Exclude<SortKey, 'name'>, (c: CampaignRow) => number | null> = {
-  status: (c) => (c.active ? 1 : 0),
+  status: (c) => statusOrder(c.status),
   impressions: (c) => c.impressions,
   clicks: (c) => c.clicks,
   ctr: (c) => c.ctr,
@@ -186,7 +224,7 @@ export function filterSortCampaigns(
   const q = opts.query.trim().toLowerCase()
   const filtered = list.filter((c) =>
     (!q || c.name.toLowerCase().includes(q)) &&
-    (opts.status === 'all' || (opts.status === 'active' ? c.active : !c.active)))
+    (opts.status === 'all' || c.status === STATUS_FILTER_VALUE[opts.status]))
   const dir = opts.sortDir === 'asc' ? 1 : -1
   return filtered.sort((a, b) => {
     if (opts.sortKey === 'name') return dir * a.name.localeCompare(b.name, 'fr')
@@ -327,6 +365,8 @@ export interface KpiData {
   value: string
   delta: Delta
   fmtAbs: (n: number) => string
+  /** Unité accolée à l'écart absolu (« +114 clics »). */
+  absUnit?: string
   /** Une hausse est-elle bonne, mauvaise, ou neutre (dépenses) ? */
   tone: 'goodUp' | 'goodDown' | 'neutral'
 }
@@ -340,11 +380,28 @@ export function buildKpis(cur: Totals, prev: Totals, hasData: boolean, canCompar
   const cpv = costPerConvMicros(cur.costMicros, cur.conversions); const cpvP = costPerConvMicros(prev.costMicros, prev.conversions)
   return [
     { key: 'spend', label: 'Dépenses', value: fmtEurMicros(show(cur.costMicros)), delta: d(cur.costMicros, prev.costMicros, MIN_BASE.costMicros), fmtAbs: fmtEurMicros, tone: 'neutral' },
-    { key: 'impressions', label: 'Impressions', value: fmtInt(show(cur.impressions)), delta: d(cur.impressions, prev.impressions, MIN_BASE.impressions), fmtAbs: fmtInt, tone: 'goodUp' },
-    { key: 'clicks', label: 'Clics', value: fmtInt(show(cur.clicks)), delta: d(cur.clicks, prev.clicks, MIN_BASE.clicks), fmtAbs: fmtInt, tone: 'goodUp' },
+    { key: 'impressions', label: 'Impressions', value: fmtInt(show(cur.impressions)), delta: d(cur.impressions, prev.impressions, MIN_BASE.impressions), fmtAbs: fmtInt, absUnit: 'impr.', tone: 'goodUp' },
+    { key: 'clicks', label: 'Clics', value: fmtInt(show(cur.clicks)), delta: d(cur.clicks, prev.clicks, MIN_BASE.clicks), fmtAbs: fmtInt, absUnit: 'clics', tone: 'goodUp' },
     { key: 'ctr', label: 'CTR', value: fmtPct(show(ctr)), delta: r(ctr, ctrP, cur.impressions, prev.impressions, MIN_VOLUME_FOR_RATIO.ctr), fmtAbs: fmtPct, tone: 'goodUp' },
     { key: 'cpc', label: 'CPC moyen', value: fmtEurMicros(show(cpc)), delta: r(cpc, cpcP, cur.clicks, prev.clicks, MIN_VOLUME_FOR_RATIO.cpc), fmtAbs: fmtEurMicros, tone: 'goodDown' },
-    { key: 'conversions', label: 'Conversions', value: fmtConv(show(cur.conversions)), delta: d(cur.conversions, prev.conversions, MIN_BASE.conversions), fmtAbs: fmtConv, tone: 'goodUp' },
+    { key: 'conversions', label: 'Conversions', value: fmtConv(show(cur.conversions)), delta: d(cur.conversions, prev.conversions, MIN_BASE.conversions), fmtAbs: fmtConv, absUnit: 'conv.', tone: 'goodUp' },
     { key: 'costPerConv', label: 'Coût / conversion', value: fmtEurMicros(show(cpv)), delta: r(cpv, cpvP, cur.conversions, prev.conversions, MIN_VOLUME_FOR_RATIO.costPerConv), fmtAbs: fmtEurMicros, tone: 'goodDown' },
   ]
+}
+
+/** Résultat d'une synchronisation manuelle (contrat de google-ads-sync-metrics, valeurs normalisées par le hook). */
+export interface SyncResultLike {
+  rowsUpserted: number
+  throttled: boolean
+  datasets: { dataset: string; ok: boolean }[]
+}
+
+/** Message de fin de synchronisation : jamais « 0 ligne(s) » quand le serveur a simplement temporisé (< 10 min). */
+export function describeSyncResult(res: SyncResultLike): { tone: 'success' | 'info' | 'warning'; message: string } {
+  if (res.throttled) return { tone: 'info', message: 'Données déjà synchronisées récemment.' }
+  const failed = res.datasets.filter((d) => !d.ok)
+  if (failed.length > 0) {
+    return { tone: 'warning', message: `Synchronisation partielle : ${failed.length} jeu${failed.length > 1 ? 'x' : ''} de données n'${failed.length > 1 ? 'ont' : 'a'} pas pu être mis à jour.` }
+  }
+  return { tone: 'success', message: 'Synchronisation terminée — données à jour.' }
 }

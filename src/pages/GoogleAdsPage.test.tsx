@@ -23,6 +23,14 @@ const statsHooks = vi.hoisted(() => ({
   useSyncGoogleAdsMetrics: vi.fn(),
 }))
 
+const dataHooks = vi.hoisted(() => ({
+  useGoogleAdsHourly: vi.fn(), useGoogleAdsDevices: vi.fn(), useGoogleAdsDemographics: vi.fn(), useGoogleAdsGeo: vi.fn(),
+  useGoogleGeoNames: vi.fn(), useGoogleAdsZones: vi.fn(), useGoogleAdsCampaigns: vi.fn(), useGoogleAdsSyncState: vi.fn(),
+}))
+vi.mock('@/lib/hooks/googleAdsData', () => ({
+  ...dataHooks,
+  campaignStatusMap: (rows: { campaign_id: string; status: string }[] | undefined) => new Map((rows ?? []).map((r) => [r.campaign_id, r.status])),
+}))
 vi.mock('@/lib/hooks/googleIntegrations', () => ({
   useGoogleOAuthStatus: hooks.useGoogleOAuthStatus,
   useLoadGoogleAdsAccounts: hooks.useLoadGoogleAdsAccounts,
@@ -48,10 +56,16 @@ function renderPage() {
   )
 }
 
-afterEach(cleanup)
+// Date figée à midi UTC : « aujourd'hui » vaut le même jour à Paris et en UTC (pas de bascule de minuit).
+afterEach(() => { cleanup(); vi.useRealTimers() })
+
+const q = (data: unknown) => ({ data, isLoading: false, isError: false, error: null, refetch: vi.fn() })
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-21T12:00:00Z') })
   vi.clearAllMocks()
+  for (const k of ['useGoogleAdsHourly', 'useGoogleAdsDevices', 'useGoogleAdsDemographics', 'useGoogleAdsGeo', 'useGoogleAdsZones', 'useGoogleAdsCampaigns', 'useGoogleAdsSyncState'] as const) dataHooks[k].mockReturnValue(q([]))
+  dataHooks.useGoogleGeoNames.mockReturnValue(q(new Map()))
   useToastStore.setState({ toasts: [] })
   hooks.useLoadGoogleAdsAccounts.mockReturnValue(mutationStub())
   statsHooks.useGoogleAdsMetrics.mockReturnValue({ data: [], isLoading: false, isError: false, error: null })
@@ -116,7 +130,7 @@ describe('GoogleAdsPage — dernière synchronisation en erreur après un succè
 })
 
 // ── Tableau de bord enrichi : KPI, comparaison, campagnes, synchronisation ──
-const TODAY = new Date().toISOString().slice(0, 10)
+const TODAY = '2026-09-21'
 const mRow = (o: Record<string, unknown>) => ({
   date: '2026-09-01', campaign_id: 'a', campaign_name: 'Alpha',
   impressions: 0, clicks: 0, cost_micros: 0, conversions: 0, conversions_value: 0, phone_calls: 0, ...o,
@@ -133,7 +147,7 @@ function mockMetrics(current: unknown[], previous: unknown[]) {
   }))
 }
 const syncedStatus = () => hooks.useGoogleOAuthStatus.mockReturnValue(statusQuery({
-  status: 'connected', google_customer_id: '7536669574', last_synced_at: new Date().toISOString(), last_error: null,
+  status: 'connected', google_customer_id: '7536669574', last_synced_at: new Date().toISOString(), last_error: null, time_zone: 'Europe/Paris',
 }))
 
 describe('GoogleAdsPage — KPI et comparaison', () => {
@@ -159,7 +173,7 @@ describe('GoogleAdsPage — KPI et comparaison', () => {
     syncedStatus()
     mockMetrics(CURRENT, [mRow({ impressions: 40, clicks: 2, cost_micros: 1_000_000, conversions: 0 })])
     renderPage()
-    expect(screen.getAllByText('+73').length).toBeGreaterThan(0) // clics : 75 − 2 (carte KPI + en-tête du graphique)
+    expect(screen.getAllByText('+73 clics').length).toBeGreaterThan(0) // clics : 75 − 2 (carte KPI + en-tête du graphique)
     expect(screen.queryByText(/3\s?650\s?%/)).not.toBeInTheDocument()
   })
 
@@ -171,15 +185,21 @@ describe('GoogleAdsPage — KPI et comparaison', () => {
 })
 
 describe('GoogleAdsPage — tableau des campagnes', () => {
-  it('colonnes demandées, statut déduit, et total', () => {
+  it('colonnes demandées, statut RÉEL Google (pas déduit de l’activité), et total', () => {
     syncedStatus(); mockMetrics(CURRENT, [])
+    dataHooks.useGoogleAdsCampaigns.mockReturnValue(q([
+      { campaign_id: 'a', name: 'Alpha', status: 'ENABLED' }, { campaign_id: 'c', name: 'Charlie', status: 'PAUSED' }, { campaign_id: 'z', name: 'Zulu', status: 'PAUSED' },
+    ]))
     renderPage()
     for (const col of ['Campagne', 'Statut', 'Impressions', 'Clics', 'CTR', 'Dépenses', 'Conversions', 'Coût/conv.']) {
       expect(screen.getAllByText(col).length).toBeGreaterThan(0)
     }
-    expect(screen.getAllByText('Sans activité').length).toBeGreaterThan(0) // Zulu
+    // Charlie a de l'activité mais est EN PAUSE : le statut vient de Google, jamais de l'activité.
+    expect(screen.getAllByText('En pause').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Active').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Sans activité')).not.toBeInTheDocument()
     expect(screen.getByText('Total')).toBeInTheDocument()
-    expect(screen.getByText(/statut déduit de l'activité/i)).toBeInTheDocument()
+    expect(screen.getByText(/statut est celui de la campagne dans Google Ads/i)).toBeInTheDocument()
   })
 
   it('filtre par nom', () => {
@@ -191,10 +211,20 @@ describe('GoogleAdsPage — tableau des campagnes', () => {
     expect(screen.getByText('Total affiché')).toBeInTheDocument()
   })
 
-  it('filtre « Sans activité » et message si aucun résultat', () => {
+  it('statut absent de google_ads_campaigns : « Statut indisponible », jamais « Active » supposé', () => {
     syncedStatus(); mockMetrics(CURRENT, [])
     renderPage()
-    fireEvent.click(screen.getByRole('button', { name: /^Sans activité/ }))
+    expect(screen.getAllByText('Statut indisponible').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Active')).not.toBeInTheDocument()
+  })
+
+  it('filtre « En pause » et message si aucun résultat', () => {
+    syncedStatus(); mockMetrics(CURRENT, [])
+    dataHooks.useGoogleAdsCampaigns.mockReturnValue(q([
+      { campaign_id: 'a', name: 'Alpha', status: 'ENABLED' }, { campaign_id: 'c', name: 'Charlie', status: 'ENABLED' }, { campaign_id: 'z', name: 'Zulu', status: 'PAUSED' },
+    ]))
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /^En pause/ }))
     expect(screen.queryByText('Alpha')).not.toBeInTheDocument()
     expect(screen.getAllByText('Zulu').length).toBeGreaterThan(0)
     fireEvent.change(screen.getByLabelText('Rechercher une campagne'), { target: { value: 'introuvable' } })
@@ -252,23 +282,23 @@ const fullStatus = () => hooks.useGoogleOAuthStatus.mockReturnValue(statusQuery(
 const h2s = () => screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
 
 describe('GoogleAdsPage — structure en blocs', () => {
-  it('affiche les blocs dans l’ordre : vue d’ensemble, performances, campagnes, tendances, compte', () => {
+  it('affiche les blocs dans l’ordre mobile demandé', () => {
     fullStatus(); mockMetrics(CURRENT, [])
     renderPage()
-    expect(h2s()).toEqual(["Vue d'ensemble", 'Performances', 'Campagnes', 'Tendances', 'Compte connecté'])
+    expect(h2s()).toEqual(["Vue d'ensemble", 'Performances', 'Campagnes', 'Données démographiques', 'Appareils', 'Zones', 'Tendances', 'Compte connecté'])
   })
 
   it('sans donnée synchronisée : pas de bloc Tendances, un message clair, les autres blocs restent', () => {
     fullStatus(); mockMetrics([], [])
     renderPage()
-    expect(h2s()).toEqual(["Vue d'ensemble", 'Performances', 'Campagnes', 'Compte connecté'])
+    expect(h2s()).toEqual(["Vue d'ensemble", 'Performances', 'Campagnes', 'Données démographiques', 'Appareils', 'Zones', 'Compte connecté'])
     expect(screen.getByText(/aucune donnée synchronisée pour la période/i)).toBeInTheDocument()
   })
 
-  it('aucun bloc inventé : pas de termes de recherche, appareils, démographie ni facturation', () => {
+  it('aucun bloc inventé : pas de termes de recherche ni de facturation', () => {
     fullStatus(); mockMetrics(CURRENT, [])
     renderPage()
-    expect(screen.queryByText(/termes de recherche|appareils|démographi|facturation/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/termes de recherche|facturation/i)).not.toBeInTheDocument()
   })
 
   it('compte connecté : identifiant masqué, jamais l’identifiant complet', () => {
@@ -317,5 +347,201 @@ describe('GoogleAdsPage — structure en blocs', () => {
     fullStatus(); mockMetrics(CURRENT, [])
     renderPage()
     expect(screen.getAllByText(/\d+ % des dépenses/).length).toBeGreaterThan(0)
+  })
+})
+
+// ── Nouvelles sections : Aujourd'hui, Appareils, Démographie, Zones ─────────
+const M0 = { impressions: 0, clicks: 0, cost_micros: 0, conversions: 0 }
+const hRow = (o: Record<string, unknown>) => ({
+  campaign_id: 'a', campaign_name: 'Alpha', local_date: TODAY, hour: 9, ...M0, conversions_value: 0, ...o,
+})
+const periodBtn = (name: string) => within(screen.getByRole('group', { name: 'Période' })).getByRole('button', { name })
+
+describe('GoogleAdsPage — période « Aujourd’hui »', () => {
+  function todaySetup(hourly?: unknown[]) {
+    fullStatus(); mockMetrics([], [])
+    // Synchro à 14:20 (Paris) = 12:20 UTC
+    dataHooks.useGoogleAdsSyncState.mockReturnValue(q([{ dataset: 'hourly', synced_at: '2026-09-21T12:20:00Z', attempted_at: null, backfilled_at: null, last_error: null }]))
+    dataHooks.useGoogleAdsHourly.mockReturnValue(q(hourly ?? [
+      hRow({ hour: 9, impressions: 100, clicks: 10, cost_micros: 20_000_000 }),
+      hRow({ local_date: '2026-09-20', hour: 9, impressions: 50, clicks: 5, cost_micros: 10_000_000 }),
+    ]))
+    renderPage()
+    fireEvent.click(periodBtn("Aujourd'hui"))
+  }
+
+  it('la période « Aujourd’hui » existe avant 7 / 30 / 90 jours et Personnalisé', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    renderPage()
+    const names = within(screen.getByRole('group', { name: 'Période' })).getAllByRole('button').map((b) => b.getAttribute('aria-label'))
+    expect(names).toEqual(["Aujourd'hui", '7 jours', '30 jours', '90 jours', 'Personnalisé'])
+  })
+
+  it('affiche « Données synchronisées à HH:mm » dans le fuseau du compte, jamais « temps réel »', () => {
+    todaySetup()
+    expect(screen.getByText(/Données synchronisées à 14:20/)).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/temps réel|\blive\b/i)
+    expect(screen.getByText(/Fuseau horaire du compte : Europe\/Paris/)).toBeInTheDocument()
+  })
+
+  it('KPI du jour lus depuis la table horaire ; comparaison avec hier sur les mêmes heures', () => {
+    todaySetup()
+    expect(screen.getAllByText('100').length).toBeGreaterThan(0) // impressions aujourd'hui
+    expect(screen.getByText(/Comparaison avec hier sur les mêmes heures \(00h–14h/)).toBeInTheDocument()
+    expect(screen.getByText(/Les heures après 14h ne sont pas encore synchronisées/)).toBeInTheDocument()
+  })
+
+  it('note de retard des conversions quand l’indicateur Conversions est choisi', () => {
+    todaySetup()
+    fireEvent.click(within(screen.getByRole('group', { name: 'Indicateur horaire' })).getByRole('button', { name: 'Conversions' }))
+    expect(screen.getByText(/conversions avec plusieurs heures de retard/)).toBeInTheDocument()
+  })
+
+  it('aucune donnée hier : pas de comparaison, jamais de « Nouveau »', () => {
+    todaySetup([hRow({ impressions: 100, clicks: 10, cost_micros: 20_000_000 })])
+    expect(screen.queryByText('Nouveau')).not.toBeInTheDocument()
+    expect(screen.getAllByText(/Comparaison avec hier indisponible/).length).toBeGreaterThan(0)
+  })
+
+  it('les campagnes du jour viennent des lignes horaires avec leur statut réel', () => {
+    dataHooks.useGoogleAdsCampaigns.mockReturnValue(q([{ campaign_id: 'a', name: 'Alpha', status: 'PAUSED' }]))
+    todaySetup()
+    expect(screen.getAllByText('En pause').length).toBeGreaterThan(0)
+  })
+})
+
+describe('GoogleAdsPage — Appareils', () => {
+  it('Mobile / Ordinateur / Tablette avec pastilles de métrique', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    dataHooks.useGoogleAdsDevices.mockReturnValue(q([
+      { device: 'MOBILE', ...M0, clicks: 30, impressions: 300 }, { device: 'DESKTOP', ...M0, clicks: 10, impressions: 200 },
+    ]))
+    renderPage()
+    const sec = within(screen.getByRole('heading', { name: 'Appareils' }).closest('section')!)
+    for (const l of ['Mobile', 'Ordinateur', 'Tablette']) expect(sec.getByText(l)).toBeInTheDocument()
+    const pills = within(sec.getByRole('group', { name: 'Indicateur des appareils' }))
+    for (const l of ['Impressions', 'Clics', 'Dépenses', 'Conversions']) expect(pills.getByRole('button', { name: l })).toBeInTheDocument()
+    expect(sec.getByText('75 %')).toBeInTheDocument() // mobile : 30 / 40 clics
+    fireEvent.click(pills.getByRole('button', { name: 'Impressions' }))
+    expect(sec.getByText('60 %')).toBeInTheDocument() // 300 / 500
+  })
+  it('conversions à 0 : pas de fausse donnée, une note claire', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    dataHooks.useGoogleAdsDevices.mockReturnValue(q([{ device: 'MOBILE', ...M0, clicks: 30 }]))
+    renderPage()
+    const sec = within(screen.getByRole('heading', { name: 'Appareils' }).closest('section')!)
+    fireEvent.click(sec.getByRole('button', { name: 'Conversions' }))
+    expect(sec.getByText(/Aucune conversion enregistrée/)).toBeInTheDocument()
+  })
+})
+
+describe('GoogleAdsPage — Données démographiques', () => {
+  const demo = [
+    { dimension: 'age_range', value: 'AGE_RANGE_25_34', ...M0, impressions: 30 },
+    { dimension: 'age_range', value: 'AGE_RANGE_UNDETERMINED', ...M0, impressions: 70 },
+    { dimension: 'gender', value: 'MALE', ...M0, impressions: 20 },
+    { dimension: 'gender', value: 'UNDETERMINED', ...M0, impressions: 80 },
+  ]
+  it('Âge par défaut, « Inconnu » conservé ; « Âge et sexe » = deux répartitions séparées, non croisées', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    dataHooks.useGoogleAdsDemographics.mockReturnValue(q(demo))
+    renderPage()
+    const sec = within(screen.getByRole('heading', { name: 'Données démographiques' }).closest('section')!)
+    expect(sec.getByRole('button', { name: 'Âge' })).toHaveAttribute('aria-pressed', 'true')
+    expect(sec.getByText('25–34')).toBeInTheDocument()
+    expect(sec.getByText('70 %')).toBeInTheDocument()
+    expect(sec.getAllByText(/non déterminé par Google/).length).toBeGreaterThan(0)
+    fireEvent.click(sec.getByRole('button', { name: 'Âge et sexe' }))
+    // Deux blocs distincts (cartes séparées), chacun avec sa propre liste, et un avertissement explicite en tête.
+    expect(sec.getByText('Par âge')).toBeInTheDocument()
+    expect(sec.getByText('Par sexe')).toBeInTheDocument()
+    expect(sec.getByRole('list', { name: 'Répartition par âge' })).toBeInTheDocument()
+    expect(sec.getByRole('list', { name: 'Répartition par sexe' })).toBeInTheDocument()
+    expect(sec.getByText(/ne permet pas de croiser l'âge et le sexe/)).toBeInTheDocument()
+    expect(sec.getByText('Femme')).toBeInTheDocument()
+  })
+})
+
+describe('GoogleAdsPage — Zones', () => {
+  const zones = [
+    { campaign_id: 'a', campaign_name: 'Alpha', campaign_status: 'ENABLED', criterion_id: 1, zone_type: 'PROXIMITY', latitude: 43.6, longitude: 1.44, radius: 25, radius_unit: 'KILOMETERS', geo_target_id: null, label: null },
+    { campaign_id: 'c', campaign_name: 'Charlie', campaign_status: 'ENABLED', criterion_id: 2, zone_type: 'LOCATION', latitude: null, longitude: null, radius: null, radius_unit: null, geo_target_id: 9, label: 'Blagnac' },
+  ]
+  const geo = [
+    { geo_level: 'city', presence_type: 'LOCATION_OF_PRESENCE', geo_target_id: 1, ...M0, impressions: 90, clicks: 9, cost_micros: 4_000_000 },
+    { geo_level: 'postal_code', presence_type: 'LOCATION_OF_PRESENCE', geo_target_id: 2, ...M0, impressions: 60 },
+  ]
+  const names = new Map([
+    [1, { geo_target_id: 1, name: 'Toulouse', canonical_name: 'Toulouse,Occitanie,France', target_type: 'City', region_name: 'Occitanie' }],
+    [2, { geo_target_id: 2, name: '31000', canonical_name: '31000,Occitanie,France', target_type: 'Postal Code', region_name: 'Occitanie' }],
+  ])
+
+  it('présence : villes en principal, codes postaux en détail, sans carte inventée', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    dataHooks.useGoogleAdsGeo.mockReturnValue(q(geo)); dataHooks.useGoogleGeoNames.mockReturnValue(q(names))
+    renderPage()
+    const sec = within(screen.getByRole('heading', { name: 'Zones' }).closest('section')!)
+    expect(sec.getByText('Toulouse')).toBeInTheDocument()
+    expect(sec.getByText('31000')).toBeInTheDocument() // dans le repli « Codes postaux (détail) »
+    expect(sec.getByText(/Codes postaux \(détail\)/)).toBeInTheDocument()
+    expect(sec.getByText(/d'où venaient les personnes qui ont vu vos annonces/)).toBeInTheDocument()
+    expect(sec.getByText(/ne fournit pas de coordonnées pour les villes ni les codes postaux/)).toBeInTheDocument()
+    expect(sec.queryByRole('img', { name: /Carte des zones/ })).not.toBeInTheDocument()
+  })
+
+  it('zones ciblées : carte SVG des rayons réels + zones nommées listées, non dessinées', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    dataHooks.useGoogleAdsZones.mockReturnValue(q(zones))
+    renderPage()
+    const sec = within(screen.getByRole('heading', { name: 'Zones' }).closest('section')!)
+    fireEvent.click(sec.getByRole('button', { name: 'Zones ciblées' }))
+    expect(sec.getByRole('img', { name: /Carte des zones ciblées : 1 rayon/ })).toBeInTheDocument()
+    expect(sec.getByText('Rayon de 25 km')).toBeInTheDocument()
+    expect(sec.getByText(/43,600° N, 1,440° E/)).toBeInTheDocument()
+    expect(sec.getByText('Blagnac')).toBeInTheDocument()
+    expect(sec.getByText(/les zones que vos campagnes cherchent à atteindre/)).toBeInTheDocument()
+    expect(sec.getByText(/Google ne fournit pas de coordonnées pour les zones nommées/)).toBeInTheDocument()
+  })
+
+  it('zones nommées seules : aucune carte', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    dataHooks.useGoogleAdsZones.mockReturnValue(q([zones[1]]))
+    renderPage()
+    const sec = within(screen.getByRole('heading', { name: 'Zones' }).closest('section')!)
+    fireEvent.click(sec.getByRole('button', { name: 'Zones ciblées' }))
+    expect(sec.queryByRole('img', { name: /Carte/ })).not.toBeInTheDocument()
+    expect(sec.getByText('Blagnac')).toBeInTheDocument()
+  })
+})
+
+describe('GoogleAdsPage — synchronisation temporisée', () => {
+  it('« Données déjà synchronisées récemment » (info), jamais « 0 ligne(s) »', async () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    statsHooks.useSyncGoogleAdsMetrics.mockReturnValue(mutationStub({ mutateAsync: vi.fn().mockResolvedValue({ ok: true, rowsUpserted: 0, throttled: true, nextAllowedAt: null, datasets: [] }) }))
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /^synchroniser$/i }))
+    await vi.waitFor(() => expect(useToastStore.getState().toasts.length).toBe(1))
+    const t = useToastStore.getState().toasts[0]
+    expect(t.message).toBe('Données déjà synchronisées récemment.')
+    expect(t.type).toBe('info')
+    expect(t.message).not.toMatch(/ligne/)
+  })
+})
+
+describe('GoogleAdsPage — compte connecté repliable', () => {
+  it('résumé sur une ligne « Compte ····9574 · EUR · Europe/Paris » et bouton Gérer la connexion', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    renderPage()
+    expect(screen.getByText('Compte ····9574 · EUR · Europe/Paris')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Gérer la connexion' })).toBeInTheDocument()
+  })
+})
+
+describe('GoogleAdsPage — variations jamais absurdes', () => {
+  it('jamais « +>999 % » ni de pourcentage géant', () => {
+    fullStatus()
+    mockMetrics(CURRENT, [mRow({ impressions: 5000, clicks: 20, cost_micros: 100_000_000 })])
+    renderPage()
+    expect(document.body.textContent).not.toMatch(/>\s?999|\+\s?\d{1,3}\s?\d{3}\s?%/)
   })
 })

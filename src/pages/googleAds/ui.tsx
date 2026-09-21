@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { deltaLabel, deltaDirection, type Delta } from '@/lib/googleAdsMetrics'
+import { campaignStatusInfo, type StatusTone } from '@/lib/googleAdsBreakdowns'
 
 /** Bloc de page façon Google Ads : titre de section + contenu. */
 export function Section({ id, title, aside, children }: { id: string; title: string; aside?: ReactNode; children: ReactNode }) {
@@ -18,14 +19,14 @@ export function Section({ id, title, aside, children }: { id: string; title: str
 }
 
 /** Variation vs période précédente : vert = favorable, rouge = défavorable, gris = neutre/stable. */
-export function DeltaPill({ delta, fmtAbs, tone }: { delta: Delta; fmtAbs: (n: number) => string; tone: 'goodUp' | 'goodDown' | 'neutral' }) {
-  const label = deltaLabel(delta, fmtAbs)
+export function DeltaPill({ delta, fmtAbs, tone, unit }: { delta: Delta; fmtAbs: (n: number) => string; tone: 'goodUp' | 'goodDown' | 'neutral'; unit?: string }) {
+  const label = deltaLabel(delta, fmtAbs, unit)
   if (!label) return null
   const dir = deltaDirection(delta)
   const good = tone === 'neutral' || dir === 'flat' ? null : (tone === 'goodUp') === (dir === 'up')
   const cls = good === null ? '' : good ? 'up' : 'down'
   const title = delta.kind === 'abs'
-    ? 'Période précédente trop faible pour un pourcentage fiable — écart en valeur absolue'
+    ? 'Variation trop forte (ou base trop faible) pour un pourcentage lisible — écart en valeur absolue'
     : delta.kind === 'new' ? 'Aucune activité sur la période précédente' : 'Évolution par rapport à la période précédente'
   return (
     <span className={`gads-delta ${cls}`} title={title}>
@@ -35,9 +36,10 @@ export function DeltaPill({ delta, fmtAbs, tone }: { delta: Delta; fmtAbs: (n: n
   )
 }
 
-/** Statut DÉDUIT de l'activité sur la période (la synchronisation ne récupère pas le statut Google). */
-export function StatusPill({ active }: { active: boolean }) {
-  return active
-    ? <span className="pill pill-green">Active</span>
-    : <span className="pill" style={{ background: 'var(--s2)', color: 'var(--t2)' }}>Sans activité</span>
+const TONE_CLASS: Record<StatusTone, string> = { green: 'pill-green', amber: 'pill-amber', grey: 'pill-gray' }
+
+/** Statut RÉEL de la campagne dans Google Ads (jamais déduit de l'activité). */
+export function StatusPill({ status }: { status: string | null }) {
+  const { label, tone } = campaignStatusInfo(status)
+  return <span className={`pill ${TONE_CLASS[tone]}`} style={{ whiteSpace: 'nowrap' }}>{label}</span>
 }

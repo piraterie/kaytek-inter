@@ -35,7 +35,7 @@ export function CampaignsSection({ campaigns }: { campaigns: CampaignRow[] }) {
     for (const c of visible) { t.impressions += c.impressions; t.clicks += c.clicks; t.costMicros += c.costMicros; t.conversions += c.conversions }
     return { ...t, ctr: ctrPct(t.clicks, t.impressions), costPerConv: costPerConvMicros(t.costMicros, t.conversions) }
   }, [visible])
-  const nActive = campaigns.filter((c) => c.active).length
+  const count = (st: string) => campaigns.filter((c) => c.status === st).length
   const filtersActive = query.trim() !== '' || status !== 'all'
 
   function toggleSort(key: SortKey) {
@@ -58,9 +58,10 @@ export function CampaignsSection({ campaigns }: { campaigns: CampaignRow[] }) {
 
   const chips: { key: StatusFilter; label: string; n: number }[] = [
     { key: 'all', label: 'Toutes', n: campaigns.length },
-    { key: 'active', label: 'Actives', n: nActive },
-    { key: 'inactive', label: 'Sans activité', n: campaigns.length - nActive },
-  ]
+    { key: 'enabled', label: 'Actives', n: count('ENABLED') },
+    { key: 'paused', label: 'En pause', n: count('PAUSED') },
+    { key: 'removed', label: 'Supprimées', n: count('REMOVED') },
+  ].filter((c) => c.key === 'all' || c.n > 0 || status === c.key) as { key: StatusFilter; label: string; n: number }[]
   const sortIcon = (key: SortKey) => key !== sortKey
     ? <ChevronsUpDown size={12} style={{ opacity: 0.4 }} />
     : sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
@@ -119,7 +120,7 @@ export function CampaignsSection({ campaigns }: { campaigns: CampaignRow[] }) {
                     <tr key={c.id}>
                       {/* Nom complet, à la ligne si besoin — jamais tronqué. */}
                       <td style={{ minWidth: 160, maxWidth: 340, wordBreak: 'break-word', fontWeight: 600 }}>{c.name}</td>
-                      <td><StatusPill active={c.active} /></td>
+                      <td><StatusPill status={c.status} /></td>
                       <td className="gads-num">{fmtInt(c.impressions)}</td>
                       <td className="gads-num">{fmtInt(c.clicks)}</td>
                       <td className="gads-num">{fmtPct(c.ctr)}</td>
@@ -146,11 +147,23 @@ export function CampaignsSection({ campaigns }: { campaigns: CampaignRow[] }) {
             <div className="gads-cards">
               {visible.map((c) => {
                 const share = sharePct(c.costMicros, totalSpend)
+                // Campagne sans aucune activité sur la période : ligne compacte (aucune donnée retirée : tout vaut 0).
+                if (c.impressions === 0 && c.clicks === 0 && c.costMicros === 0 && c.conversions === 0) {
+                  return (
+                    <div key={c.id} className="gads-card idle">
+                      <div className="gads-card-head">
+                        <div className="gads-card-name">{c.name}</div>
+                        <StatusPill status={c.status} />
+                      </div>
+                      <div className="gads-idle-cap">Aucune activité sur la période</div>
+                    </div>
+                  )
+                }
                 return (
                   <div key={c.id} className="gads-card">
                     <div className="gads-card-head">
                       <div className="gads-card-name">{c.name}</div>
-                      <StatusPill active={c.active} />
+                      <StatusPill status={c.status} />
                     </div>
                     <div className="gads-card-main">
                       <div><div className="l">Dépenses</div><div className="v">{fmtEurMicros(c.costMicros)}</div></div>
@@ -172,7 +185,7 @@ export function CampaignsSection({ campaigns }: { campaigns: CampaignRow[] }) {
         )}
 
         <div className="gads-foot-note">
-          Statut déduit de l'activité sur la période (impressions ou dépenses), et non du statut de la campagne dans Google Ads.
+          Le statut est celui de la campagne dans Google Ads. Les chiffres portent sur la période sélectionnée.
         </div>
       </div>
     </Section>

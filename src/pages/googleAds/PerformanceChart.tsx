@@ -56,7 +56,7 @@ export function PerformanceChart({ series, kpis, loading }: { series: DailyPoint
             <div className="gads-headline">
               <span className="gads-headline-value">{loading ? <span className="gads-skel" style={{ width: 90 }} /> : head.k.value}</span>
               <span className="gads-headline-label">{head.unit}</span>
-              {!loading && <DeltaPill delta={head.k.delta} fmtAbs={head.k.fmtAbs} tone={head.k.tone} />}
+              {!loading && <DeltaPill delta={head.k.delta} fmtAbs={head.k.fmtAbs} tone={head.k.tone} unit={head.k.absUnit} />}
             </div>
             {mode === 'traffic' && (
               <div className="gads-legend">

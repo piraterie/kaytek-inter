@@ -50,18 +50,43 @@ export class AdsSyncError extends Error {
   }
 }
 
+export interface AdsSyncDataset { dataset: string; ok: boolean; rows?: number; error?: string | null }
+export interface AdsSyncResult {
+  ok: boolean
+  rowsUpserted: number
+  /** true = le serveur a ignoré la demande (synchronisation déjà faite il y a moins de 10 min) : ce n'est pas une erreur. */
+  throttled: boolean
+  nextAllowedAt: string | null
+  datasets: AdsSyncDataset[]
+}
+
+/** Clés de cache des données Google Ads à rafraîchir après une synchronisation. */
+export const ADS_DATA_QUERY_KEYS = [
+  'google-ads-metrics', 'google-ads-hourly', 'google-ads-devices', 'google-ads-demographics',
+  'google-ads-geo', 'google-ads-geo-names', 'google-ads-zones', 'google-ads-campaigns', 'google-ads-sync-state',
+] as const
+
 export function useSyncGoogleAdsMetrics() {
   const qc = useQueryClient()
-  return useMutation({
+  return useMutation<AdsSyncResult>({
     mutationFn: async () => {
-      const { data, error } = await invokeGoogleFunction<{ ok?: boolean; rowsUpserted?: number; error?: string; reason?: string; detail?: string }>('google-ads-sync-metrics')
+      const { data, error } = await invokeGoogleFunction<{
+        ok?: boolean; rowsUpserted?: number; throttled?: boolean; next_allowed_at?: string
+        datasets?: AdsSyncDataset[]; error?: string; reason?: string; detail?: string
+      }>('google-ads-sync-metrics')
       if (error) throw error
       if (!data?.ok) throw new AdsSyncError(data?.reason ?? 'unknown', data?.detail, data?.error || data?.reason || 'Synchronisation impossible')
-      return data
+      return {
+        ok: true,
+        rowsUpserted: Number(data.rowsUpserted ?? 0),
+        throttled: data.throttled === true,
+        nextAllowedAt: data.next_allowed_at ?? null,
+        datasets: Array.isArray(data.datasets) ? data.datasets : [],
+      }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['google-ads-metrics'] })
-      // last_synced_at / last_error sont portés par le statut de connexion.
+      for (const k of ADS_DATA_QUERY_KEYS) qc.invalidateQueries({ queryKey: [k] })
+      // last_synced_at / metrics_synced_at / last_error sont portés par le statut de connexion.
       qc.invalidateQueries({ queryKey: ['google-oauth-status'] })
     },
     // Un échec peut aussi avoir mis à jour last_error côté serveur.
