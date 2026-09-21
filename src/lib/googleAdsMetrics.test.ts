@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest'
 import {
   previousPeriod, computeDelta, ratioDelta, deltaLabel, deltaDirection, aggregate, byCampaign,
   filterSortCampaigns, describeSyncError, ctrPct, cpcMicros, costPerConvMicros, formatRelative, fmtEurMicros, fmtPct, MIN_BASE,
+  formatPeriodLabel, formatDayLong, maskCustomerId, dailySeries, insightStats, campaignChanges, sharePct, buildKpis, fmtCompact,
 } from './googleAdsMetrics'
 import type { AdsMetricRow } from '@/lib/hooks/googleStats'
 
@@ -170,5 +171,109 @@ describe('formatRelative', () => {
     expect(formatRelative('2026-09-21T09:00:00Z', now)).toBe('il y a 3 h')
     expect(formatRelative('2026-09-18T12:00:00Z', now)).toBe('il y a 3 j')
     expect(formatRelative(null, now)).toBeNull()
+  })
+})
+
+describe('formatPeriodLabel / formatDayLong', () => {
+  it('même année : l’année n’apparaît qu’une fois', () => {
+    expect(formatPeriodLabel('2026-08-24', '2026-09-21')).toMatch(/^24 août – 21 sept.? 2026$/)
+  })
+  it('années différentes : année aux deux bornes', () => {
+    expect(formatPeriodLabel('2025-12-20', '2026-01-10')).toMatch(/2025 – .*2026$/)
+  })
+  it('dates invalides → chaîne vide / date brute', () => {
+    expect(formatPeriodLabel('nope', '2026-01-10')).toBe('')
+    expect(formatDayLong('nope')).toBe('nope')
+  })
+  it('jour long avec jour de la semaine', () => {
+    expect(formatDayLong('2026-09-21')).toMatch(/lun.? 21 sept/)
+  })
+})
+
+describe('maskCustomerId / sharePct / fmtCompact', () => {
+  it('masque l’identifiant : jamais complet', () => {
+    expect(maskCustomerId('7536669574')).toBe('····9574')
+    expect(maskCustomerId('753-666-9574')).toBe('····9574')
+    expect(maskCustomerId(null)).toBeNull()
+    expect(maskCustomerId('12')).toBeNull()
+  })
+  it('part en % bornée 0–100, 0 si total nul', () => {
+    expect(sharePct(25, 100)).toBe(25)
+    expect(sharePct(5, 0)).toBe(0)
+    expect(sharePct(500, 100)).toBe(100)
+  })
+  it('format compact', () => {
+    expect(fmtCompact(1500)).toMatch(/1,5/)
+  })
+})
+
+describe('dailySeries / insightStats', () => {
+  const rows = [
+    row({ date: '2026-09-02', campaign_id: 'a', impressions: 100, clicks: 10, cost_micros: 5_000_000, conversions: 1, conversions_value: 40 }),
+    row({ date: '2026-09-01', campaign_id: 'a', impressions: 200, clicks: 30, cost_micros: 12_000_000, conversions: 2, conversions_value: 0 }),
+    row({ date: '2026-09-01', campaign_id: 'b', impressions: 50, clicks: 5, cost_micros: 3_000_000, conversions: 0 }),
+    row({ date: '2026-09-03', campaign_id: 'a', impressions: 0, clicks: 0, cost_micros: 0 }),
+  ]
+  it('agrège par jour, trie par date, coût en euros', () => {
+    const s = dailySeries(rows)
+    expect(s.map((p) => p.iso)).toEqual(['2026-09-01', '2026-09-02', '2026-09-03'])
+    expect(s[0]).toMatchObject({ impressions: 250, clicks: 35, cost: 15, conversions: 2, label: '01/09' })
+  })
+  it('repères : moyenne/jour, meilleur jour, jour le plus coûteux, jours actifs, valeur de conversion', () => {
+    const i = insightStats(rows)
+    expect(i.days).toBe(3)
+    expect(i.activeDays).toBe(2)
+    expect(i.avgCostMicros).toBe(20_000_000 / 3)
+    expect(i.bestClicksDay).toEqual({ iso: '2026-09-01', value: 35 })
+    expect(i.priciestDay).toEqual({ iso: '2026-09-01', costMicros: 15_000_000 })
+    expect(i.conversionsValue).toBe(40)
+  })
+  it('aucune donnée → valeurs neutres, jamais NaN', () => {
+    const i = insightStats([])
+    expect(i).toMatchObject({ days: 0, activeDays: 0, avgCostMicros: null, bestClicksDay: null, priciestDay: null, conversionsValue: 0 })
+    expect(dailySeries(undefined)).toEqual([])
+  })
+})
+
+describe('campaignChanges', () => {
+  const cur = byCampaign([
+    row({ campaign_id: 'a', campaign_name: 'Alpha', clicks: 120 }),
+    row({ campaign_id: 'b', campaign_name: 'Bravo', clicks: 40 }),
+    row({ campaign_id: 'c', campaign_name: 'Charlie', clicks: 0 }),
+  ])
+  const prev = byCampaign([
+    row({ campaign_id: 'a', campaign_name: 'Alpha', clicks: 100 }),
+    row({ campaign_id: 'b', campaign_name: 'Bravo', clicks: 80 }),
+  ])
+  it('classe par variation absolue de clics, ignore les campagnes 0 → 0', () => {
+    const ch = campaignChanges(cur, prev)
+    expect(ch.map((c) => c.id)).toEqual(['b', 'a'])
+    expect(deltaLabel(ch[0].delta, String)).toBe('−50 %')
+    expect(deltaLabel(ch[1].delta, String)).toBe('+20 %')
+  })
+  it('campagne sans historique → « Nouveau »', () => {
+    const ch = campaignChanges(cur, [])
+    expect(deltaLabel(ch.find((c) => c.id === 'a')!.delta, String)).toBe('Nouveau')
+  })
+  it('respecte la limite', () => {
+    expect(campaignChanges(cur, prev, 1)).toHaveLength(1)
+  })
+})
+
+describe('buildKpis', () => {
+  const cur = { impressions: 1500, clicks: 75, costMicros: 35_000_000, conversions: 6 }
+  const prev = { impressions: 1000, clicks: 50, costMicros: 20_000_000, conversions: 4 }
+  it('7 indicateurs dans l’ordre, dépenses en premier (carte héro)', () => {
+    const k = buildKpis(cur, prev, true, true)
+    expect(k.map((x) => x.key)).toEqual(['spend', 'impressions', 'clicks', 'ctr', 'cpc', 'conversions', 'costPerConv'])
+    expect(k[0].tone).toBe('neutral')
+    expect(deltaLabel(k[2].delta, String)).toBe('+50 %')
+  })
+  it('sans donnée : valeurs « — », aucune variation', () => {
+    const k = buildKpis({ impressions: 0, clicks: 0, costMicros: 0, conversions: 0 }, prev, false, false)
+    expect(k.every((x) => x.value === '—' && x.delta.kind === 'none')).toBe(true)
+  })
+  it('sans comparaison possible : aucune variation malgré des valeurs', () => {
+    expect(buildKpis(cur, prev, true, false).every((x) => x.delta.kind === 'none')).toBe(true)
   })
 })

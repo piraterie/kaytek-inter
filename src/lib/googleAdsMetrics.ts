@@ -224,3 +224,127 @@ export function describeSyncError(err: unknown): { message: string; detail: stri
 
 /** Message lisible pour un échec de LECTURE des statistiques (jamais le texte brut de l'erreur). */
 export const STATS_LOAD_ERROR = 'Impossible de charger les statistiques pour le moment. Réessayez dans un instant.'
+
+// ── Refonte UI : libellés de période, séries journalières, tendances, KPI ──
+// Dérivations d'AFFICHAGE uniquement, à partir des données déjà chargées.
+
+const dayFmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', ...o })
+const isoToDate = (iso: string) => new Date(`${iso}T00:00:00Z`)
+
+/** « 24 août – 21 sept. 2026 » (l'année n'est répétée que si elle change). */
+export function formatPeriodLabel(from: string, to: string): string {
+  const f = isoToDate(from); const t = isoToDate(to)
+  if (Number.isNaN(f.getTime()) || Number.isNaN(t.getTime())) return ''
+  const sameYear = f.getUTCFullYear() === t.getUTCFullYear()
+  const short = dayFmt({ day: 'numeric', month: 'short' })
+  const full = dayFmt({ day: 'numeric', month: 'short', year: 'numeric' })
+  return `${sameYear ? short.format(f) : full.format(f)} – ${full.format(t)}`
+}
+
+/** « lun. 21 sept. » */
+export function formatDayLong(iso: string): string {
+  const d = isoToDate(iso)
+  return Number.isNaN(d.getTime()) ? iso : dayFmt({ weekday: 'short', day: 'numeric', month: 'short' }).format(d)
+}
+
+export const fmtCompact = (n: number) => nf({ notation: 'compact', maximumFractionDigits: 1 }).format(n)
+
+/** ····9574 — jamais l'identifiant complet à l'écran. */
+export const maskCustomerId = (id: string | null | undefined): string | null => {
+  const digits = (id ?? '').replace(/\D/g, '')
+  return digits.length >= 4 ? `····${digits.slice(-4)}` : null
+}
+
+export interface DailyPoint { iso: string; label: string; impressions: number; clicks: number; cost: number; conversions: number }
+
+/** Totaux par jour (toutes campagnes), triés par date. `cost` en euros. */
+export function dailySeries(rows: AdsMetricRow[] | undefined): DailyPoint[] {
+  const byDate = new Map<string, DailyPoint>()
+  for (const r of rows ?? []) {
+    const e = byDate.get(r.date) ?? { iso: r.date, label: '', impressions: 0, clicks: 0, cost: 0, conversions: 0 }
+    e.impressions += r.impressions; e.clicks += r.clicks; e.cost += r.cost_micros / 1_000_000; e.conversions += r.conversions
+    byDate.set(r.date, e)
+  }
+  const short = dayFmt({ day: '2-digit', month: '2-digit' })
+  return Array.from(byDate.values())
+    .sort((a, b) => a.iso.localeCompare(b.iso))
+    .map((p) => ({ ...p, label: short.format(isoToDate(p.iso)) }))
+}
+
+export interface InsightStats {
+  days: number                     // jours pour lesquels on a des données
+  activeDays: number               // jours avec au moins une impression
+  avgCostMicros: number | null     // dépense moyenne par jour de données
+  bestClicksDay: { iso: string; value: number } | null
+  priciestDay: { iso: string; costMicros: number } | null
+  conversionsValue: number         // valeur des conversions sur la période
+}
+
+export function insightStats(rows: AdsMetricRow[] | undefined): InsightStats {
+  const daily = new Map<string, { clicks: number; cost: number; imp: number }>()
+  let conversionsValue = 0
+  for (const r of rows ?? []) {
+    const e = daily.get(r.date) ?? { clicks: 0, cost: 0, imp: 0 }
+    e.clicks += r.clicks; e.cost += r.cost_micros; e.imp += r.impressions
+    daily.set(r.date, e)
+    conversionsValue += Number(r.conversions_value) || 0
+  }
+  let best: InsightStats['bestClicksDay'] = null
+  let priciest: InsightStats['priciestDay'] = null
+  let totalCost = 0; let active = 0
+  for (const [iso, d] of daily) {
+    totalCost += d.cost
+    if (d.imp > 0) active++
+    if (d.clicks > 0 && (!best || d.clicks > best.value)) best = { iso, value: d.clicks }
+    if (d.cost > 0 && (!priciest || d.cost > priciest.costMicros)) priciest = { iso, costMicros: d.cost }
+  }
+  return { days: daily.size, activeDays: active, avgCostMicros: daily.size ? totalCost / daily.size : null, bestClicksDay: best, priciestDay: priciest, conversionsValue }
+}
+
+export interface CampaignChange { id: string; name: string; clicks: number; prevClicks: number; delta: Delta }
+
+/** Campagnes dont les clics ont le plus varié (en valeur absolue) vs la période précédente. */
+export function campaignChanges(current: CampaignRow[], previous: CampaignRow[], limit = 4): CampaignChange[] {
+  const prev = new Map(previous.map((c) => [c.id, c]))
+  return current
+    .map((c) => {
+      const p = prev.get(c.id)?.clicks ?? 0
+      return { id: c.id, name: c.name, clicks: c.clicks, prevClicks: p, delta: computeDelta(c.clicks, p, MIN_BASE.clicks) }
+    })
+    .filter((c) => c.delta.kind !== 'none')
+    .sort((a, b) => Math.abs(b.clicks - b.prevClicks) - Math.abs(a.clicks - a.prevClicks) || a.name.localeCompare(b.name, 'fr'))
+    .slice(0, limit)
+}
+
+/** Part de `part` dans `total`, en % (0 si total nul). */
+export const sharePct = (part: number, total: number): number => (total > 0 ? Math.max(0, Math.min(100, (part / total) * 100)) : 0)
+
+// ── KPI (données pures : l'icône est choisie par le composant via `key`) ──
+export type KpiKey = 'spend' | 'impressions' | 'clicks' | 'ctr' | 'cpc' | 'conversions' | 'costPerConv'
+export interface KpiData {
+  key: KpiKey
+  label: string
+  value: string
+  delta: Delta
+  fmtAbs: (n: number) => string
+  /** Une hausse est-elle bonne, mauvaise, ou neutre (dépenses) ? */
+  tone: 'goodUp' | 'goodDown' | 'neutral'
+}
+
+export function buildKpis(cur: Totals, prev: Totals, hasData: boolean, canCompare: boolean): KpiData[] {
+  const show = (v: number | null): number | null => (hasData ? v : null)
+  const d = (c: number | null, p: number | null, minBase: number): Delta => (canCompare ? computeDelta(c, p, minBase) : { kind: 'none' })
+  const r = (c: number | null, p: number | null, cv: number, pv: number, minV: number): Delta => (canCompare ? ratioDelta(c, p, cv, pv, minV) : { kind: 'none' })
+  const ctr = ctrPct(cur.clicks, cur.impressions); const ctrP = ctrPct(prev.clicks, prev.impressions)
+  const cpc = cpcMicros(cur.costMicros, cur.clicks); const cpcP = cpcMicros(prev.costMicros, prev.clicks)
+  const cpv = costPerConvMicros(cur.costMicros, cur.conversions); const cpvP = costPerConvMicros(prev.costMicros, prev.conversions)
+  return [
+    { key: 'spend', label: 'Dépenses', value: fmtEurMicros(show(cur.costMicros)), delta: d(cur.costMicros, prev.costMicros, MIN_BASE.costMicros), fmtAbs: fmtEurMicros, tone: 'neutral' },
+    { key: 'impressions', label: 'Impressions', value: fmtInt(show(cur.impressions)), delta: d(cur.impressions, prev.impressions, MIN_BASE.impressions), fmtAbs: fmtInt, tone: 'goodUp' },
+    { key: 'clicks', label: 'Clics', value: fmtInt(show(cur.clicks)), delta: d(cur.clicks, prev.clicks, MIN_BASE.clicks), fmtAbs: fmtInt, tone: 'goodUp' },
+    { key: 'ctr', label: 'CTR', value: fmtPct(show(ctr)), delta: r(ctr, ctrP, cur.impressions, prev.impressions, MIN_VOLUME_FOR_RATIO.ctr), fmtAbs: fmtPct, tone: 'goodUp' },
+    { key: 'cpc', label: 'CPC moyen', value: fmtEurMicros(show(cpc)), delta: r(cpc, cpcP, cur.clicks, prev.clicks, MIN_VOLUME_FOR_RATIO.cpc), fmtAbs: fmtEurMicros, tone: 'goodDown' },
+    { key: 'conversions', label: 'Conversions', value: fmtConv(show(cur.conversions)), delta: d(cur.conversions, prev.conversions, MIN_BASE.conversions), fmtAbs: fmtConv, tone: 'goodUp' },
+    { key: 'costPerConv', label: 'Coût / conversion', value: fmtEurMicros(show(cpv)), delta: r(cpv, cpvP, cur.conversions, prev.conversions, MIN_VOLUME_FOR_RATIO.costPerConv), fmtAbs: fmtEurMicros, tone: 'goodDown' },
+  ]
+}

@@ -9,7 +9,7 @@
 // n'a jamais réussi.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import '@testing-library/jest-dom/vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import GoogleAdsPage from './GoogleAdsPage'
 import { useToastStore } from '@/lib/store'
@@ -159,7 +159,7 @@ describe('GoogleAdsPage — KPI et comparaison', () => {
     syncedStatus()
     mockMetrics(CURRENT, [mRow({ impressions: 40, clicks: 2, cost_micros: 1_000_000, conversions: 0 })])
     renderPage()
-    expect(screen.getByText('+73')).toBeInTheDocument() // clics : 75 − 2
+    expect(screen.getAllByText('+73').length).toBeGreaterThan(0) // clics : 75 − 2 (carte KPI + en-tête du graphique)
     expect(screen.queryByText(/3\s?650\s?%/)).not.toBeInTheDocument()
   })
 
@@ -194,7 +194,7 @@ describe('GoogleAdsPage — tableau des campagnes', () => {
   it('filtre « Sans activité » et message si aucun résultat', () => {
     syncedStatus(); mockMetrics(CURRENT, [])
     renderPage()
-    fireEvent.change(screen.getByLabelText('Filtrer par statut'), { target: { value: 'inactive' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Sans activité/ }))
     expect(screen.queryByText('Alpha')).not.toBeInTheDocument()
     expect(screen.getAllByText('Zulu').length).toBeGreaterThan(0)
     fireEvent.change(screen.getByLabelText('Rechercher une campagne'), { target: { value: 'introuvable' } })
@@ -240,5 +240,82 @@ describe('GoogleAdsPage — synchronisation', () => {
     expect(screen.queryByText('google_error')).not.toBeInTheDocument()
     expect(screen.getByText('Détail technique')).toBeInTheDocument()
     expect(screen.getByText('HTTP 400 INVALID_ARGUMENT')).toBeInTheDocument()
+  })
+})
+
+// ── Refonte : structure en blocs façon Google Ads ───────────────────────────
+const ADS_FULL = {
+  status: 'connected', google_customer_id: '7536669574', last_synced_at: new Date().toISOString(), last_error: null,
+  currency_code: 'EUR', time_zone: 'Europe/Paris', is_manager_account: false, google_account_email: 'admin@test.local', connected_at: '2026-09-21T10:00:00Z',
+}
+const fullStatus = () => hooks.useGoogleOAuthStatus.mockReturnValue(statusQuery(ADS_FULL))
+const h2s = () => screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+
+describe('GoogleAdsPage — structure en blocs', () => {
+  it('affiche les blocs dans l’ordre : vue d’ensemble, performances, campagnes, tendances, compte', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    renderPage()
+    expect(h2s()).toEqual(["Vue d'ensemble", 'Performances', 'Campagnes', 'Tendances', 'Compte connecté'])
+  })
+
+  it('sans donnée synchronisée : pas de bloc Tendances, un message clair, les autres blocs restent', () => {
+    fullStatus(); mockMetrics([], [])
+    renderPage()
+    expect(h2s()).toEqual(["Vue d'ensemble", 'Performances', 'Campagnes', 'Compte connecté'])
+    expect(screen.getByText(/aucune donnée synchronisée pour la période/i)).toBeInTheDocument()
+  })
+
+  it('aucun bloc inventé : pas de termes de recherche, appareils, démographie ni facturation', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    renderPage()
+    expect(screen.queryByText(/termes de recherche|appareils|démographi|facturation/i)).not.toBeInTheDocument()
+  })
+
+  it('compte connecté : identifiant masqué, jamais l’identifiant complet', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    renderPage()
+    expect(screen.getAllByText('····9574').length).toBeGreaterThan(0)
+    expect(screen.queryByText(/7536669574/)).not.toBeInTheDocument()
+    expect(screen.getByText('admin@test.local')).toBeInTheDocument()
+    expect(screen.getByText('Compte client')).toBeInTheDocument()
+  })
+
+  it('période : « 30 jours » sélectionné par défaut, « Personnalisé » révèle les dates préremplies', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    renderPage()
+    const seg = within(screen.getByRole('group', { name: 'Période' }))
+    expect(seg.getByRole('button', { name: '30 jours' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByLabelText('Date de début')).not.toBeInTheDocument()
+    fireEvent.click(seg.getByRole('button', { name: 'Personnalisé' }))
+    expect(seg.getByRole('button', { name: 'Personnalisé' })).toHaveAttribute('aria-pressed', 'true')
+    expect((screen.getByLabelText('Date de début') as HTMLInputElement).value).not.toBe('')
+    fireEvent.click(seg.getByRole('button', { name: '7 jours' }))
+    expect(screen.queryByLabelText('Date de début')).not.toBeInTheDocument()
+  })
+
+  it('graphique : bascule d’indicateur (clics & impressions → dépenses)', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    renderPage()
+    const seg = within(screen.getByRole('group', { name: 'Indicateur du graphique' }))
+    expect(seg.getByRole('button', { name: 'Trafic' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(seg.getByRole('button', { name: 'Dépenses' }))
+    expect(seg.getByRole('button', { name: 'Dépenses' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('dépensés')).toBeInTheDocument()
+  })
+
+  it('variation des clics par campagne : affichée avec plusieurs campagnes et une période précédente', () => {
+    fullStatus()
+    mockMetrics(CURRENT, [
+      mRow({ campaign_id: 'a', impressions: 300, clicks: 20, cost_micros: 5_000_000 }),
+      mRow({ campaign_id: 'c', campaign_name: 'Charlie', impressions: 300, clicks: 20, cost_micros: 5_000_000 }),
+    ])
+    renderPage()
+    expect(screen.getByText('Variation des clics par campagne')).toBeInTheDocument()
+  })
+
+  it('cartes campagnes : part des dépenses affichée', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    renderPage()
+    expect(screen.getAllByText(/\d+ % des dépenses/).length).toBeGreaterThan(0)
   })
 })
