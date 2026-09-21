@@ -112,6 +112,10 @@
   /* Toast */
   --toastBg:#1E293B;--toastColor:#F8FAFC;
 
+  /* Logo — « tek » et contour de l'hexagone (bleu marine en clair, lisibles en sombre) */
+  --logoTek:#3B82F6;
+  --logoHex:#2563EB;
+
   /* Ombres — profondes et ancrées */
   --sh0:0 1px 4px rgba(0,0,0,.50),0 1px 2px rgba(0,0,0,.30);
   --sh1:0 4px 20px rgba(0,0,0,.60),0 2px 6px rgba(0,0,0,.36);

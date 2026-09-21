@@ -264,7 +264,7 @@ export default function LoginPage() {
             <KaytekLogo size={80} style={{ filter: 'drop-shadow(0 4px 12px rgba(37,99,235,.30))' }} />
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--t0)', letterSpacing: '-.03em', marginBottom: 6 }}>
-            <span style={{ color: '#3B82F6' }}>Kay</span><span style={{ color: '#1A2F5C' }}>tek</span>
+            <span style={{ color: '#3B82F6' }}>Kay</span><span style={{ color: 'var(--logoTek, #1A2F5C)' }}>tek</span>
             {' '}
             <span style={{ color: 'var(--t0)' }}>Inter</span>
           </h1>

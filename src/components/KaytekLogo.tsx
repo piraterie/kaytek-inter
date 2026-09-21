@@ -22,7 +22,7 @@ export default function KaytekLogo({ size = 36, style }: Props) {
       <polygon
         points="72,12 93,50 72,88 28,88 7,50 28,12"
         fill="none"
-        stroke="#1A2F5C"
+        stroke="var(--logoHex, #1A2F5C)"
         strokeWidth="9"
         strokeLinejoin="round"
       />
