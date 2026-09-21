@@ -207,19 +207,19 @@ export const PAGE_CSS = `
 .gads-map .gm-france polygon{fill:var(--s2);stroke:var(--b1);stroke-width:1}
 .gads-map .gm-grid line{stroke:var(--b1);stroke-width:.6;stroke-dasharray:2 4;opacity:.8}
 .gads-map .gm-grid text{font-size:9.5px;fill:var(--t3)}
-.gads-map .gm-zone circle:first-child{fill:rgba(59,130,246,.14);stroke:#3b82f6;stroke-width:1.8}
-.gads-map .gm-zone.paused circle:first-child{fill:rgba(245,158,11,.10);stroke:#f59e0b;stroke-dasharray:5 4}
-.gads-map .gm-center{fill:#3b82f6}
-.gads-map .gm-zone.paused .gm-center{fill:#f59e0b}
+.gads-map .gm-zone circle:first-child{fill:color-mix(in srgb,var(--bl) 14%,transparent);stroke:var(--bl);stroke-width:1.8}
+.gads-map .gm-zone.paused circle:first-child{fill:color-mix(in srgb,var(--am) 10%,transparent);stroke:var(--am);stroke-dasharray:5 4}
+.gads-map .gm-center{fill:var(--bl)}
+.gads-map .gm-zone.paused .gm-center{fill:var(--am)}
 .gads-map .gm-badge{fill:var(--s0);stroke:var(--b1);stroke-width:1}
 .gads-map .gm-zone text{font-size:11px;font-weight:700;fill:var(--t0)}
-.gads-map .gm-bubble{fill:rgba(59,130,246,.35);stroke:#3b82f6;stroke-width:1}
+.gads-map .gm-bubble{fill:color-mix(in srgb,var(--bl) 35%,transparent);stroke:var(--bl);stroke-width:1}
 .gads-map .gm-scale line{stroke:var(--t1);stroke-width:1.5}
 .gads-map .gm-scale text,.gads-map .gm-north text{font-size:10.5px;font-weight:600;fill:var(--t1)}
 .gads-map .gm-north path{fill:var(--t1)}
 .gads-map .gm-inset rect{fill:var(--s0);stroke:var(--b1)}
 .gads-map .gm-inset polygon{fill:var(--s2);stroke:var(--t3);stroke-width:.6}
-.gads-map .gm-inset circle{fill:#ef4444}
+.gads-map .gm-inset circle{fill:var(--rd)}
 .gads-map-cap{padding:6px 10px;font-size:11px;color:var(--t3);border-top:1px solid var(--b1)}
 .gads-zlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
 .gads-zitem{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--b1);border-radius:var(--r1);background:var(--s1)}

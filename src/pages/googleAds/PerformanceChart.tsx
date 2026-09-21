@@ -16,7 +16,7 @@ const MODES: { key: Mode; label: string }[] = [
 ]
 
 // Couleurs de série : identiques en thème clair et sombre (contrastes vérifiés sur les deux).
-const C = { clicks: '#3b82f6', impressions: '#94a3b8', cost: '#f59e0b', conversions: '#22c55e', tick: '#94a3b8', grid: 'rgba(148,163,184,.25)' }
+const C = { clicks: 'var(--bl)', impressions: '#94a3b8', cost: '#f59e0b', conversions: 'var(--gn)', tick: '#94a3b8', grid: 'rgba(148,163,184,.25)' }
 
 function ChartTip({ active, payload, mode }: { active?: boolean; payload?: { payload: DailyPoint }[]; mode: Mode }) {
   const p = active ? payload?.[0]?.payload : undefined

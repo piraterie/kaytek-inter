@@ -12,7 +12,7 @@ import type { MetricKey } from '@/lib/googleAdsBreakdowns'
 import { Section, DeltaPill } from './ui'
 import { MetricPills } from './BreakdownBars'
 
-const C = { today: '#3b82f6', yesterday: '#94a3b8', tick: '#94a3b8', grid: 'rgba(148,163,184,.25)' }
+const C = { today: 'var(--bl)', yesterday: '#94a3b8', tick: '#94a3b8', grid: 'rgba(148,163,184,.25)' }
 
 const valueOf = (p: HourPoint, m: MetricKey): number | null =>
   m === 'impressions' ? p.impressions : m === 'clicks' ? p.clicks : m === 'cost' ? p.cost : p.conversions

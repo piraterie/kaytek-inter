@@ -10,13 +10,13 @@
   --bg:#F8FAFC;
   --s0:#FFFFFF;
   --s1:#F1F5F9;
-  --s2:#E2E8F0;
+  --s2:#E8EEF5;
   --s3:#CBD5E1;
 
   /* Bordures */
-  --b0:rgba(15,23,42,.09);
-  --b1:#D8E2EC;
-  --b2:#B8C7D6;
+  --b0:#E8EEF5;
+  --b1:#DCE5F0;
+  --b2:#C5D2E2;
 
   /* Texte */
   --t0:#0F172A;
@@ -27,7 +27,7 @@
 
   /* Sidebar — blanc, intégré à l'app */
   --nav:#FFFFFF;
-  --navBd:#E2E8F0;
+  --navBd:#E8EEF5;
   --navT:#64748B;
   --navTA:#0F172A;
   --navH:#F1F5F9;
@@ -36,12 +36,12 @@
 
   /* Accent bleu */
   --bl:#2563EB;--blH:#1D4ED8;
-  --blBg:#EFF6FF;--blBd:#BFDBFE;--blTx:#1E40AF;
+  --blBg:#DBEAFE;--blBd:#BFDBFE;--blTx:#1E40AF;
 
   /* Sémantique */
   --gn:#16A34A;--gnBg:#F0FDF4;--gnBd:#BBF7D0;--gnTx:#15803D;
-  --am:#D97706;--amBg:#FFFBEB;--amBd:#FDE68A;--amTx:#92400E;
-  --rd:#DC2626;--rdBg:#FEF2F2;--rdBd:#FECACA;--rdTx:#991B1B;
+  --am:#F59E0B;--amBg:#FFFBEB;--amBd:#FDE68A;--amTx:#92400E;
+  --rd:#EF4444;--rdBg:#FEF2F2;--rdBd:#FECACA;--rdTx:#991B1B;
   --pu:#7C3AED;--puBg:#F5F3FF;--puBd:#DDD6FE;--puTx:#5B21B6;
   --or:#EA580C;--orBg:#FFF7ED;--orBd:#FED7AA;--orTx:#9A3412;
   --gr:#64748B;--grBg:#F1F5F9;--grBd:#CBD5E1;--grTx:#475569;
@@ -53,10 +53,14 @@
   --r:12px;--r1:12px;--r2:20px;--r3:28px;--rpill:100px;
 
   /* Ombres légères — qualité premium */
-  --sh0:0 2px 5px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
-  --sh1:0 4px 16px rgba(0,0,0,.11),0 2px 6px rgba(0,0,0,.07);
-  --sh2:0 10px 32px rgba(0,0,0,.13),0 4px 10px rgba(0,0,0,.07);
-  --sh3:0 20px 50px rgba(0,0,0,.18),0 8px 16px rgba(0,0,0,.09);
+  --sh0:0 2px 5px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.05);
+  --sh1:0 4px 16px rgba(15,23,42,.11),0 2px 6px rgba(15,23,42,.07);
+  --sh2:0 10px 32px rgba(15,23,42,.13),0 4px 10px rgba(15,23,42,.07);
+  --sh3:0 20px 50px rgba(15,23,42,.18),0 8px 16px rgba(15,23,42,.09);
+
+  /* Alias (références historiques sans définition dans le code) */
+  --bd:var(--b1);--bg2:var(--s1);--card:var(--s0);
+  --iv:var(--pu);--ivTx:var(--puTx);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -66,47 +70,47 @@
   color-scheme:dark;
 
   /* Surfaces — bleu nuit profond avec vraie hiérarchie d'élévation */
-  --bg:#060B18;       /* fond global — deep navy premium */
-  --s0:#172136;       /* surfaces (cartes) — clairement surélevées */
-  --s1:#1E2B46;       /* surfaces secondaires */
-  --s2:#253556;       /* surfaces tertiaires */
-  --s3:#2E3F66;       /* surfaces saillantes */
+  --bg:#0B1220;       /* fond global */
+  --s0:#111827;       /* surfaces (cartes) */
+  --s1:#172033;       /* surfaces secondaires */
+  --s2:#1E293B;       /* surfaces tertiaires */
+  --s3:#2A3850;       /* surfaces saillantes */
 
   /* Bordures — subtiles et premium */
-  --b0:rgba(255,255,255,.08);
-  --b1:rgba(255,255,255,.12);
-  --b2:rgba(255,255,255,.22);
+  --b0:#1E293B;
+  --b1:#25324A;
+  --b2:#33425E;
 
   /* Texte — hiérarchie claire et lisible */
-  --t0:#F0F4FC;
-  --t1:#C4CFEA;
-  --t2:#96A8C8;
-  --t3:#5E7090;
-  --t4:#415268;
+  --t0:#F8FAFC;
+  --t1:#CBD5E1;
+  --t2:#94A3B8;
+  --t3:#64748B;
+  --t4:#475569;
 
   /* Sidebar — légèrement distincte du fond */
-  --nav:#121B2E;
-  --navBd:rgba(255,255,255,.10);
-  --navT:#6E80A0;
-  --navTA:#E8EFFC;
-  --navH:rgba(255,255,255,.07);
+  --nav:#0E1628;
+  --navBd:#1E293B;
+  --navT:#94A3B8;
+  --navTA:#F8FAFC;
+  --navH:rgba(255,255,255,.06);
   --navA:rgba(59,130,246,.16);
-  --navSec:#4E6080;
+  --navSec:#64748B;
 
   /* Accent bleu Kaytek — vif sur fond sombre */
   --bl:#3B82F6;--blH:#2563EB;
-  --blBg:rgba(59,130,246,.15);--blBd:rgba(59,130,246,.50);--blTx:#93C5FD;
+  --blBg:rgba(59,130,246,.15);--blBd:rgba(59,130,246,.40);--blTx:#93C5FD;
 
   /* Sémantique — saturés, lisibles, bordures semi-transparentes */
   --gn:#22C55E;--gnBg:rgba(34,197,94,.12);--gnBd:rgba(34,197,94,.40);--gnTx:#4ADE80;
   --am:#F59E0B;--amBg:rgba(245,158,11,.12);--amBd:rgba(245,158,11,.40);--amTx:#FCD34D;
-  --rd:#EF4444;--rdBg:rgba(239,68,68,.12);--rdBd:rgba(239,68,68,.40);--rdTx:#FCA5A5;
+  --rd:#F87171;--rdBg:rgba(248,113,113,.12);--rdBd:rgba(248,113,113,.40);--rdTx:#FCA5A5;
   --pu:#A855F7;--puBg:rgba(168,85,247,.12);--puBd:rgba(168,85,247,.40);--puTx:#C4B5FD;
   --or:#F97316;--orBg:rgba(249,115,22,.12);--orBd:rgba(249,115,22,.40);--orTx:#FDBA74;
   --gr:#94A3B8;--grBg:rgba(148,163,184,.14);--grBd:rgba(148,163,184,.42);--grTx:#CBD5E1;
 
   /* Toast */
-  --toastBg:#1A253E;--toastColor:#F0F4FC;
+  --toastBg:#1E293B;--toastColor:#F8FAFC;
 
   /* Ombres — profondes et ancrées */
   --sh0:0 1px 4px rgba(0,0,0,.50),0 1px 2px rgba(0,0,0,.30);
@@ -692,7 +696,7 @@ label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;le
   /* Sticky page action bar */
   .bottom-action-bar{display:flex;position:fixed;bottom:calc(46px + env(safe-area-inset-bottom));left:0;right:0;background:rgba(255,255,255,.92);border-top:1px solid var(--b1);padding:12px 16px;gap:10px;z-index:91;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
   [data-theme="dark"] .mobile-card{border-color:var(--b1);box-shadow:var(--sh0),inset 0 1px 0 rgba(255,255,255,.04)}
-  [data-theme="dark"] .bottom-action-bar{background:rgba(23,33,54,.96);border-top-color:var(--b0)}
+  [data-theme="dark"] .bottom-action-bar{background:rgba(17,24,39,.96);border-top-color:var(--b0)}
   .bottom-action-bar .btn{flex:1;justify-content:center}
   .devis-form-wrapper{padding-bottom:80px!important}
 
@@ -714,7 +718,7 @@ label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;le
     -webkit-backdrop-filter:blur(20px);
   }
   [data-theme="dark"] .bottom-nav-minimal{
-    background:rgba(18,27,46,.97);
+    background:rgba(14,22,40,.97);
     border-top-color:rgba(255,255,255,.10);
   }
   .bnm-btn{

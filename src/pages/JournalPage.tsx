@@ -291,7 +291,7 @@ export default function JournalPage() {
                     <span style={{ fontSize: 12, color: 'var(--blTx)', fontWeight: 500 }}>{TABLE_LABELS[j.table_name] || j.table_name}</span>
                   </div>
                   <div style={{ fontSize: 14, color: 'var(--t0)', fontWeight: 500, marginBottom: 4 }}>{resume}</div>
-                  {j.description && <div style={{ fontSize: 12, color: 'var(--am)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}><StickyNote size={11} /> {j.description}</div>}
+                  {j.description && <div style={{ fontSize: 12, color: 'var(--amTx)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}><StickyNote size={11} /> {j.description}</div>}
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
                   <div style={{ fontSize: 12, color: 'var(--t2)' }}>{fmtDateShort(j.created_at)}</div>

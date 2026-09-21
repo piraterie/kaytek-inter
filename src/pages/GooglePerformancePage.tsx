@@ -198,8 +198,8 @@ export default function GooglePerformancePage() {
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
-              <Line type="monotone" dataKey="Appels" stroke="#2563eb" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="Clics site" stroke="#16a34a" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="Appels" stroke="var(--bl)" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="Clics site" stroke="var(--gn)" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="Itinéraires" stroke="#f59e0b" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
