@@ -405,3 +405,27 @@ export function describeSyncResult(res: SyncResultLike): { tone: 'success' | 'in
   }
   return { tone: 'success', message: 'Synchronisation terminée — données à jour.' }
 }
+
+/**
+ * Identifiant COMPLET du compte Google Ads connecté (celui stocké dans customer_id des tables),
+ * retrouvé à partir de l'identifiant MASQUÉ renvoyé par google-oauth-status (« ••• ••• 9574 »).
+ * On ne garde que les customer_id présents dans l'état de synchronisation dont les chiffres se terminent
+ * par ceux du masque ; en cas d'homonymie, le plus récemment synchronisé. null si introuvable
+ * (rien n'est deviné : les lectures restent désactivées).
+ */
+export function resolveCustomerId(
+  syncRows: { customer_id: string; synced_at: string | null }[] | undefined,
+  masked: string | null | undefined,
+): string | null {
+  const digits = (masked ?? '').replace(/\D/g, '')
+  if (digits.length < 4 || !syncRows?.length) return null
+  const latest = new Map<string, number>()
+  for (const r of syncRows) {
+    const id = String(r.customer_id ?? '')
+    if (!id.replace(/\D/g, '').endsWith(digits)) continue
+    const t = r.synced_at ? new Date(r.synced_at).getTime() : 0
+    latest.set(id, Math.max(latest.get(id) ?? 0, Number.isNaN(t) ? 0 : t))
+  }
+  if (latest.size === 0) return null
+  return [...latest.entries()].sort((a, b) => b[1] - a[1])[0][0]
+}

@@ -5,7 +5,7 @@ import {
   previousPeriod, computeDelta, ratioDelta, deltaLabel, deltaDirection, aggregate, byCampaign,
   filterSortCampaigns, describeSyncError, ctrPct, cpcMicros, costPerConvMicros, formatRelative, fmtEurMicros, fmtPct, MIN_BASE,
   formatPeriodLabel, formatDayLong, maskCustomerId, dailySeries, insightStats, campaignChanges, sharePct, buildKpis, fmtCompact,
-  describeSyncResult, withIdleCampaigns, friendlyCampaignName, fmtConv,
+  describeSyncResult, withIdleCampaigns, friendlyCampaignName, fmtConv, resolveCustomerId,
 } from './googleAdsMetrics'
 import type { AdsMetricRow } from '@/lib/hooks/googleStats'
 
@@ -330,5 +330,29 @@ describe('deltaLabel — écart arrondi à zéro', () => {
   it('jamais « −0 conv. » : aucun badge', () => {
     expect(deltaLabel({ kind: 'abs', diff: -0.04 }, fmtConv, 'conv.')).toBeNull()
     expect(deltaLabel({ kind: 'abs', diff: 3 }, fmtConv, 'conv.')).toBe('+3 conv.')
+  })
+})
+
+describe('resolveCustomerId — l’identifiant renvoyé par google-oauth-status est MASQUÉ', () => {
+  const rows = [
+    { customer_id: '7536669574', synced_at: '2026-09-21T14:33:03Z' },
+    { customer_id: '7536669574', synced_at: '2026-09-21T12:00:00Z' },
+    { customer_id: '1112223333', synced_at: '2026-09-21T14:40:00Z' },
+  ]
+  it('retrouve l’identifiant complet à partir du masque « ••• ••• 9574 »', () => {
+    expect(resolveCustomerId(rows, '••• ••• 9574')).toBe('7536669574')
+    expect(resolveCustomerId(rows, '····9574')).toBe('7536669574')
+  })
+  it('identifiant déjà complet (avec ou sans tirets) : reconnu', () => {
+    expect(resolveCustomerId(rows, '753-666-9574')).toBe('7536669574')
+  })
+  it('homonymie sur les 4 derniers chiffres : le plus récemment synchronisé', () => {
+    expect(resolveCustomerId([{ customer_id: '1110009574', synced_at: '2026-09-20T00:00:00Z' }, ...rows], '9574')).toBe('7536669574')
+  })
+  it('introuvable ou masque inexploitable : null (rien n’est deviné)', () => {
+    expect(resolveCustomerId(rows, '••• ••• 0000')).toBeNull()
+    expect(resolveCustomerId(rows, '••••')).toBeNull()
+    expect(resolveCustomerId([], '••• ••• 9574')).toBeNull()
+    expect(resolveCustomerId(undefined, '••• ••• 9574')).toBeNull()
   })
 })

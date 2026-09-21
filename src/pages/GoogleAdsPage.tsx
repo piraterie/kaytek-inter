@@ -15,7 +15,7 @@ import {
   useGoogleAdsZones, useGoogleAdsCampaigns, useGoogleAdsSyncState, campaignStatusMap,
 } from '@/lib/hooks/googleAdsData'
 import {
-  aggregate, buildKpis, byCampaign, withIdleCampaigns, campaignChanges, dailySeries, insightStats, previousPeriod,
+  aggregate, buildKpis, byCampaign, withIdleCampaigns, resolveCustomerId, campaignChanges, dailySeries, insightStats, previousPeriod,
   describeSyncError, describeSyncResult, formatRelative, formatPeriodLabel, formatDayLong, maskCustomerId, STATS_LOAD_ERROR,
 } from '@/lib/googleAdsMetrics'
 import { resolveTimeZone, presetRange, addDays, formatHourMinute, type PeriodKey } from '@/lib/googleAdsTime'
@@ -117,7 +117,10 @@ export default function GoogleAdsPage() {
   const syncIsStale = !!ads?.last_synced_at && Date.now() - new Date(ads.last_synced_at).getTime() > 24 * 3_600_000
 
   // ── Nouvelles données (lecture seule) ───────────────────────────────────
-  const customerId = ads?.google_customer_id
+  // google-oauth-status ne renvoie que l'identifiant MASQUÉ (« ••• ••• 9574 ») : l'identifiant complet,
+  // celui stocké dans customer_id, est retrouvé via l'état de synchronisation de l'organisation.
+  const syncStateQ = useGoogleAdsSyncState(isConnected && hasCustomer)
+  const customerId = resolveCustomerId(syncStateQ.data, ads?.google_customer_id)
   const yesterdayLocal = addDays(presetTo, -1)
   const hourlyQ = useGoogleAdsHourly({ customerId, from: yesterdayLocal, to: presetTo, enabled: isToday })
   const devicesQ = useGoogleAdsDevices({ customerId, from: fromDate, to: toDate })
@@ -125,7 +128,6 @@ export default function GoogleAdsPage() {
   const geoQ = useGoogleAdsGeo({ customerId, from: fromDate, to: toDate })
   const zonesQ = useGoogleAdsZones(customerId)
   const campaignsQ = useGoogleAdsCampaigns(customerId)
-  const syncStateQ = useGoogleAdsSyncState(customerId)
   const geoIds = useMemo(() => [
     ...(geoQ.data ?? []).map((r) => Number(r.geo_target_id)),
     ...(zonesQ.data ?? []).flatMap((z) => (z.geo_target_id != null ? [Number(z.geo_target_id)] : [])),
@@ -134,7 +136,7 @@ export default function GoogleAdsPage() {
   const statuses = useMemo(() => campaignStatusMap(campaignsQ.data), [campaignsQ.data])
 
   // Fraîcheur : dernière synchronisation HORAIRE réussie (repli : metrics_synced_at de la connexion).
-  const syncedAtIso = syncStateQ.data?.find((d) => d.dataset === 'hourly')?.synced_at ?? ads?.metrics_synced_at ?? null
+  const syncedAtIso = syncStateQ.data?.find((d) => d.customer_id === customerId && d.dataset === 'hourly')?.synced_at ?? ads?.metrics_synced_at ?? null
   const syncedLabel = formatHourMinute(syncedAtIso, tz)
   const todayView = useMemo(
     () => (isToday ? buildTodayView(hourlyQ.data ?? [], presetTo, yesterdayLocal, syncedAtIso, tz) : null),
@@ -144,7 +146,7 @@ export default function GoogleAdsPage() {
   // ── Données affichées ──────────────────────────────────────────────────
   // Aujourd'hui : une synchronisation a eu lieu aujourd'hui (même sans ligne = aucune activité, donc 0)
   // ou des lignes horaires existent. Périodes : au moins une ligne journalière.
-  const hasData = todayView ? (todayView.syncedHour !== null || todayView.hasToday) : (rows?.length ?? 0) > 0
+  const hasData = todayView ? (!!customerId && (todayView.syncedHour !== null || todayView.hasToday)) : (rows?.length ?? 0) > 0
   // Sans donnée sur la période précédente (ex. au-delà de l'historique
   // synchronisé), aucune comparaison : un « 0 » implicite ferait afficher
   // un faux « Nouveau » / une hausse infinie.
@@ -177,7 +179,9 @@ export default function GoogleAdsPage() {
     for (const r of rows ?? []) if (r.date > max) max = r.date
     return max ? formatDayLong(max) : null
   }, [rows])
-  const dataLoading = todayView ? hourlyQ.isLoading : isLoading
+  // Tant que l'identifiant complet n'est pas retrouvé, les lectures sont désactivées : on affiche le chargement, pas « aucune donnée ».
+  const idLoading = syncStateQ.isLoading
+  const dataLoading = todayView ? (hourlyQ.isLoading || idLoading) : isLoading
   const dataError = todayView ? hourlyQ.isError : isError
 
   async function handleSync() {
@@ -385,11 +389,11 @@ export default function GoogleAdsPage() {
         ? <TodayChart view={todayView} kpis={kpis} loading={dataLoading} syncedLabel={syncedLabel} tzLabel={tz} />
         : <PerformanceChart series={series} kpis={kpis} loading={isLoading} />}
       <CampaignsSection campaigns={campaigns} />
-      <DemographicsSection rows={demoQ.data} loading={demoQ.isLoading} error={demoQ.isError} />
-      <DevicesSection rows={devicesQ.data} loading={devicesQ.isLoading} error={devicesQ.isError} />
+      <DemographicsSection rows={demoQ.data} loading={demoQ.isLoading || idLoading} error={demoQ.isError} />
+      <DevicesSection rows={devicesQ.data} loading={devicesQ.isLoading || idLoading} error={devicesQ.isError} />
       <ZonesSection
-        geo={geoQ.data} geoLoading={geoQ.isLoading || geoNamesQ.isLoading} geoError={geoQ.isError}
-        names={geoNamesQ.data} zones={zonesQ.data} zonesLoading={zonesQ.isLoading} zonesError={zonesQ.isError}
+        geo={geoQ.data} geoLoading={geoQ.isLoading || geoNamesQ.isLoading || idLoading} geoError={geoQ.isError}
+        names={geoNamesQ.data} zones={zonesQ.data} zonesLoading={zonesQ.isLoading || idLoading} zonesError={zonesQ.isError}
       />
       {todayView
         ? (hourInsights && hasData && <TodayInsightsSection stats={hourInsights} />)

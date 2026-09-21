@@ -65,6 +65,8 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-21T12:00:00Z') })
   vi.clearAllMocks()
   for (const k of ['useGoogleAdsHourly', 'useGoogleAdsDevices', 'useGoogleAdsDemographics', 'useGoogleAdsGeo', 'useGoogleAdsZones', 'useGoogleAdsCampaigns', 'useGoogleAdsSyncState'] as const) dataHooks[k].mockReturnValue(q([]))
+  // google-oauth-status ne renvoie que l'identifiant MASQUÉ : l'identifiant complet vient de l'état de synchronisation.
+  dataHooks.useGoogleAdsSyncState.mockReturnValue(q([{ customer_id: '7536669574', dataset: 'manual_full', synced_at: '2026-09-21T12:00:00Z', attempted_at: null, backfilled_at: null, last_error: null }]))
   dataHooks.useGoogleGeoNames.mockReturnValue(q(new Map()))
   useToastStore.setState({ toasts: [] })
   hooks.useLoadGoogleAdsAccounts.mockReturnValue(mutationStub())
@@ -147,7 +149,7 @@ function mockMetrics(current: unknown[], previous: unknown[]) {
   }))
 }
 const syncedStatus = () => hooks.useGoogleOAuthStatus.mockReturnValue(statusQuery({
-  status: 'connected', google_customer_id: '7536669574', last_synced_at: new Date().toISOString(), last_error: null, time_zone: 'Europe/Paris',
+  status: 'connected', google_customer_id: '••• ••• 9574', last_synced_at: new Date().toISOString(), last_error: null, time_zone: 'Europe/Paris',
 }))
 
 describe('GoogleAdsPage — KPI et comparaison', () => {
@@ -275,7 +277,7 @@ describe('GoogleAdsPage — synchronisation', () => {
 
 // ── Refonte : structure en blocs façon Google Ads ───────────────────────────
 const ADS_FULL = {
-  status: 'connected', google_customer_id: '7536669574', last_synced_at: new Date().toISOString(), last_error: null,
+  status: 'connected', google_customer_id: '••• ••• 9574', last_synced_at: new Date().toISOString(), last_error: null,
   currency_code: 'EUR', time_zone: 'Europe/Paris', is_manager_account: false, google_account_email: 'admin@test.local', connected_at: '2026-09-21T10:00:00Z',
 }
 const fullStatus = () => hooks.useGoogleOAuthStatus.mockReturnValue(statusQuery(ADS_FULL))
@@ -361,7 +363,7 @@ describe('GoogleAdsPage — période « Aujourd’hui »', () => {
   function todaySetup(hourly?: unknown[]) {
     fullStatus(); mockMetrics([], [])
     // Synchro à 14:20 (Paris) = 12:20 UTC
-    dataHooks.useGoogleAdsSyncState.mockReturnValue(q([{ dataset: 'hourly', synced_at: '2026-09-21T12:20:00Z', attempted_at: null, backfilled_at: null, last_error: null }]))
+    dataHooks.useGoogleAdsSyncState.mockReturnValue(q([{ customer_id: '7536669574', dataset: 'hourly', synced_at: '2026-09-21T12:20:00Z', attempted_at: null, backfilled_at: null, last_error: null }]))
     dataHooks.useGoogleAdsHourly.mockReturnValue(q(hourly ?? [
       hRow({ hour: 9, impressions: 100, clicks: 10, cost_micros: 20_000_000 }),
       hRow({ local_date: '2026-09-20', hour: 9, impressions: 50, clicks: 5, cost_micros: 10_000_000 }),
@@ -543,5 +545,52 @@ describe('GoogleAdsPage — variations jamais absurdes', () => {
     mockMetrics(CURRENT, [mRow({ impressions: 5000, clicks: 20, cost_micros: 100_000_000 })])
     renderPage()
     expect(document.body.textContent).not.toMatch(/>\s?999|\+\s?\d{1,3}\s?\d{3}\s?%/)
+  })
+})
+
+describe('GoogleAdsPage — liaison des lectures au compte (régression : identifiant masqué)', () => {
+  it('les lectures utilisent l’identifiant COMPLET du compte, jamais le masque « ••• ••• 9574 »', () => {
+    fullStatus(); mockMetrics(CURRENT, [])
+    renderPage()
+    for (const k of ['useGoogleAdsDevices', 'useGoogleAdsDemographics', 'useGoogleAdsGeo', 'useGoogleAdsHourly'] as const) {
+      const ids = dataHooks[k].mock.calls.map((c) => c[0].customerId)
+      expect(ids.length).toBeGreaterThan(0)
+      expect(new Set(ids)).toEqual(new Set(['7536669574']))
+    }
+    for (const k of ['useGoogleAdsZones', 'useGoogleAdsCampaigns'] as const) {
+      expect(new Set(dataHooks[k].mock.calls.map((c) => c[0]))).toEqual(new Set(['7536669574']))
+    }
+  })
+
+  it('compte introuvable dans l’état de synchronisation : lectures désactivées, jamais de zéros présentés comme réels', () => {
+    fullStatus(); mockMetrics([], [])
+    dataHooks.useGoogleAdsSyncState.mockReturnValue(q([]))
+    dataHooks.useGoogleAdsHourly.mockReturnValue(q(undefined))
+    renderPage()
+    fireEvent.click(periodBtn("Aujourd'hui"))
+    expect(dataHooks.useGoogleAdsDevices.mock.calls.every((c) => c[0].customerId === null)).toBe(true)
+    expect(screen.getByText(/aucune donnée synchronisée aujourd'hui/i)).toBeInTheDocument()
+  })
+})
+
+describe('GoogleAdsPage — menu « Trier » (mobile)', () => {
+  const CAMPS = [
+    mRow({ campaign_id: 'a', campaign_name: 'Alpha', impressions: 100, clicks: 10, cost_micros: 5_000_000 }),
+    mRow({ campaign_id: 'b', campaign_name: 'Bravo', impressions: 300, clicks: 30, cost_micros: 9_000_000 }),
+    mRow({ campaign_id: 'c', campaign_name: 'Charlie', impressions: 200, clicks: 20, cost_micros: 1_000_000 }),
+  ]
+  const names = () => Array.from(document.querySelectorAll('.gads-cards .gads-card-name')).map((e) => e.textContent)
+
+  it('changer le critère change réellement l’ordre ; le bouton inverse le sens', () => {
+    fullStatus(); mockMetrics(CAMPS, [])
+    renderPage()
+    expect(names()).toEqual(['Bravo', 'Alpha', 'Charlie']) // dépenses décroissantes
+    fireEvent.change(screen.getByLabelText('Trier les campagnes'), { target: { value: 'impressions' } })
+    expect(names()).toEqual(['Bravo', 'Charlie', 'Alpha'])
+    fireEvent.change(screen.getByLabelText('Trier les campagnes'), { target: { value: 'name' } })
+    expect(names()).toEqual(['Alpha', 'Bravo', 'Charlie'])
+    fireEvent.click(screen.getByLabelText(/Ordre croissant/))
+    expect(names()).toEqual(['Charlie', 'Bravo', 'Alpha'])
+    expect(screen.getByLabelText(/Ordre décroissant/)).toBeInTheDocument()
   })
 })

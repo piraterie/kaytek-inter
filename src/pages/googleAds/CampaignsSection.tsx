@@ -94,6 +94,10 @@ export function CampaignsSection({ campaigns }: { campaigns: CampaignRow[] }) {
             <select className="gads-sortsel" aria-label="Trier les campagnes" value={sortKey} onChange={(e) => { const k = e.target.value as SortKey; setSortKey(k); setSortDir(defaultDirFor(k)) }}>
               {SORT_OPTIONS.map((o) => <option key={o.key} value={o.key}>Trier : {o.label}</option>)}
             </select>
+            <button type="button" className="btn-secondary gads-sortdir" onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+              aria-label={sortDir === 'asc' ? 'Ordre croissant — cliquer pour inverser' : 'Ordre décroissant — cliquer pour inverser'}>
+              {sortDir === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+            </button>
           </div>
         </div>
 

@@ -171,19 +171,22 @@ export const campaignStatusMap = (rows: CampaignInfoRow[] | undefined): Map<stri
   new Map((rows ?? []).map((r) => [String(r.campaign_id), r.status]))
 
 // ── État de synchronisation par jeu de données ────────────────────────────
-export interface SyncStateRow { dataset: string; synced_at: string | null; attempted_at: string | null; backfilled_at: string | null; last_error: string | null }
+// customer_id n'est PAS filtré ici : google-oauth-status n'expose que l'identifiant MASQUÉ
+// (« ••• ••• 9574 »). Cette lecture (RLS : organisation de l'utilisateur) sert justement à retrouver
+// l'identifiant complet du compte connecté — voir resolveCustomerId (googleAdsMetrics.ts).
+export interface SyncStateRow { customer_id: string; dataset: string; synced_at: string | null; attempted_at: string | null; backfilled_at: string | null; last_error: string | null }
 
-export function useGoogleAdsSyncState(customerId: string | null | undefined) {
+export function useGoogleAdsSyncState(enabled = true) {
   const org = orgId()
   return useQuery<SyncStateRow[]>({
-    queryKey: ['google-ads-sync-state', org, customerId],
+    queryKey: ['google-ads-sync-state', org],
     queryFn: async () => {
       const { data, error } = await supabase.from('google_ads_sync_state')
-        .select('dataset, synced_at, attempted_at, backfilled_at, last_error').eq('customer_id', customerId!)
+        .select('customer_id, dataset, synced_at, attempted_at, backfilled_at, last_error')
       if (error) throw new Error(error.message)
       return (data ?? []) as SyncStateRow[]
     },
-    enabled: !!org && !!customerId,
+    enabled: !!org && enabled,
     staleTime: 30_000,
   })
 }

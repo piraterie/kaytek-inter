@@ -111,6 +111,7 @@ export const PAGE_CSS = `
 .gads-chip[aria-pressed="true"]{background:var(--blBg);border-color:var(--blBd);color:var(--blTx)}
 .gads-chip .n{font-size:11px;font-weight:700;opacity:.7}
 .gads-sortsel{display:none;width:auto;min-width:150px;flex:0 1 auto}
+.gads-sortdir{display:none;align-items:center;justify-content:center;flex:none;width:40px;min-width:40px;height:40px;padding:0}
 .gads-count{font-size:12px;color:var(--t3);padding:2px 2px 0}
 
 .gads-table{display:block;overflow-x:auto;padding:6px 10px 4px}
@@ -143,10 +144,11 @@ export const PAGE_CSS = `
   .gads-table{display:none}
   .gads-cards{display:flex}
   .gads-sortsel{display:block}
+  .gads-sortdir{display:inline-flex}
 }
 @container (max-width:519px){
   .gads-search{flex-basis:100%}
-  .gads-sortsel{flex:1 1 100%}
+  .gads-sortsel{flex:1 1 0;min-width:0}
 }
 
 /* ── Tendances ── */
