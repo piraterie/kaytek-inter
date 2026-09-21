@@ -36,6 +36,7 @@ const SQL_TEST_FILES = [
   'correction-09-security-invoker-views-tests.sql',
   'correction-10-google-reviews-full-integration-tests.sql',
   'correction-11-google-review-frequency-suppressions-tests.sql',
+  'correction-12-google-ads-intraday-tests.sql',
 ]
 
 // Objets dont la présence prouve que les 6 migrations Google sont
@@ -64,6 +65,10 @@ const REQUIRED_DB_OBJECTS = [
     sql: "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='review_requests' AND column_name='scheduled_send_at')" },
   { label: 'table google_review_suppressions (20260804000002)',
     sql: "SELECT to_regclass('public.google_review_suppressions') IS NOT NULL" },
+  { label: 'table google_ads_metrics_hourly (20260921120000)',
+    sql: "SELECT to_regclass('public.google_ads_metrics_hourly') IS NOT NULL" },
+  { label: 'fonction purge_google_ads_hourly (20260921120100)',
+    sql: "SELECT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'purge_google_ads_hourly')" },
   { label: 'trigger trg_review_requests_guard_trigger (20260804000002)',
     sql: "SELECT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'trg_review_requests_guard_trigger')" },
 ]
