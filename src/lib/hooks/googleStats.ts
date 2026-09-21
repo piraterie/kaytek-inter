@@ -40,16 +40,32 @@ export function useGoogleAdsMetrics(fromDate: string, toDate: string) {
   })
 }
 
+// Erreur de synchronisation Ads structurée : conserve la raison catégorisée et
+// le détail (déjà nettoyé de tout jeton côté serveur) pour que l'UI affiche un
+// message lisible au lieu du code brut (ex. "google_error").
+export class AdsSyncError extends Error {
+  constructor(public reason: string, public detail?: string, message?: string) {
+    super(message ?? reason)
+    this.name = 'AdsSyncError'
+  }
+}
+
 export function useSyncGoogleAdsMetrics() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async () => {
-      const { data, error } = await invokeGoogleFunction<{ ok?: boolean; rowsUpserted?: number; error?: string; reason?: string }>('google-ads-sync-metrics')
+      const { data, error } = await invokeGoogleFunction<{ ok?: boolean; rowsUpserted?: number; error?: string; reason?: string; detail?: string }>('google-ads-sync-metrics')
       if (error) throw error
-      if (!data?.ok) throw new Error(data?.error || data?.reason || 'Synchronisation impossible')
+      if (!data?.ok) throw new AdsSyncError(data?.reason ?? 'unknown', data?.detail, data?.error || data?.reason || 'Synchronisation impossible')
       return data
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['google-ads-metrics'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['google-ads-metrics'] })
+      // last_synced_at / last_error sont portés par le statut de connexion.
+      qc.invalidateQueries({ queryKey: ['google-oauth-status'] })
+    },
+    // Un échec peut aussi avoir mis à jour last_error côté serveur.
+    onError: () => { qc.invalidateQueries({ queryKey: ['google-oauth-status'] }) },
   })
 }
 
