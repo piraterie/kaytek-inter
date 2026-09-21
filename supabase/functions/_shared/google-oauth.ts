@@ -22,6 +22,10 @@ export const GOOGLE_OAUTH_CLIENT_ID = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID') ?? 
 export const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get('GOOGLE_OAUTH_CLIENT_SECRET') ?? ''
 export const GOOGLE_OAUTH_REDIRECT_URI = Deno.env.get('GOOGLE_OAUTH_REDIRECT_URI') ?? ''
 export const GOOGLE_OAUTH_STATE_SECRET = Deno.env.get('GOOGLE_OAUTH_STATE_SECRET') ?? ''
+// OPTIONNEL depuis le 2026-09-09 : Google a supprimé les Developer Tokens,
+// le niveau d'accès est porté par le projet Google Cloud du client OAuth.
+// Si défini, l'en-tête developer-token est encore envoyé (ignoré par Google) ;
+// s'il est absent, aucun appel n'est bloqué.
 export const GOOGLE_ADS_DEVELOPER_TOKEN = Deno.env.get('GOOGLE_ADS_DEVELOPER_TOKEN') ?? ''
 export const GOOGLE_OAUTH_FRONTEND_SUCCESS_URL = Deno.env.get('GOOGLE_OAUTH_FRONTEND_SUCCESS_URL') ?? ''
 export const GOOGLE_OAUTH_FRONTEND_ERROR_URL = Deno.env.get('GOOGLE_OAUTH_FRONTEND_ERROR_URL') ?? ''
@@ -77,7 +81,8 @@ export const GOOGLE_USERINFO_ENDPOINT = 'https://openidconnect.googleapis.com/v1
 // Version de l'API Google Ads utilisée par les appels REST (Phase 3) — les
 // versions Google Ads API sont dépréciées régulièrement (cycle ~ trimestriel) :
 // à revérifier périodiquement contre https://developers.google.com/google-ads/api/docs/release-notes.
-export const GOOGLE_ADS_API_VERSION = 'v17'
+// v17 est supprimée (HTTP 404) ; v25 vérifiée existante (2026-09-21).
+export const GOOGLE_ADS_API_VERSION = 'v25'
 export const GOOGLE_ADS_API_BASE = `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}`
 
 // Endpoints Google Business Profile (Phase 3) — deux APIs distinctes

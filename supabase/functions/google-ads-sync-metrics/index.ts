@@ -16,7 +16,7 @@ async function getInternalSecret(svc: ReturnType<typeof serviceClient>): Promise
 
 const STATUS_BY_REASON: Record<string, number> = {
   not_connected: 409, needs_reconnect: 409, no_customer_selected: 409,
-  developer_token_missing: 409, api_not_enabled: 409, insufficient_permission: 403, google_error: 502,
+  api_not_enabled: 409, insufficient_permission: 403, google_error: 502,
 }
 
 export async function handleSyncAdsMetrics(req: Request): Promise<Response> {

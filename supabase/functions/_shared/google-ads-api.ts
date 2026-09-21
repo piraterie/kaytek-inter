@@ -30,7 +30,6 @@ export interface AdsAccountInfo {
 export type AdsAccountsErrorReason =
   | 'not_connected'
   | 'needs_reconnect'
-  | 'developer_token_missing'
   | 'developer_token_unapproved'
   | 'api_not_enabled'
   | 'insufficient_scope'
@@ -70,9 +69,9 @@ async function googleAdsFetch(
 ): Promise<{ ok: true; json: any } | { ok: false; status: number; bodyText: string }> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
-    'developer-token': GOOGLE_ADS_DEVELOPER_TOKEN,
     'Content-Type': 'application/json',
   }
+  if (GOOGLE_ADS_DEVELOPER_TOKEN) headers['developer-token'] = GOOGLE_ADS_DEVELOPER_TOKEN
   if (loginCustomerId) headers['login-customer-id'] = loginCustomerId
 
   const res = await fetch(`${GOOGLE_ADS_API_BASE}/${path}`, { ...init, headers: { ...headers, ...(init?.headers ?? {}) } })
@@ -137,9 +136,6 @@ async function fetchManagerChildren(managerId: string, accessToken: string): Pro
 }
 
 export async function listAccessibleAdsAccounts(svc: SupabaseClient, organisationId: string): Promise<AdsAccountsResult> {
-  if (!GOOGLE_ADS_DEVELOPER_TOKEN) {
-    return { ok: false, reason: 'developer_token_missing' }
-  }
   if (!GOOGLE_OAUTH_CLIENT_ID) {
     return { ok: false, reason: 'google_error', detail: 'configuration_oauth_incomplete' }
   }

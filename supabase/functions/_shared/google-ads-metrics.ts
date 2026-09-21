@@ -25,7 +25,7 @@ import {
 
 export type AdsMetricsSyncErrorReason =
   | 'not_connected' | 'needs_reconnect' | 'no_customer_selected'
-  | 'developer_token_missing' | 'api_not_enabled' | 'insufficient_permission' | 'google_error'
+  | 'api_not_enabled' | 'insufficient_permission' | 'google_error'
 
 export type AdsMetricsSyncResult =
   | { ok: true; rowsUpserted: number }
@@ -44,8 +44,6 @@ function isoDate(d: Date) {
 }
 
 export async function syncGoogleAdsMetrics(svc: SupabaseClient, organisationId: string, daysBack = 30): Promise<AdsMetricsSyncResult> {
-  if (!GOOGLE_ADS_DEVELOPER_TOKEN) return { ok: false, reason: 'developer_token_missing' }
-
   const refresh = await ensureFreshAccessToken(svc, 'google_ads', organisationId)
   if (refresh.status === 'not_connected') return { ok: false, reason: 'not_connected' }
   if (refresh.status === 'needs_reconnect') return { ok: false, reason: 'needs_reconnect' }
@@ -81,13 +79,13 @@ export async function syncGoogleAdsMetrics(svc: SupabaseClient, organisationId: 
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
-    'developer-token': GOOGLE_ADS_DEVELOPER_TOKEN,
     'Content-Type': 'application/json',
   }
+  if (GOOGLE_ADS_DEVELOPER_TOKEN) headers['developer-token'] = GOOGLE_ADS_DEVELOPER_TOKEN
   if (connection.google_login_customer_id) headers['login-customer-id'] = connection.google_login_customer_id
 
   const res = await fetch(`${GOOGLE_ADS_API_BASE}/customers/${connection.google_customer_id}/googleAds:search`, {
-    method: 'POST', headers, body: JSON.stringify({ query, pageSize: 10000 }),
+    method: 'POST', headers, body: JSON.stringify({ query }),
   })
   const bodyText = await res.text()
   if (!res.ok) {

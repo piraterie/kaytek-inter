@@ -119,7 +119,9 @@ function main() {
   // Environnement SANS GOOGLE_ADS_DEVELOPER_TOKEN, même s'il était défini
   // dans l'environnement de l'exécutant (sinon le scénario "absent" ne
   // teste plus rien).
-  const noDevTokenEnv = { ...process.env }
+  // Les variables OAuth factices restent nécessaires : depuis la suppression des Developer Tokens
+  // (2026-09-09) ce scénario exerce de vrais appels (sans en-tête developer-token).
+  const noDevTokenEnv = { ...process.env, ...FAKE_TEST_ENV }
   delete noDevTokenEnv.GOOGLE_ADS_DEVELOPER_TOKEN
 
   const okStandard = runDeno('suite standard (Google OAuth state/refresh/Ads/Business)', STANDARD_TEST_FILES, standardEnv)
