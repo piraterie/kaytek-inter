@@ -92,6 +92,11 @@ export const PAGE_CSS = `
 .gads-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--t2);margin-top:8px}
 .gads-legend i{display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:3px;vertical-align:-1px}
 .gads-chart-body{height:240px;margin:0 -6px}
+/* Recharts rend le SVG racine focusable (accessibilityLayer) : un simple tap tactile (Android)
+   déclenche l'anneau de focus par défaut du navigateur, visible comme un gros cadre blanc.
+   On le supprime au tap tout en gardant un focus-visible discret pour le vrai clavier desktop. */
+.gads-chart-body .recharts-surface{outline:none}
+.gads-chart-body .recharts-surface:focus-visible{outline:2px solid var(--bl);outline-offset:2px;border-radius:6px}
 .gads-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 12px;text-align:center;font-size:13px;color:var(--t2)}
 .gads-tip{padding:8px 10px;border-radius:10px;background:var(--s0);border:1px solid var(--b1);box-shadow:var(--sh1);font-size:12px;color:var(--t0)}
 .gads-tip-date{font-weight:700;margin-bottom:4px}

@@ -65,7 +65,7 @@ export default function GoogleAdsPage() {
   const nav = useNavigate()
   const { add } = useToastStore()
   const { data: status, isLoading: statusLoading } = useGoogleOAuthStatus()
-  const [periodKey, setPeriodKey] = useState<PeriodKey>('30')
+  const [periodKey, setPeriodKey] = useState<PeriodKey>('today')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [useCustom, setUseCustom] = useState(false)

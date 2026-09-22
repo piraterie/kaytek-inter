@@ -156,6 +156,7 @@ describe('GoogleAdsPage — KPI et comparaison', () => {
   it('affiche CTR, CPC moyen et coût par conversion calculés', () => {
     syncedStatus(); mockMetrics(CURRENT, [])
     renderPage()
+    fireEvent.click(periodBtn('30 jours')) // vue période (pas « Aujourd'hui », sélectionné par défaut)
     expect(screen.getAllByText('CTR').length).toBeGreaterThan(0) // carte KPI + en-tête du tableau
     expect(screen.getByText('CPC moyen')).toBeInTheDocument()
     expect(screen.getByText('Coût / conversion')).toBeInTheDocument()
@@ -167,6 +168,7 @@ describe('GoogleAdsPage — KPI et comparaison', () => {
   it('sans donnée sur la période précédente : aucune comparaison, jamais de « Nouveau »', () => {
     syncedStatus(); mockMetrics(CURRENT, [])
     renderPage()
+    fireEvent.click(periodBtn('30 jours'))
     expect(screen.getByText(/comparaison indisponible/i)).toBeInTheDocument()
     expect(screen.queryByText('Nouveau')).not.toBeInTheDocument()
   })
@@ -175,6 +177,7 @@ describe('GoogleAdsPage — KPI et comparaison', () => {
     syncedStatus()
     mockMetrics(CURRENT, [mRow({ impressions: 40, clicks: 2, cost_micros: 1_000_000, conversions: 0 })])
     renderPage()
+    fireEvent.click(periodBtn('30 jours'))
     expect(screen.getAllByText('+73 clics').length).toBeGreaterThan(0) // clics : 75 − 2 (carte KPI + en-tête du graphique)
     expect(screen.queryByText(/3\s?650\s?%/)).not.toBeInTheDocument()
   })
@@ -207,6 +210,7 @@ describe('GoogleAdsPage — tableau des campagnes', () => {
   it('filtre par nom', () => {
     syncedStatus(); mockMetrics(CURRENT, [])
     renderPage()
+    fireEvent.click(periodBtn('30 jours'))
     fireEvent.change(screen.getByLabelText('Rechercher une campagne'), { target: { value: 'char' } })
     expect(screen.getAllByText('Charlie').length).toBeGreaterThan(0)
     expect(screen.queryByText('Alpha')).not.toBeInTheDocument()
@@ -216,6 +220,7 @@ describe('GoogleAdsPage — tableau des campagnes', () => {
   it('statut absent de google_ads_campaigns : « Statut indisponible », jamais « Active » supposé', () => {
     syncedStatus(); mockMetrics(CURRENT, [])
     renderPage()
+    fireEvent.click(periodBtn('30 jours'))
     expect(screen.getAllByText('Statut indisponible').length).toBeGreaterThan(0)
     expect(screen.queryByText('Active')).not.toBeInTheDocument()
   })
@@ -236,6 +241,7 @@ describe('GoogleAdsPage — tableau des campagnes', () => {
   it('tri par clic sur un en-tête (ordre inversé au second clic)', () => {
     syncedStatus(); mockMetrics(CURRENT, [])
     renderPage()
+    fireEvent.click(periodBtn('30 jours'))
     const order = () => screen.getAllByRole('row').map((r) => r.textContent ?? '').filter((t) => /Alpha|Charlie|Zulu/.test(t)).map((t) => (/Alpha/.test(t) ? 'A' : /Charlie/.test(t) ? 'C' : 'Z'))
     expect(order()).toEqual(['A', 'C', 'Z']) // dépenses décroissantes par défaut
     const btn = screen.getAllByRole('button', { name: /^Campagne/ })[0]
@@ -287,12 +293,14 @@ describe('GoogleAdsPage — structure en blocs', () => {
   it('affiche les blocs dans l’ordre mobile demandé', () => {
     fullStatus(); mockMetrics(CURRENT, [])
     renderPage()
+    fireEvent.click(periodBtn('30 jours'))
     expect(h2s()).toEqual(["Vue d'ensemble", 'Performances', 'Campagnes', 'Données démographiques', 'Appareils', 'Zones', 'Tendances', 'Compte connecté'])
   })
 
   it('sans donnée synchronisée : pas de bloc Tendances, un message clair, les autres blocs restent', () => {
     fullStatus(); mockMetrics([], [])
     renderPage()
+    fireEvent.click(periodBtn('30 jours'))
     expect(h2s()).toEqual(["Vue d'ensemble", 'Performances', 'Campagnes', 'Données démographiques', 'Appareils', 'Zones', 'Compte connecté'])
     expect(screen.getByText(/aucune donnée synchronisée pour la période/i)).toBeInTheDocument()
   })
@@ -312,22 +320,29 @@ describe('GoogleAdsPage — structure en blocs', () => {
     expect(screen.getByText('Compte client')).toBeInTheDocument()
   })
 
-  it('période : « 30 jours » sélectionné par défaut, « Personnalisé » révèle les dates préremplies', () => {
+  it('période : « Aujourd’hui » sélectionné par défaut, « Personnalisé » révèle les dates préremplies', () => {
     fullStatus(); mockMetrics(CURRENT, [])
     renderPage()
     const seg = within(screen.getByRole('group', { name: 'Période' }))
-    expect(seg.getByRole('button', { name: '30 jours' })).toHaveAttribute('aria-pressed', 'true')
+    expect(seg.getByRole('button', { name: "Aujourd'hui" })).toHaveAttribute('aria-pressed', 'true')
+    expect(seg.getByRole('button', { name: '30 jours' })).toHaveAttribute('aria-pressed', 'false')
     expect(screen.queryByLabelText('Date de début')).not.toBeInTheDocument()
     fireEvent.click(seg.getByRole('button', { name: 'Personnalisé' }))
     expect(seg.getByRole('button', { name: 'Personnalisé' })).toHaveAttribute('aria-pressed', 'true')
     expect((screen.getByLabelText('Date de début') as HTMLInputElement).value).not.toBe('')
     fireEvent.click(seg.getByRole('button', { name: '7 jours' }))
     expect(screen.queryByLabelText('Date de début')).not.toBeInTheDocument()
+    // Les périodes 7 j / 30 j / 90 j continuent de fonctionner comme avant après un aller-retour.
+    fireEvent.click(seg.getByRole('button', { name: '30 jours' }))
+    expect(seg.getByRole('button', { name: '30 jours' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(seg.getByRole('button', { name: "Aujourd'hui" }))
+    expect(seg.getByRole('button', { name: "Aujourd'hui" })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('graphique : bascule d’indicateur (clics & impressions → dépenses)', () => {
     fullStatus(); mockMetrics(CURRENT, [])
     renderPage()
+    fireEvent.click(periodBtn('30 jours'))
     const seg = within(screen.getByRole('group', { name: 'Indicateur du graphique' }))
     expect(seg.getByRole('button', { name: 'Trafic' })).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(seg.getByRole('button', { name: 'Dépenses' }))
@@ -342,12 +357,14 @@ describe('GoogleAdsPage — structure en blocs', () => {
       mRow({ campaign_id: 'c', campaign_name: 'Charlie', impressions: 300, clicks: 20, cost_micros: 5_000_000 }),
     ])
     renderPage()
+    fireEvent.click(periodBtn('30 jours'))
     expect(screen.getByText('Variation des clics par campagne')).toBeInTheDocument()
   })
 
   it('cartes campagnes : part des dépenses affichée', () => {
     fullStatus(); mockMetrics(CURRENT, [])
     renderPage()
+    fireEvent.click(periodBtn('30 jours'))
     expect(screen.getAllByText(/\d+ % des dépenses/).length).toBeGreaterThan(0)
   })
 })
@@ -584,6 +601,7 @@ describe('GoogleAdsPage — menu « Trier » (mobile)', () => {
   it('changer le critère change réellement l’ordre ; le bouton inverse le sens', () => {
     fullStatus(); mockMetrics(CAMPS, [])
     renderPage()
+    fireEvent.click(periodBtn('30 jours'))
     expect(names()).toEqual(['Bravo', 'Alpha', 'Charlie']) // dépenses décroissantes
     fireEvent.change(screen.getByLabelText('Trier les campagnes'), { target: { value: 'impressions' } })
     expect(names()).toEqual(['Bravo', 'Charlie', 'Alpha'])
