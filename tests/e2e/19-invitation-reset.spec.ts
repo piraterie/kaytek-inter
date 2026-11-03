@@ -162,6 +162,7 @@ test.describe('Mot de passe oublié', () => {
 
     await page.locator('#login-password').fill(oldPw)
     await page.locator('form button[type="submit"]').click()
+    await expect(page.getByText('Adresse e-mail ou mot de passe incorrect')).toBeVisible()
     await expect(page).toHaveURL(/\/login/)
 
     await loginWith(page, email, PASSWORD)

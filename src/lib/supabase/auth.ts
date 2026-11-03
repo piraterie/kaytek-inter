@@ -28,6 +28,10 @@ export async function signIn(email: string, password: string) {
     })
 
     if (signInError) {
+      // Message volontairement identique que l'adresse existe ou non.
+      if (signInError.code === 'invalid_credentials' || /invalid login credentials/i.test(signInError.message)) {
+        return { profile: null, error: 'Adresse e-mail ou mot de passe incorrect' }
+      }
       return { profile: null, error: signInError.message }
     }
 
