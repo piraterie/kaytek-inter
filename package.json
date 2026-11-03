@@ -25,6 +25,7 @@
     "test:deno": "node scripts/run-deno-tests.mjs",
     "test:permissions": "docker exec -i supabase_db_kaytek-final psql -U postgres -v ON_ERROR_STOP=1 -q -f - < supabase/tests/member-permissions.sql",
     "check:release": "node scripts/check-release.mjs",
+    "test:delete-user-integration": "deno test --allow-env --allow-net --allow-read=.env.test supabase/functions/_tests/supprimer-utilisateur.integration.test.ts",
     "test:auth-integration": "deno test --allow-env --allow-net --allow-read=.env.test supabase/functions/_tests/auth-flows.integration.test.ts",
     "test:security:google-sql": "node scripts/run-google-sql-tests.mjs",
     "seed:local": "node scripts/seed-local-test-accounts.mjs"

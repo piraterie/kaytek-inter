@@ -146,7 +146,7 @@ export async function supprimerUtilisateur(userId: string) {
     const { data, error } = await supabase.functions.invoke('supprimer-utilisateur', {
       body: { userId }
     })
-    if (error) return { error: error.message }
+    if (error) return { error: await extractFunctionErrorMessage(error, 'Erreur lors de la suppression') }
     if (data?.error) return { error: data.error }
     return { error: null }
   } catch (err: any) {
