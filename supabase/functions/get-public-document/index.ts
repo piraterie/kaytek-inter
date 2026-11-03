@@ -59,14 +59,14 @@ Deno.serve(async (req) => {
     if (link.document_type === 'devis') {
       const { data } = await supabase
         .from('devis')
-        .select('id, numero, statut, modele_id, lignes, remise_pct, remise_montant, total_ht, tva_montant, total_ttc, notes, valide_jusqu_au, created_at, activite, signature_client, signature_url, signe_le, signe_par, signature_date, organisation_id, client:clients(nom, prenom, telephone, email, adresse_intervention), intervenant:profiles!intervenant_id(prenom, nom)')
+        .select('id, numero, statut, modele_id, lignes, remise_pct, remise_montant, total_ht, tva_montant, total_ttc, notes, valide_jusqu_au, created_at, activite, signature_client, signature_url, signe_le, signe_par, signature_date, organisation_id, client_snapshot, client:clients(nom, prenom, raison_sociale, telephone, email, adresse_intervention, cp_intervention, ville_intervention, adresse_facturation), intervenant:profiles!intervenant_id(prenom, nom)')
         .eq('id', link.document_id)
         .maybeSingle()
       document = data
     } else if (link.document_type === 'facture') {
       const { data } = await supabase
         .from('factures')
-        .select('id, numero, statut_paiement, montant_ht, tva_montant, montant_ttc, date_emission, date_echeance, date_paiement, mode_paiement, notes, organisation_id, client:clients(nom, prenom, telephone, email, adresse_intervention), devis:devis(modele_id, lignes, remise_pct, total_ht, tva_montant, total_ttc, activite, notes)')
+        .select('id, numero, statut_paiement, montant_ht, tva_montant, montant_ttc, date_emission, date_echeance, date_paiement, mode_paiement, notes, organisation_id, client_snapshot, client:clients(nom, prenom, raison_sociale, telephone, email, adresse_intervention, cp_intervention, ville_intervention, adresse_facturation), devis:devis(modele_id, lignes, remise_pct, total_ht, tva_montant, total_ttc, activite, notes)')
         .eq('id', link.document_id)
         .maybeSingle()
       document = data
