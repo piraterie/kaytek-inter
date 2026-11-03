@@ -12,7 +12,8 @@
 --    AUCUNE donnée financière (devis, factures, commissions, paramètres,
 --    liens publics de documents) ; aucune suppression.
 --  - intervenant : uniquement ses interventions (et leurs clients), ses
---    devis/factures, ses commissions ; aucune suppression.
+--    devis/factures, ses commissions ; aucune suppression ; création de
+--    devis/factures seulement avec can_create_documents.
 --  - aucun membre ne peut s'attribuer ni attribuer un rôle / une
 --    organisation / une commission, ni créer de profil.
 BEGIN;
@@ -130,6 +131,32 @@ BEGIN
       IF NOT ok THEN fails := fails || E'assistant ne peut pas créer de client\n'; END IF;
     END IF;
 
+    RESET ROLE;
+  END LOOP;
+
+  -- can_create_documents imposé côté serveur (intervenant)
+  FOREACH persona IN ARRAY ARRAY['sans-autorisation', 'avec-autorisation'] LOOP
+    PERFORM set_config('request.jwt.claims', '', true);
+    PERFORM set_config('request.jwt.claim.sub', '', true);
+    UPDATE public.profiles SET role = 'intervenant', actif = true,
+      can_create_documents = (persona = 'avec-autorisation') WHERE id = uid;
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated')::text, true);
+    PERFORM set_config('request.jwt.claim.sub', uid::text, true);
+    SET LOCAL ROLE authenticated;
+    ok := true;
+    BEGIN
+      INSERT INTO public.devis(organisation_id, client_id, created_by) VALUES (org, c2, uid);
+      RAISE EXCEPTION USING ERRCODE = 'P0099';
+    EXCEPTION WHEN SQLSTATE 'P0099' THEN NULL; WHEN others THEN ok := false; END;
+    IF ok <> (persona = 'avec-autorisation') THEN fails := fails || format(E'intervenant %s : création de devis %s
+', persona, CASE WHEN ok THEN 'acceptée' ELSE 'refusée' END); END IF;
+    ok := true;
+    BEGIN
+      INSERT INTO public.factures(organisation_id, client_id, created_by) VALUES (org, c2, uid);
+      RAISE EXCEPTION USING ERRCODE = 'P0099';
+    EXCEPTION WHEN SQLSTATE 'P0099' THEN NULL; WHEN others THEN ok := false; END;
+    IF ok <> (persona = 'avec-autorisation') THEN fails := fails || format(E'intervenant %s : création de facture %s
+', persona, CASE WHEN ok THEN 'acceptée' ELSE 'refusée' END); END IF;
     RESET ROLE;
   END LOOP;
 
