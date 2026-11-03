@@ -27,6 +27,7 @@ export default function UsersPage() {
   const [invLoading, setInvLoading] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
   const [delLoading, setDelLoading] = useState<string|null>(null)
+  const [resendLoading, setResendLoading] = useState<string|null>(null)
   const [devicesModal, setDevicesModal] = useState(false)
   const [devicesTarget, setDevicesTarget] = useState<Profile|null>(null)
   const [devicesData, setDevicesData] = useState<DeviceRecord[]>([])
@@ -49,10 +50,23 @@ export default function UsersPage() {
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault(); setInvLoading(true)
-    const { error } = await inviterIntervenant(invForm.email, invForm.nom, invForm.prenom, invForm.commission_pct, invForm.type_intervenant, invForm.role)
+    const { error, kind } = await inviterIntervenant(invForm.email, invForm.nom, invForm.prenom, invForm.commission_pct, invForm.type_intervenant, invForm.role)
     setInvLoading(false)
     if (error) add(error,'error')
-    else { add(`Invitation envoyée à ${invForm.email}`); setModal(false); setInvForm({ email:'',nom:'',prenom:'',commission_pct:30, type_intervenant:'entrepreneur', role:'intervenant' }); refetch() }
+    else { add(kind === 'recovery' ? `Compte existant : lien de définition du mot de passe envoyé à ${invForm.email}` : `Invitation envoyée à ${invForm.email}`); setModal(false); setInvForm({ email:'',nom:'',prenom:'',commission_pct:30, type_intervenant:'entrepreneur', role:'intervenant' }); refetch() }
+  }
+
+  // Renvoi : nouvelle invitation si le compte n'est pas encore activé, sinon
+  // lien pour (re)définir le mot de passe — décidé côté serveur. Rôle et
+  // commission renvoyés à l'identique (aucune modification du profil).
+  async function handleResend(p: Profile) {
+    if (p.role !== 'intervenant' && p.role !== 'assistant') return
+    setResendLoading(p.id)
+    const type = p.type_intervenant === 'salarie' || p.type_intervenant === 'entrepreneur' ? p.type_intervenant : undefined
+    const { error, kind } = await inviterIntervenant(p.email, p.nom, p.prenom, p.commission_pct ?? 30, type, p.role)
+    setResendLoading(null)
+    if (error) add(error, 'error')
+    else add(kind === 'recovery' ? `Lien de définition du mot de passe envoyé à ${p.email}` : `Invitation renvoyée à ${p.email}`)
   }
 
   function openEdit(p: Profile) {
@@ -219,6 +233,11 @@ export default function UsersPage() {
                 </>
               )}
               <div style={{ marginLeft:'auto',display:'flex',gap:8 }}>
+                {(p.role==='intervenant'||p.role==='assistant')&&(
+                  <button className="btn-icon sm" onClick={()=>handleResend(p)} disabled={resendLoading===p.id} title="Renvoyer l'invitation" aria-label="Renvoyer l'invitation">
+                    {resendLoading===p.id?'…':<Send size={14} />}
+                  </button>
+                )}
                 <button className="btn-icon sm" onClick={()=>openDevices(p)} title="Gérer les appareils"><Smartphone size={14} /></button>
                 <button className="btn btn-secondary btn-sm" onClick={()=>openEdit(p)} title="Modifier"><Pencil size={13} /> Modifier</button>
                 {(p.role==='intervenant'||p.role==='assistant')&&(

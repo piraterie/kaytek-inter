@@ -23,6 +23,7 @@
     "test:beta": "playwright test tests/beta --project=beta",
     "test:unit": "vitest run",
     "test:deno": "node scripts/run-deno-tests.mjs",
+    "test:auth-integration": "deno test --allow-env --allow-net --allow-read=.env.test supabase/functions/_tests/auth-flows.integration.test.ts",
     "test:security:google-sql": "node scripts/run-google-sql-tests.mjs",
     "seed:local": "node scripts/seed-local-test-accounts.mjs"
   },

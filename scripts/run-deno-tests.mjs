@@ -46,6 +46,8 @@ const STANDARD_TEST_FILES = [
   'google-ads-client.test.ts',
   'google-ads-intraday.test.ts',
   'google-ads-metrics.test.ts',
+  // Liens d'invitation / réinitialisation (origine autorisée, échappement e-mail).
+  'auth-links.test.ts',
 ].map((f) => path.posix.join(SHARED_DIR, f))
 
 const NO_DEVTOKEN_TEST_FILE = path.posix.join(SHARED_DIR, 'google-ads-api-no-devtoken.test.ts')

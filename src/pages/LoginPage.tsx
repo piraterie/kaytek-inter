@@ -1,6 +1,6 @@
 // src/pages/LoginPage.tsx
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/lib/store'
 import { signIn, resetPassword } from '@/lib/supabase/auth'
 import { supabase } from '@/lib/supabase/client'
@@ -26,12 +26,17 @@ function setBF(v: { count: number; lockedUntil: number | null }) {
 function clearBF() { localStorage.removeItem(BF_KEY) }
 
 export default function LoginPage() {
-  const [email, setEmail]           = useState('')
+  const location = useLocation()
+  // Retour depuis /activation ou /reset-password : message de confirmation et
+  // adresse pré-remplie ; ?mode=reset ouvre directement « Mot de passe oublié ».
+  const navState = (location.state ?? {}) as { notice?: string; email?: string | null }
+  const [notice]                    = useState(navState.notice ?? '')
+  const [email, setEmail]           = useState(navState.email ?? '')
   const [pw, setPw]                 = useState('')
   const [err, setErr]               = useState('')
   const [loading, setLoading]       = useState(false)
   const [bioLoading, setBioLoading] = useState(false)
-  const [mode, setMode]             = useState<'login' | 'reset'>('login')
+  const [mode, setMode]             = useState<'login' | 'reset'>(() => new URLSearchParams(location.search).get('mode') === 'reset' ? 'reset' : 'login')
   const [resetOk, setResetOk]       = useState(false)
   const [offerBio, setOfferBio]     = useState(false)
   const [bioRegisterLoading, setBioRegisterLoading] = useState(false)
@@ -275,6 +280,11 @@ export default function LoginPage() {
           {mode === 'login' ? (
             <>
               <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 20 }}>Connexion</h2>
+              {notice && (
+                <div role="status" style={{ fontSize: 13, color: 'var(--gnTx)', background: 'var(--gnBg)', border: '1px solid var(--gnBd)', borderRadius: 6, padding: '10px 12px', marginBottom: 16 }}>
+                  {notice}
+                </div>
+              )}
 
               {/* ── Biometric login ──────────────────────────────────── */}
               {showBioFirst && (
@@ -386,7 +396,8 @@ export default function LoginPage() {
               {resetOk ? (
                 <div style={{ textAlign: 'center', color: 'var(--gnTx)', padding: '12px 0' }}>
                   <div style={{ fontSize: 26, marginBottom: 8 }}>✓</div>
-                  <p>Email envoyé à <strong>{email}</strong></p>
+                  <p>Si un compte est associé à <strong>{email}</strong>, un e-mail contenant un lien de réinitialisation vient d'être envoyé.</p>
+                  <p style={{ fontSize: 12, color: 'var(--t2)', marginTop: 8 }}>Pensez à vérifier vos courriers indésirables. Le lien est valable pour une durée limitée.</p>
                 </div>
               ) : (
                 <form onSubmit={handleReset} autoComplete="on">

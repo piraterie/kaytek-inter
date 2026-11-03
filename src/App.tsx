@@ -2,7 +2,8 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase/client'
+import { supabase, initialAuthUrl } from '@/lib/supabase/client'
+import { authLinkRedirect, isAuthLinkHandled } from '@/lib/authLinks'
 import { useAuthStore, useUIStore, useParamsStore } from '@/lib/store'
 import { fetchSubscriptionBlocked } from '@/lib/subscription'
 import AppLayout from '@/components/layout/AppLayout'
@@ -50,21 +51,21 @@ function Guard({ children, adminOnly = false, requireCanCreateDocs = false, allo
 }) {
   const { user, loading, error, subscriptionBlocked } = useAuthStore()
   const location = useLocation()
-  // Capturé une seule fois, au tout premier rendu (avant que le SDK Supabase ne
-  // traite/nettoie le hash de façon asynchrone) — lire window.location.hash plus
-  // tard dans le rendu (ex. après résolution de `loading`) le trouverait déjà vidé.
-  const [initialAuthHash] = useState(() => window.location.hash)
+
+  // Lien d'invitation/réinitialisation arrivé sur un chemin protégé (anciens
+  // e-mails redirigés vers la racine du Site URL Supabase) : on l'oriente vers
+  // la page de mot de passe AVANT le test sur `user` — depuis que toute session
+  // valide restaure le profil, la session issue du lien ouvrait sinon
+  // l'application sans que la personne ait choisi de mot de passe.
+  // initialAuthUrl est figée au chargement, avant que le SDK n'efface le hash.
+  const authRedirect = isAuthLinkHandled() ? null : authLinkRedirect(initialAuthUrl)
+  if (authRedirect) {
+    return <Navigate to={authRedirect} replace />
+  }
 
   if (loading) return <Loader />
   if (error) return <ErrorDisplay error={error} />
   if (!user) {
-    // Filet de sécurité : un lien d'invitation/réinitialisation Supabase peut atterrir
-    // ici avec le token dans le hash si la redirection configurée côté Supabase (Site URL /
-    // Redirect URLs) ne pointe pas vers le bon chemin — on route vers /activation plutôt
-    // que de perdre le token en renvoyant vers /login.
-    if (initialAuthHash.includes('access_token') && (initialAuthHash.includes('type=invite') || initialAuthHash.includes('type=recovery'))) {
-      return <Navigate to={`/activation${initialAuthHash}`} replace />
-    }
     // Sauvegarder la destination pour redirection post-login (cas push notification)
     const target = location.pathname + location.search
     if (target && target !== '/' && !target.startsWith('/login')) {

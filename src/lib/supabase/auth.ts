@@ -64,21 +64,27 @@ export async function signIn(email: string, password: string) {
   }
 }
 
+// « Mot de passe oublié ? » — passe par l'Edge Function demander-reinitialisation
+// (jeton généré côté serveur, e-mail envoyé via Brevo comme les invitations)
+// au lieu de supabase.auth.resetPasswordForEmail(), qui dépend du mailer SMTP
+// de Supabase Auth. La réponse ne révèle jamais si l'adresse a un compte.
+export const RESET_REQUEST_FAILED = "Impossible d'envoyer la demande pour le moment. Vérifiez votre connexion puis réessayez."
+
 export async function resetPassword(email: string) {
-  const redirectTo = `${window.location.origin}/reset-password`
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
-
+    const { error } = await supabase.functions.invoke('demander-reinitialisation', {
+      body: { email: email.trim() },
+    })
     if (error) {
-      if (error.message?.toLowerCase().includes('sending recovery email') || error.message?.toLowerCase().includes('sending')) {
-        return { error: 'Envoi impossible — vérifiez la configuration SMTP dans Supabase Auth (Authentication → Settings → SMTP)' }
-      }
-      return { error: error.message }
+      const status = (error as any)?.context?.status
+      console.warn('[resetPassword] demande refusée:', status ?? (error as any)?.name)
+      if (status === 400) return { error: 'Adresse e-mail invalide.' }
+      return { error: RESET_REQUEST_FAILED }
     }
-
     return { error: null }
   } catch (err: any) {
-    return { error: err.message || 'Erreur lors de l\'envoi de l\'email' }
+    console.warn('[resetPassword] erreur réseau:', err?.message)
+    return { error: RESET_REQUEST_FAILED }
   }
 }
 
@@ -157,10 +163,10 @@ export async function inviterIntervenant(
       body: { email, nom, prenom, commission_pct, type_intervenant, role }
     })
 
-    if (error) return { error: error.message }
-    if (data?.error) return { error: data.error }
+    if (error) return { error: await extractFunctionErrorMessage(error, "Erreur lors de l'invitation") }
+    if (data?.error) return { error: data.error as string }
 
-    return { error: null }
+    return { error: null, kind: (data?.kind ?? 'invite') as 'invite' | 'recovery' }
   } catch (err: any) {
     console.error('Erreur inviterIntervenant:', err)
     return { error: err.message || "Erreur lors de l'invitation" }

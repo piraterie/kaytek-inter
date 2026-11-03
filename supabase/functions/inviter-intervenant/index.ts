@@ -1,5 +1,10 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { sendTransactionalEmail } from '../_shared/brevo-email.ts'
+import {
+  resolveAppOrigin, buildAppAuthLink, buildActivationLinkForRecovery,
+  normalizeEmail, isPlausibleEmail, maskEmail, escapeHtml, renderAuthEmail,
+} from '../_shared/auth-links.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,7 +39,10 @@ async function requireAdmin(req: Request): Promise<{ error: string | null; organ
 const respond = (data: object) =>
   new Response(JSON.stringify(data), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-serve(async (req) => {
+// Échappe les jokers ILIKE (% _ \) — fréquents dans les adresses (ex. jean_dupont@…).
+const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`)
+
+export async function handleInviterIntervenant(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   const { error: deny, organisationId } = await requireAdmin(req)
@@ -47,159 +55,118 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY') ?? ''
-    const { email, nom, prenom, commission_pct, role: requestedRole } = await req.json()
-    if (!email || !nom || !prenom) return respond({ error: 'Champs email, nom et prenom obligatoires' })
+    const body = await req.json()
+    const email = normalizeEmail(body.email)
+    const nom = typeof body.nom === 'string' ? body.nom.trim() : ''
+    const prenom = typeof body.prenom === 'string' ? body.prenom.trim() : ''
+    const { commission_pct, role: requestedRole } = body
+    if (!email || !nom || !prenom) return respond({ error: 'Champs email, nom et prénom obligatoires' })
+    if (!isPlausibleEmail(email)) return respond({ error: 'Adresse e-mail invalide' })
 
     // Whitelist stricte des rôles invitables — 'admin' est explicitement exclu
     // pour empêcher toute escalade de privilèges via ce endpoint.
     const ALLOWED_ROLES = ['intervenant', 'assistant']
-    const role = ALLOWED_ROLES.includes(requestedRole) ? requestedRole : 'intervenant'
     if (requestedRole && !ALLOWED_ROLES.includes(requestedRole)) {
       return respond({ error: `Rôle invalide — autorisés : ${ALLOWED_ROLES.join(', ')}` })
     }
+    const role: 'intervenant' | 'assistant' = requestedRole === 'assistant' ? 'assistant' : 'intervenant'
 
-    const origin = req.headers.get('origin') || 'https://app.kaytekinter.fr'
-    const redirectTo = `${origin}/activation`
-    const profileData = role === 'intervenant'
-      ? { nom, prenom, role, commission_pct: commission_pct ?? 30, actif: true, organisation_id: organisationId }
-      : { nom, prenom, role, actif: true, organisation_id: organisationId }
-
-    // 1. Chercher si profil existe déjà
-    const { data: existingProfile } = await admin.from('profiles')
-      .select('id, organisation_id')
-      .eq('email', email)
-      .maybeSingle()
-
-    let actionLink: string
-    let isNew = false
-
-    if (existingProfile?.id) {
-      // Vérification isolation organisation : refuser si le profil appartient à une autre org
-      if (existingProfile.organisation_id && existingProfile.organisation_id !== organisationId) {
-        return respond({ error: 'Cet utilisateur appartient déjà à une autre organisation' })
-      }
-
-      // Utilisateur existant (même org ou sans org) → mise à jour profil + génération lien reset
-      // role limité à la whitelist ALLOWED_ROLES (jamais 'admin') pour éviter toute escalade de privilèges
-      const updatePayload: Record<string, unknown> = { nom, prenom, role, organisation_id: organisationId }
-      if (role === 'intervenant') updatePayload.commission_pct = commission_pct ?? 30
-      console.log('[DBG] profiles.update payload:', JSON.stringify(updatePayload))
-      const { error: updateErr } = await admin.from('profiles').update(updatePayload).eq('id', existingProfile.id)
-      if (updateErr) console.error('[DBG] profiles.update error:', JSON.stringify({ message: updateErr.message, code: (updateErr as any).code, details: (updateErr as any).details, hint: (updateErr as any).hint }))
-      const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-        type: 'recovery', email, options: { redirectTo }
-      })
-      if (linkErr) return respond({ error: linkErr.message })
-      actionLink = linkData.properties?.action_link ?? ''
-    } else {
-      // Nouvel utilisateur — recherche ciblée dans auth.users par email (évite listUsers global)
-      const { data: authUser } = await admin
-        .schema('auth')
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle()
-
-      if (authUser) {
-        // Existe dans auth mais pas de profil
-        console.log('[DBG] profiles.upsert payload:', JSON.stringify({ id: authUser.id, email, ...profileData }))
-        const { error: upsertErr } = await admin.from('profiles').upsert({ id: authUser.id, email, ...profileData })
-        if (upsertErr) console.error('[DBG] profiles.upsert error:', JSON.stringify({ message: upsertErr.message, code: (upsertErr as any).code, details: (upsertErr as any).details, hint: (upsertErr as any).hint }))
-        const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-          type: 'recovery', email, options: { redirectTo }
-        })
-        if (linkErr) return respond({ error: linkErr.message })
-        actionLink = linkData.properties?.action_link ?? ''
-      } else {
-        // Vraiment nouveau → generateLink crée l'auth user, ce qui déclenche le trigger
-        // handle_new_user() (AFTER INSERT auth.users). Ce trigger lit organisation_id/role/
-        // nom/prenom depuis raw_user_meta_data (avec fallback org 'kaytek-inter' si absent) —
-        // on lui passe donc ces valeurs explicitement pour qu'il crée le profil dans la
-        // BONNE organisation avec le BON rôle dès la première insertion (sinon le trigger
-        // retombe sur l'org par défaut et l'insert explicite ci-dessous entre en conflit
-        // avec la ligne déjà créée par le trigger).
-        console.log('[DBG] generateLink invite pour:', email)
-        const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-          type: 'invite', email,
-          options: { redirectTo, data: { nom, prenom, role, organisation_id: organisationId } }
-        })
-        if (linkErr) {
-          console.error('[DBG] generateLink invite error:', JSON.stringify({ message: linkErr.message, code: (linkErr as any).code, details: (linkErr as any).details, hint: (linkErr as any).hint, status: (linkErr as any).status }))
-          return respond({ error: linkErr.message })
-        }
-        actionLink = linkData.properties?.action_link ?? ''
-
-        // Filet de sécurité : si le trigger n'a pas créé la ligne (désactivé, erreur, etc.),
-        // upsert la garantit quand même — idempotent avec la ligne déjà créée par le trigger.
-        const userId = linkData.user?.id
-        console.log('[DBG] profiles.upsert payload:', JSON.stringify({ id: userId, email, ...profileData }))
-        if (userId) {
-          const { error: upsertErr } = await admin.from('profiles').upsert({ id: userId, email, ...profileData }, { onConflict: 'id' })
-          if (upsertErr) console.error('[DBG] profiles.upsert error:', JSON.stringify({ message: upsertErr.message, code: (upsertErr as any).code, details: (upsertErr as any).details, hint: (upsertErr as any).hint }))
-        }
-        isNew = true
-      }
-    }
-
-    if (!actionLink) return respond({ error: 'Impossible de générer le lien' })
-
-    // 2. Envoyer l'email via Brevo API (pas SMTP)
-    const subject = isNew ? 'Bienvenue sur Kaytek Inter — Activez votre compte' : 'Kaytek Inter — Définissez votre mot de passe'
-    const html = `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;background:#fff;border-radius:8px;overflow:hidden;">
-        <div style="background:#1e3a5f;padding:28px 36px;text-align:center;">
-          <div style="color:#fff;font-size:20px;font-weight:700;">KAYTEK INTER</div>
-          <div style="color:rgba(255,255,255,0.6);font-size:12px;margin-top:4px;">Serrurerie · Vitrerie</div>
-        </div>
-        <div style="background:#e85d04;height:4px;"></div>
-        <div style="padding:32px 36px;">
-          <p style="font-size:15px;color:#374151;">Bonjour <strong>${prenom} ${nom}</strong>,</p>
-          <p style="font-size:15px;color:#374151;">
-            ${isNew
-              ? `Vous avez été invité(e) à rejoindre l'application <strong>Kaytek Inter</strong> en tant qu'${role === 'assistant' ? 'assistant(e)' : 'intervenant(e)'}.`
-              : "Voici votre lien pour définir votre mot de passe sur <strong>Kaytek Inter</strong>."}
-          </p>
-          <div style="text-align:center;margin:28px 0;">
-            <a href="${actionLink}" style="background:#1e3a5f;color:#fff;text-decoration:none;padding:14px 28px;border-radius:6px;font-weight:700;font-size:15px;display:inline-block;">
-              ${isNew ? 'Activer mon compte' : 'Définir mon mot de passe'}
-            </a>
-          </div>
-          <p style="font-size:12px;color:#9ca3af;text-align:center;">Ce lien expire dans 24h. Si vous n'êtes pas concerné(e), ignorez cet email.</p>
-        </div>
-        <div style="background:#1e3a5f;padding:16px 36px;text-align:center;">
-          <div style="color:rgba(255,255,255,0.6);font-size:11px;">Kaytek Inter · Serrurerie · Vitrerie</div>
-        </div>
-      </div>`
-
-    const EMAIL_FROM = Deno.env.get('EMAIL_FROM') ?? ''
-    if (!EMAIL_FROM) {
-      console.error('[inviter-intervenant] EMAIL_FROM non configuré — arrêt')
-      return respond({ error: 'Configuration email manquante (EMAIL_FROM non défini)' })
-    }
-    const emailFromMatch = EMAIL_FROM.match(/^(.+?)\s*<(.+?)>$/)
-    const senderName  = emailFromMatch ? emailFromMatch[1].trim() : 'Kaytek Inter'
-    const senderEmail = emailFromMatch ? emailFromMatch[2].trim() : EMAIL_FROM.trim()
-
-    const emailRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: { 'api-key': BREVO_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sender: { name: senderName, email: senderEmail },
-        to: [{ email }],
-        subject,
-        htmlContent: html
-      })
+    const origin = resolveAppOrigin(req.headers.get('origin'), {
+      APP_URL: Deno.env.get('APP_URL'),
+      APP_ALLOWED_ORIGINS: Deno.env.get('APP_ALLOWED_ORIGINS'),
+      SUPABASE_URL,
     })
 
-    if (!emailRes.ok) {
-      const emailErr = await emailRes.json()
-      return respond({ error: emailErr.message || "Erreur envoi email" })
+    // 1. Profil existant ? (comparaison insensible à la casse)
+    const { data: existingProfile, error: lookupErr } = await admin.from('profiles')
+      .select('id, organisation_id, role')
+      .ilike('email', escapeLike(email))
+      .maybeSingle()
+    if (lookupErr) {
+      console.error('[inviter-intervenant] recherche profil échouée:', lookupErr.message)
+      return respond({ error: "Impossible d'envoyer l'invitation pour le moment. Réessayez plus tard." })
     }
 
-    return respond({ error: null })
+    if (existingProfile?.organisation_id && existingProfile.organisation_id !== organisationId) {
+      return respond({ error: 'Cet utilisateur appartient déjà à une autre organisation' })
+    }
+    // Ne jamais rétrograder un administrateur via une (ré)invitation.
+    if (existingProfile?.role === 'admin') {
+      return respond({ error: 'Cette adresse correspond déjà à un administrateur' })
+    }
+
+    // 2. Jeton : invitation tant que le compte n'est pas confirmé (nouveau compte
+    // ou invitation en attente = renvoi), sinon lien de type recovery.
+    // user_metadata ne sert qu'à l'affichage : depuis la migration 20261103000000,
+    // handle_new_user() ignore toute organisation fournie par ce biais (il serait
+    // sinon exploitable par un signUp public) — le profil est créé à l'étape 3.
+    let kind: 'invite' | 'recovery' = 'invite'
+    let { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+      type: 'invite', email,
+      options: { data: { nom, prenom, role, organisation_id: organisationId } },
+    })
+    if (linkErr && ((linkErr as any).code === 'email_exists' || (linkErr as any).status === 422)) {
+      kind = 'recovery'
+      ;({ data: linkData, error: linkErr } = await admin.auth.admin.generateLink({ type: 'recovery', email }))
+    }
+    if (linkErr || !linkData?.user?.id || !linkData.properties?.hashed_token) {
+      console.error('[inviter-intervenant] generateLink échoué:', JSON.stringify({
+        kind, email: maskEmail(email), message: linkErr?.message, code: (linkErr as any)?.code, status: (linkErr as any)?.status,
+      }))
+      return respond({ error: "Impossible de générer le lien d'invitation. Réessayez plus tard." })
+    }
+    const userId = linkData.user.id
+
+    if (existingProfile?.id && existingProfile.id !== userId) {
+      console.error('[inviter-intervenant] incohérence profil/auth pour', maskEmail(email))
+      return respond({ error: 'Compte incohérent pour cette adresse — contactez le support.' })
+    }
+
+    // 3. Profil — seul point de rattachement d'un membre à une organisation :
+    // rôle et organisation fixés ici, côté serveur, après vérification de
+    // l'admin (jamais depuis la page d'activation, l'URL du lien ou un signUp).
+    const profileData: Record<string, unknown> = { nom, prenom, role, organisation_id: organisationId }
+    if (role === 'intervenant') profileData.commission_pct = commission_pct ?? 30
+    const { error: profileErr } = existingProfile?.id
+      ? await admin.from('profiles').update(profileData).eq('id', userId)
+      : await admin.from('profiles').upsert({ id: userId, email, actif: true, ...profileData }, { onConflict: 'id' })
+    if (profileErr) {
+      console.error('[inviter-intervenant] écriture profil échouée:', JSON.stringify({ message: profileErr.message, code: (profileErr as any).code }))
+      return respond({ error: "Impossible d'enregistrer le profil invité. Réessayez plus tard." })
+    }
+
+    // 4. E-mail via l'API Brevo (pas le SMTP Supabase).
+    const hashedToken = linkData.properties.hashed_token
+    const link = kind === 'invite'
+      ? buildAppAuthLink(origin, 'invite', hashedToken)
+      : buildActivationLinkForRecovery(origin, hashedToken)
+    const roleLabel = role === 'assistant' ? 'assistant(e)' : 'intervenant(e)'
+    const html = renderAuthEmail({
+      greetingName: `${prenom} ${nom}`,
+      intro: kind === 'invite'
+        ? `Vous avez été invité(e) à rejoindre l'application <strong>Kaytek Inter</strong> en tant qu'${escapeHtml(roleLabel)}. Cliquez sur le bouton ci-dessous pour choisir votre mot de passe et activer votre compte.`
+        : 'Voici votre lien pour définir votre mot de passe sur <strong>Kaytek Inter</strong>.',
+      ctaLabel: kind === 'invite' ? 'Activer mon compte' : 'Définir mon mot de passe',
+      ctaUrl: link,
+      footnote: "Ce lien est personnel et valable pour une durée limitée. Si vous n'êtes pas concerné(e), ignorez cet e-mail.",
+    })
+    const sent = await sendTransactionalEmail({
+      to: email,
+      subject: kind === 'invite' ? 'Bienvenue sur Kaytek Inter — Activez votre compte' : 'Kaytek Inter — Définissez votre mot de passe',
+      html,
+    })
+    if (!sent.ok) {
+      console.error('[inviter-intervenant] envoi Brevo échoué:', sent.error)
+      return respond({ error: "L'e-mail d'invitation n'a pas pu être envoyé. Réessayez plus tard." })
+    }
+
+    console.log('[inviter-intervenant] invitation envoyée', JSON.stringify({ kind, role, email: maskEmail(email) }))
+    return respond({ error: null, kind })
 
   } catch (e) {
-    return respond({ error: e instanceof Error ? e.message : 'Erreur interne' })
+    console.error('[inviter-intervenant] erreur interne:', e instanceof Error ? e.message : e)
+    return respond({ error: 'Erreur interne — réessayez plus tard.' })
   }
-})
+}
+
+if (import.meta.main) serve(handleInviterIntervenant)
