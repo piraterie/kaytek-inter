@@ -21,7 +21,7 @@ const MILESTONES = [
   { file: 'supabase/migrations/20261103000000_handle_new_user_server_only_org.sql', label: 'faille d\'inscription (migration)' },
   { file: 'supabase/migrations/20261103000100_member_permissions_hardening.sql', label: 'droits assistant/intervenant (migration)' },
   { file: 'supabase/migrations/20261103000200_enforce_can_create_documents.sql', label: 'can_create_documents côté serveur (migration)' },
-  { file: 'supabase/functions/supprimer-utilisateur/index.ts', contains: 'DELETABLE_ROLES', label: 'suppression d'utilisateur limitée à sa propre entreprise' },
+  { file: 'supabase/functions/supprimer-utilisateur/index.ts', contains: 'DELETABLE_ROLES', label: "suppression d'utilisateur limitée à sa propre entreprise" },
   { file: 'supabase/functions/dynamic-api/index.ts', contains: 'Fonction supprimée', label: 'dynamic-api neutralisée' },
   // 2026-09-22 — tableau de bord Google Ads (style/color-palette @ c3892b4)
   { file: 'src/pages/googleAds/Overview.tsx', label: 'tableau de bord Google Ads' },
